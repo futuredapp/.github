@@ -1,7 +1,13 @@
-name: Test
+name: Cloud Test
 
-on: [pull_request]
-
+on:
+  workflow_call:
+    secrets:
+      # Key for accessing repo with Apple certificates
+      # and provisioning profiles and repo with imported
+      # Fastlane lanes.
+      SSH_PRIVATE_KEY:
+        required: true
 jobs:
   test:
     runs-on: macos-latest

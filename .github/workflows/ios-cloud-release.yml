@@ -1,11 +1,19 @@
-name: Beta
+name: Cloud Release
 
 on:
-  release:
-    types: [published]
-
+  workflow_call:
+    secrets:
+      # Key for accessing repo with Apple certificates
+      # and provisioning profiles and repo with imported
+      # Fastlane lanes.
+      SSH_PRIVATE_KEY:
+        required: true
+      MATCH_PASSWORD:
+        required: true
+      APP_STORE_CONNECT_API_KEY_KEY:
+        required: true
 jobs:
-  beta:
+  release:
     runs-on: macos-latest
 
     steps:

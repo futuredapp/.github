@@ -1,12 +1,19 @@
-name: Enterprise
+name: Cloud Build
 
 on:
-  push:
-    branches:
-    - develop
-
+  workflow_call:
+    secrets:
+      # Key for accessing repo with Apple certificates
+      # and provisioning profiles and repo with imported
+      # Fastlane lanes.
+      SSH_PRIVATE_KEY:
+        required: true
+      MATCH_PASSWORD:
+        required: true
+      APPCENTER_API_TOKEN:
+        required: true
 jobs:
-  enterprise:
+  build:
     runs-on: macos-latest
 
     steps:
