@@ -23,11 +23,21 @@ All the available reusable workflows are listed in the following table.
 
 ### Available workflows
 
-|Platform |Runner      |Action     |File                                                                              |Description                                                           |
-|:--------|:-----------|:----------|:---------------------------------------------------------------------------------|:---------------------------------------------------------------------|
-|iOS      |Cloud       |Test       |`[ios-cloud-test](../.github/workflows/ios-cloud-test.yml)`                       |Lints and tests the PR.                                               |
-|iOS      |Cloud       |Build      |`[ios-cloud-build](../.github/workflows/ios-cloud-build.yml)`                     |Creates enterprise release build and submits the build to App Center. |
-|iOS      |Cloud       |Distribute |`[ios-cloud-distribute](../.github/workflows/ios-cloud-distribute.yml)`           |Creates release build and submits it to App Store Connect.            |
-|iOS      |Self-hosted |Test       |`[ios-selfhosted-test](../.github/workflows/ios-selfhosted-test.yml)`             |Lints and tests the PR.                                               |
-|iOS      |Self-hosted |Build      |`[ios-selfhosted-build](../.github/workflows/ios-selfhosted-build.yml)`           |Creates enterprise release build and submits the build to App Center. |
-|iOS      |Self-hosted |Distribute |`[ios-selfhosted-distribute](../.github/workflows/ios-selfhosted-distribute.yml)` |Creates release build and submits it to App Store Connect.            |
+|Platform |Runner      |Action  |File                                                                        |Description                                                           |
+|:--------|:-----------|:-------|:---------------------------------------------------------------------------|:---------------------------------------------------------------------|
+|iOS      |Cloud       |Test    |[`ios-cloud-test`](../.github/workflows/ios-cloud-test.yml)                 |Lints and tests the PR.                                               |
+|iOS      |Cloud       |Build   |[`ios-cloud-build`](../.github/workflows/ios-cloud-build.yml)               |Creates enterprise release build and submits the build to App Center. |
+|iOS      |Cloud       |Release |[`ios-cloud-release`](../.github/workflows/ios-cloud-release.yml)           |Creates release build and submits it to App Store Connect.            |
+|iOS      |Self-hosted |Test    |[`ios-selfhosted-test`](../.github/workflows/ios-selfhosted-test.yml)       |Lints and tests the PR.                                               |
+|iOS      |Self-hosted |Build   |[`ios-selfhosted-build`](../.github/workflows/ios-selfhosted-build.yml)     |Creates enterprise release build and submits the build to App Center. |
+|iOS      |Self-hosted |Release |[`ios-selfhosted-release`](../.github/workflows/ios-selfhosted-release.yml) |Creates release build and submits it to App Store Connect.            |
+
+## Contributors
+
+All contributions are welcome!
+
+Current maintainer is [Matěj Kašpar Jirásek](https://github.com/mkj-is), <matej.jirasek@futured.app>.
+
+## License
+
+Content of this repository is available under the MIT license. See the [LICENSE file](LICENSE) for more information.
