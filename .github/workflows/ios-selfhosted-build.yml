@@ -1,0 +1,40 @@
+name: Self-hosted Build
+
+on:
+  workflow_call:
+    secrets:
+      # Key for accessing repo with Apple certificates
+      # and provisioning profiles and repo with imported
+      # Fastlane lanes.
+      SSH_PRIVATE_KEY:
+        required: true
+      MATCH_PASSWORD:
+        required: true
+      APPCENTER_API_TOKEN:
+        required: true
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Fastlane Enterprise
+      run: |
+        gem install bundler
+        bundle install --jobs 4 --retry 3
+        bundle exec fastlane run increment_build_number build_number:$GITHUB_RUN_NUMBER
+        bundle exec fastlane enterprise
+      env:
+        MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        APPCENTER_API_TOKEN: ${{ secrets.APPCENTER_API_TOKEN }}
+    - name: Upload IPA
+      uses: actions/upload-artifact@v2
+      with:
+        name: Build.ipa
+        path: build_output/*.ipa
+    - name: Upload dSYM
+      uses: actions/upload-artifact@v2
+      with:
+        name: Build.app.dSYM.zip
+        path: build_output/*.app.dSYM.zip
