@@ -24,20 +24,12 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
     - name: Setup Ruby
-      uses: actions/setup-ruby@v1
+      uses: ruby/setup-ruby@v1
       with:
-        ruby-version: 2.6.x
-    - name: Cache Ruby gems
-      uses: actions/cache@v1
-      with:
-        path: vendor/bundle
-        key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-gems-
+        ruby-version: 2.7
+        bundler-cache: true
     - name: Fastlane Beta
       run: |
-        gem install bundler
-        bundle config path vendor/bundle
         bundle install --jobs 4 --retry 3
         bundle exec fastlane beta
       env:
