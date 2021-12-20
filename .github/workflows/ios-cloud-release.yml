@@ -26,7 +26,8 @@ jobs:
     - name: Setup Ruby
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: 2.6.x
+        ruby-version: 2.7
+        bundler-cache: true
     - name: Cache Ruby gems
       uses: actions/cache@v1
       with:
@@ -36,8 +37,6 @@ jobs:
           ${{ runner.os }}-gems-
     - name: Fastlane Beta
       run: |
-        gem install bundler
-        bundle config path vendor/bundle
         bundle install --jobs 4 --retry 3
         bundle exec fastlane beta
       env:
