@@ -12,6 +12,11 @@ on:
         required: true
       APP_STORE_CONNECT_API_KEY_KEY:
         required: true
+
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   release:
     runs-on: macos-latest
