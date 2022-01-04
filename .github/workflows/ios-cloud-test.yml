@@ -8,6 +8,11 @@ on:
       # Fastlane lanes.
       SSH_PRIVATE_KEY:
         required: true
+
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: macos-latest

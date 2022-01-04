@@ -12,6 +12,7 @@ on:
         required: true
       APPCENTER_API_TOKEN:
         required: true
+
 jobs:
   build:
     runs-on: macos-latest
