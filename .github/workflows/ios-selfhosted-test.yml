@@ -1,15 +1,9 @@
 name: Self-hosted Test
 
 on:
-  workflow_call:
-    secrets:
-      # Key for accessing repo with Apple certificates
-      # and provisioning profiles and repo with imported
-      # Fastlane lanes.
-      SSH_PRIVATE_KEY:
-        required: true
+  - workflow_call
 
-concurrency: 
+concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref }}
   cancel-in-progress: true
 
