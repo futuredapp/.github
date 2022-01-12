@@ -13,7 +13,7 @@ jobs:
         shell: bash
       - name: Add problem matcher
         run: |
-          echo "::add-matcher::actionlint-matcher.json"
+          echo "::add-matcher::.github/actionlint-matcher.json"
       - name: Check workflow files
         run: ${{ steps.get_actionlint.outputs.executable }} -color
         shell: bash
