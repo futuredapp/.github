@@ -5,8 +5,12 @@ on:
     secrets:
       MATCH_PASSWORD:
         required: true
+        description: >
+          Password for decrypting of certificates and provisioning profiles.
       APP_STORE_CONNECT_API_KEY_KEY:
         required: true
+        description: >
+          Private App Store Connect API key for submitting build to App Store.
 
 jobs:
   release:

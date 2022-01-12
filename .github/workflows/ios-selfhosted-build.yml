@@ -5,8 +5,11 @@ on:
     secrets:
       MATCH_PASSWORD:
         required: true
+        description: >
+          Password for decrypting of certificates and provisioning profiles.
       APPCENTER_API_TOKEN:
         required: true
+        description: Token for submitting builds to App Center.
 
 jobs:
   build:
