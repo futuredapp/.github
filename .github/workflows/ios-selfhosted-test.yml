@@ -1,7 +1,13 @@
 name: Self-hosted Test
 
 on:
-  - workflow_call
+  workflow_call:
+    inputs:
+      use_git_lfs:
+        description: Whether to download Git-LFS files.
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref }}
@@ -15,6 +21,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
       with:
+        lfs: ${{ inputs.use_git_lfs }}
         fetch-depth: 0
     - name: Fastlane Test
       run: |
