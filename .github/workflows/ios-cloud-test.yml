@@ -2,6 +2,11 @@ name: Cloud Test
 
 on:
   workflow_call:
+    inputs:
+      use_git_lfs:
+        description: Whether to download Git-LFS files.
+        type: boolean
+        required: false
     secrets:
       # Key for accessing repo with Apple certificates
       # and provisioning profiles and repo with imported
@@ -21,6 +26,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
       with:
+        lfs: ${{ inputs.use_git_lfs }}
         fetch-depth: 0
     - name: Setup SSH key
       uses: webfactory/ssh-agent@v0.4.1
