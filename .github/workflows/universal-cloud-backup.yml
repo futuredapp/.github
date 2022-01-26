@@ -12,6 +12,10 @@ on:
         description: Remote SSH repository address.
         type: string
         required: true
+      use_git_lfs:
+        description: Whether to download Git-LFS files.
+        type: boolean
+        required: false
     secrets:
       SSH_PRIVATE_KEY:
         required: true
@@ -28,6 +32,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
       with:
+        lfs: ${{ inputs.use_git_lfs }}
         fetch-depth: 0 # Make deep copy
     - name: Setup SSH
       uses: kielabokkie/ssh-key-and-known-hosts-action@v1.1.0
