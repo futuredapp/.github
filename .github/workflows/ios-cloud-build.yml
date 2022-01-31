@@ -39,7 +39,6 @@ jobs:
     - name: Fastlane Enterprise
       run: |
         bundle install --jobs 4 --retry 3
-        bundle exec fastlane run increment_build_number build_number:$GITHUB_RUN_NUMBER
         bundle exec fastlane enterprise
       env:
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
