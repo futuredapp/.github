@@ -2,6 +2,12 @@ name: Self-hosted Build
 
 on:
   workflow_call:
+    inputs:
+      use_git_lfs:
+        description: Whether to download Git-LFS files.
+        type: boolean
+        required: false
+        default: false
     secrets:
       MATCH_PASSWORD:
         required: true
@@ -18,11 +24,12 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+      with:
+        lfs: ${{ inputs.use_git_lfs }}
     - name: Fastlane Enterprise
       run: |
         gem install bundler
         bundle install --jobs 4 --retry 3
-        bundle exec fastlane run increment_build_number build_number:"$GITHUB_RUN_NUMBER"
         bundle exec fastlane enterprise
       env:
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}

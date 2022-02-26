@@ -2,6 +2,12 @@ name: Self-hosted Release
 
 on:
   workflow_call:
+    inputs:
+      use_git_lfs:
+        description: Whether to download Git-LFS files.
+        type: boolean
+        required: false
+        default: false
     secrets:
       MATCH_PASSWORD:
         required: true
@@ -19,6 +25,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+      with:
+        lfs: ${{ inputs.use_git_lfs }}
     - name: Fastlane Beta
       run: |
         gem install bundler
