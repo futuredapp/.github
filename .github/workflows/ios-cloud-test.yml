@@ -8,13 +8,14 @@ on:
         type: boolean
         required: false
     secrets:
-      # Key for accessing repo with Apple certificates
-      # and provisioning profiles and repo with imported
-      # Fastlane lanes.
       SSH_PRIVATE_KEY:
         required: true
+        description: >
+          Key for accessing repo with Apple certificates
+          and provisioning profiles and repo with imported
+          Fastlane lanes.
 
-concurrency: 
+concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref }}
   cancel-in-progress: true
 
