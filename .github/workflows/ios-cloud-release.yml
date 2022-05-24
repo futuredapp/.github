@@ -59,7 +59,7 @@ jobs:
       with:
         name: Build.app.dSYM.zip
         path: build_output/*.app.dSYM.zip
-    - name: Clean Archives
+    - name: Clear Archives
       run: |
         rm -fr ~/Library/Developer/Xcode/DerivedData/*
     - name: Cleanup
