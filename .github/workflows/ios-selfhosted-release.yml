@@ -33,8 +33,6 @@ jobs:
         gem install bundler
         bundle install --jobs 4 --retry 3
         bundle exec fastlane beta
-        bundle exec fastlane run reset_simulator_contents
-        bundle exec fastlane run clear_derived_data
       env:
         APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
@@ -48,3 +46,8 @@ jobs:
       with:
         name: Build.app.dSYM.zip
         path: build_output/*.app.dSYM.zip
+    - name: Cleanup
+      if: always()
+      run: |
+        bundle exec fastlane run reset_simulator_contents
+        bundle exec fastlane run clear_derived_data
