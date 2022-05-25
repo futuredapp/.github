@@ -31,8 +31,3 @@ jobs:
         bundle exec fastlane test
       env:
         DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Cleanup
-      if: always()
-      run: |
-        bundle exec fastlane run reset_simulator_contents
-        bundle exec fastlane run clear_derived_data

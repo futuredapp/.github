@@ -49,8 +49,3 @@ jobs:
     - name: Clear Archives
       run: |
         rm -rf ~/Library/Developer/Xcode/Archives
-    - name: Cleanup
-      if: always()
-      run: |
-        bundle exec fastlane run reset_simulator_contents
-        bundle exec fastlane run clear_derived_data
