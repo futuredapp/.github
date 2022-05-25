@@ -1,4 +1,4 @@
-name: Cleanup
+name: Self-hosted Cleanup
 
 on:
   workflow_dispatch:
