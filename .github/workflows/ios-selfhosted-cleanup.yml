@@ -23,10 +23,10 @@ jobs:
         gem install bundler
         bundle install --jobs 4 --retry 3
     - name: Bundle intall
-      if: $DERIVED_DATA == true
+      if: ${{ github.event.inputs.derived_data == 'true' }}
       run: |
         bundle exec fastlane run clear_derived_data
     - name: Bundle intall
-      if: $SIMULATOR == true
+      if: ${{ github.event.inputs.simulator == 'true' }}
       run: |
         bundle exec fastlane run reset_simulator_contents
