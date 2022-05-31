@@ -29,8 +29,6 @@ All the available reusable workflows are listed in the following table.
 |iOS       |Self-hosted |Test    |[`ios-selfhosted-test`](.github/workflows/ios-selfhosted-test.yml)       |Lints and tests the PR.                                               |
 |iOS       |Self-hosted |Build   |[`ios-selfhosted-build`](.github/workflows/ios-selfhosted-build.yml)     |Creates enterprise release build and submits the build to App Center. |
 |iOS       |Self-hosted |Release |[`ios-selfhosted-release`](.github/workflows/ios-selfhosted-release.yml) |Creates release build and submits it to App Store Connect.            |
-|iOS       |Self-hosted |Manual |[`ios-selfhosted-clenup`](.github/workflows/ios-selfhosted-cleanup.yml) |
-This action can be triggerend manually. Can clean derived data and simulator content            |
 |iOS       |Cloud       |Test    |[`ios-cloud-test`](.github/workflows/ios-cloud-test.yml)                 |Lints and tests the PR.                                               |
 |iOS       |Cloud       |Build   |[`ios-cloud-build`](.github/workflows/ios-cloud-build.yml)               |Creates enterprise release build and submits the build to App Center. |
 |iOS       |Cloud       |Release |[`ios-cloud-release`](.github/workflows/ios-cloud-release.yml)           |Creates release build and submits it to App Store Connect.            |
