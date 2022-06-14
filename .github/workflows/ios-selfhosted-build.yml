@@ -45,3 +45,6 @@ jobs:
       with:
         name: Build.app.dSYM.zip
         path: build_output/*.app.dSYM.zip
+    - name: Clear Archives
+      run: |
+        rm -rf ~/Library/Developer/Xcode/Archives
