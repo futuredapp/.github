@@ -1,0 +1,46 @@
+name: Backup
+
+on:
+  workflow_call:
+    inputs:
+      host:
+        description: Host name.
+        type: string
+        required: false
+        default: github.com
+      remote:
+        description: Remote SSH repository address.
+        type: string
+        required: true
+      use_git_lfs:
+        description: Whether to download Git-LFS files.
+        type: boolean
+        required: false
+    secrets:
+      SSH_PRIVATE_KEY:
+        required: true
+        description: >
+          Key for accessing repo with Apple certificates
+          and provisioning profiles and repo with imported
+          Fastlane lanes.
+
+jobs:
+  build:
+    runs-on: self-hosted
+    timeout-minutes: 30
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        lfs: ${{ inputs.use_git_lfs }}
+        fetch-depth: 0 # Make deep copy
+    - name: Setup SSH
+      uses: kielabokkie/ssh-key-and-known-hosts-action@v1.1.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        ssh-host: ${{ inputs.host }}
+    - name: Add backup remote
+      run: git remote add backup ${{ inputs.remote }}
+    - name: Push to partner repository
+      run: git push backup HEAD:"$GITHUB_REF"
