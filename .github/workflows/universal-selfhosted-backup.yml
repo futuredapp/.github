@@ -33,7 +33,7 @@ jobs:
     - name: Remove backup remote if already exists
       run: git remote rm backup || true
     - name: Clean temp
-      run : rm /tmp/ssh-auth.sock
+      run : rm /tmp/ssh-auth.sock || true
     - name: Checkout
       uses: actions/checkout@v2
       with:
