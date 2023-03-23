@@ -35,7 +35,7 @@ jobs:
     - name: Clean temp
       run : rm -f /tmp/ssh-auth.sock
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         lfs: ${{ inputs.use_git_lfs }}
         fetch-depth: 0 # Make deep copy
