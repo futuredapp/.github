@@ -35,12 +35,12 @@ jobs:
     - name: Clean temp
       run : rm -f /tmp/ssh-auth.sock
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         lfs: ${{ inputs.use_git_lfs }}
         fetch-depth: 0 # Make deep copy
     - name: Setup SSH
-      uses: kielabokkie/ssh-key-and-known-hosts-action@v1.1.0
+      uses: kielabokkie/ssh-key-and-known-hosts-action@v1.3.5
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
         ssh-host: ${{ inputs.host }}
