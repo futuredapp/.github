@@ -29,32 +29,30 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         lfs: ${{ inputs.use_git_lfs }}
     - name: Setup SSH key
-      uses: webfactory/ssh-agent@v0.4.1
+      uses: webfactory/ssh-agent@v0.7.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
     - name: Setup Ruby
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: 2.7
+        ruby-version: 3.0
         bundler-cache: true
     - name: Fastlane Enterprise
-      run: |
-        bundle install --jobs 4 --retry 3
-        bundle exec fastlane enterprise
+      run: bundle exec fastlane enterprise
       env:
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
         APPCENTER_API_TOKEN: ${{ secrets.APPCENTER_API_TOKEN }}
     - name: Upload IPA
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: Build.ipa
         path: build_output/*.ipa
     - name: Upload dSYM
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: Build.app.dSYM.zip
         path: build_output/*.app.dSYM.zip
