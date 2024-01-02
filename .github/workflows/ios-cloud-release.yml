@@ -22,6 +22,26 @@ on:
         required: true
         description: >
           Private App Store Connect API key for submitting build to App Store.
+      APP_STORE_CONNECT_API_KEY_KEY_ID:
+        required: true
+        description: >
+          Private App Store Connect API key id for submitting build to App Store.
+      APP_STORE_CONNECT_API_KEY_ISSUER_ID:
+        required: true
+        description: >
+          Private App Store Connect API issuer key for submitting build to App Store.
+      APP_STORE_CONNECT_API_KEY_KEY_CUSTOMER:
+        required: false
+        description: >
+          Private App Store Connect API key obtained from customer for submitting build to App Store.
+      APP_STORE_CONNECT_API_KEY_KEY_ID_CUSTOMER:
+        required: false
+        description: >
+          Private App Store Connect API key id obtained from customer for submitting build to App Store.
+      APP_STORE_CONNECT_API_KEY_ISSUER_ID_CUSTOMER:
+        required: false
+        description: >
+          Private App Store Connect API issuer key obtained from customer for submitting build to App Store.
 
 jobs:
   release:
@@ -45,10 +65,13 @@ jobs:
     - name: Fastlane Beta
       run: |
         bundle install --jobs 4 --retry 3
-        bundle exec fastlane beta
+        bundle exec fastlane release
       env:
-        APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        VERSION_NUMBER: ${{ github.ref_name }}
+        APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_CUSTOMER || secrets.APP_STORE_CONNECT_API_KEY_KEY }}
+        APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID_CUSTOMER || secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
+        APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID_CUSTOMER || secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
     - name: Upload IPA
       uses: actions/upload-artifact@v2
       with:
