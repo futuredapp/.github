@@ -1,4 +1,4 @@
-name: Cloud Build
+name: iOS KMP Self-hosted Build
 
 on:
   workflow_call:
@@ -7,13 +7,8 @@ on:
         description: Whether to download Git-LFS files.
         type: boolean
         required: false
+        default: false
     secrets:
-      SSH_PRIVATE_KEY:
-        required: true
-        description: >
-          Key for accessing repo with Apple certificates
-          and provisioning profiles and repo with imported
-          Fastlane lanes.
       MATCH_PASSWORD:
         required: true
         description: >
@@ -32,27 +27,46 @@ on:
           Private App Store Connect API issuer key for submitting build to App Store.
 
 jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      # Matches all files which can affect iOS build, when changed
+      iosFiles: ${{ steps.file-changes.outputs.iosFiles }}
+      # Matches all files which can affect Android build, when changed
+      androidFiles: ${{ steps.file-changes.outputs.androidFiles }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Detect Changes
+        uses: dorny/paths-filter@v2
+        id: file-changes
+        with:
+          base: ${{ github.ref }}
+          filters: |
+            iosFiles:
+              - "!(androidApp/**)"
+            androidFiles:
+              - "!(iosApp/**)"
   build:
-    runs-on: macos-latest
+    runs-on: self-hosted
     timeout-minutes: 30
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.iosFiles == 'true' }}
 
     steps:
     - name: Checkout
       uses: actions/checkout@v4
       with:
         lfs: ${{ inputs.use_git_lfs }}
-    - name: Setup SSH key
-      uses: webfactory/ssh-agent@v0.4.1
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-    - name: Setup Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: 2.7
-        bundler-cache: true
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
     - name: Fastlane Beta
+      working-directory: iosApp
       run: |
+        gem install bundler
         bundle install --jobs 4 --retry 3
+        bundle exec fastlane run reset_simulator_contents
         bundle exec fastlane beta
       env:
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
@@ -70,3 +84,6 @@ jobs:
       with:
         name: Build.app.dSYM.zip
         path: build_output/*.app.dSYM.zip
+    - name: Clear Archives
+      run: |
+        rm -rf ~/Library/Developer/Xcode/Archives
