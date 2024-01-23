@@ -40,23 +40,23 @@ jobs:
       run: |
         gem install bundler
         bundle install --jobs 4 --retry 3
-        bundle exec fastlane beta
+        bundle exec fastlane test
       env:
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
         PR_TITLE: ${{ github.event.pull_request.title }}
         APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
         APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
         APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
-    - name: Upload IPA
-      uses: actions/upload-artifact@v2
-      with:
-        name: Build.ipa
-        path: build_output/*.ipa
-    - name: Upload dSYM
-      uses: actions/upload-artifact@v2
-      with:
-        name: Build.app.dSYM.zip
-        path: build_output/*.app.dSYM.zip
-    - name: Clear Archives
-      run: |
-        rm -rf ~/Library/Developer/Xcode/Archives
+    # - name: Upload IPA
+    #   uses: actions/upload-artifact@v2
+    #   with:
+    #     name: Build.ipa
+    #     path: build_output/*.ipa
+    # - name: Upload dSYM
+    #   uses: actions/upload-artifact@v2
+    #   with:
+    #     name: Build.app.dSYM.zip
+    #     path: build_output/*.app.dSYM.zip
+    # - name: Clear Archives
+    #   run: |
+    #     rm -rf ~/Library/Developer/Xcode/Archives
