@@ -54,13 +54,13 @@ jobs:
       with:
         lfs: ${{ inputs.use_git_lfs }}
     - name: Setup SSH key
-      uses: webfactory/ssh-agent@v0.4.1
+      uses: webfactory/ssh-agent@v0.8.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
     - name: Setup Ruby
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: 2.7
+        ruby-version: 3.2.2
         bundler-cache: true
     - name: Fastlane Beta
       run: |
@@ -73,12 +73,12 @@ jobs:
         APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID_CUSTOMER || secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
         APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID_CUSTOMER || secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
     - name: Upload IPA
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: Build.ipa
         path: build_output/*.ipa
     - name: Upload dSYM
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: Build.app.dSYM.zip
         path: build_output/*.app.dSYM.zip
