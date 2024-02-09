@@ -40,7 +40,7 @@ jobs:
         lfs: ${{ inputs.use_git_lfs }}
         fetch-depth: 0 # Make deep copy
     - name: Setup SSH
-      uses: kielabokkie/ssh-key-and-known-hosts-action@v1
+      uses: kielabokkie/ssh-key-and-known-hosts-action@v1.4.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
         ssh-host: ${{ inputs.host }}
