@@ -31,7 +31,7 @@ jobs:
         lfs: ${{ inputs.use_git_lfs }}
         fetch-depth: 0
     - name: Setup SSH key
-      uses: webfactory/ssh-agent@v0.4.1
+      uses: webfactory/ssh-agent@v0.8.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
     - name: Setup Ruby
