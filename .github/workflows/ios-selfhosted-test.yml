@@ -8,6 +8,10 @@ on:
         type: boolean
         required: false
         default: false
+      custom_values:
+        description: "Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: \"CUSTOM-1: 1; CUSTOM-2: 2\""
+        type: string
+        required: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref }}
@@ -31,3 +35,4 @@ jobs:
         bundle exec fastlane test
       env:
         DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CUSTOM_VALUES: ${{ inputs.custom_values }}

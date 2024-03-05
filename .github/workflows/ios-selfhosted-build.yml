@@ -8,6 +8,10 @@ on:
         type: boolean
         required: false
         default: false
+      custom_values:
+        description: "Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: \"CUSTOM-1: 1; CUSTOM-2: 2\""
+        type: string
+        required: false
     secrets:
       MATCH_PASSWORD:
         required: true
@@ -47,6 +51,7 @@ jobs:
         APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
         APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
         APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+        CUSTOM_VALUES: ${{ inputs.custom_values }}
     - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
