@@ -46,9 +46,7 @@ jobs:
         if: ${{ github.event_name == 'schedule' }}
         name: Check latest commit is less than a day
         run: |
-          echo "should_run=false" >> $GITHUB_ENV
-        env:
-          GITHUB_SHA: ${{ github.sha }}
+          echo "aaa"
   build:
     runs-on: self-hosted
     timeout-minutes: 30
