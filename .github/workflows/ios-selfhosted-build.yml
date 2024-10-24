@@ -47,7 +47,7 @@ jobs:
         name: Check latest commit is less than a day
         run: |
           if true; then
-            echo "should_run=false" >> $GITHUB_ENV
+            echo "should_run=false"
           fi
         env:
           GITHUB_SHA: ${{ github.sha }}
