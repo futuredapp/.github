@@ -48,7 +48,7 @@ jobs:
         run: |
           sha=$(git rev-list --after="24 hours" "$GITHUB_SHA")
           if test -z "$sha"; then
-            echo "should_run=false" >> $GITHUB_OUTPUT
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
           fi
         env:
           GITHUB_SHA: ${{ github.sha }}
