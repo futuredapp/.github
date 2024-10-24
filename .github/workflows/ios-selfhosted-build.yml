@@ -38,18 +38,19 @@ jobs:
       should_run: ${{ steps.should_run.outputs.should_run }}
     steps:
       - uses: actions/checkout@v4
-      - name: print latest_commit
+      - name: Print latest_commit
         run: echo ${{ github.sha }}
       - id: should_run
         continue-on-error: true
         name: Check latest commit is less than a day
         if: ${{ github.event_name == 'schedule' }}
-        run: test -z $(git rev-list  --after="24 hours"  ${{ github.sha }}) && echo "::set-output name=should_run::false"
+        run: |
+          test -z "$(git rev-list  --after='24 hours'  ${{ github.sha }})" && echo "should_run=false" >> $GITHUB_ENV
   build:
     runs-on: self-hosted
     timeout-minutes: 30
     needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.should_run == 'true' }}
+    if: ${{ needs.detect-changes.outputs.should_run != 'false' }}
 
     steps:
     - name: Checkout
