@@ -31,9 +31,26 @@ on:
           Private App Store Connect API issuer key for submitting build to App Store.
 
 jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      project: ${{ steps.changes.outputs.project }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Detect Changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            project:
+            - '**'
   build:
     runs-on: self-hosted
     timeout-minutes: 30
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.project == 'true' }}
 
     steps:
     - name: Checkout
