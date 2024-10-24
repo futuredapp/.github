@@ -46,7 +46,8 @@ jobs:
         if: ${{ github.event_name == 'schedule' }}
         name: Check latest commit is less than a day
         run: |
-          if true; then
+          sha=$(git rev-list --after="24 hours" "$GITHUB_SHA")
+          if test -z "$sha"; then
             echo "should_run=false"
           fi
         env:
