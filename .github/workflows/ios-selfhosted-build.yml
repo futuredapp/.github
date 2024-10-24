@@ -43,9 +43,13 @@ jobs:
         run: echo ${{ github.sha }}
       - id: should_run
         continue-on-error: true
-        name: Check latest commit is less than a day
         if: ${{ github.event_name == 'schedule' }}
-        run: test -z "$(git rev-list  --after='24 hours'  ${{ github.sha }})" && echo "should_run=false" >> $GITHUB_ENV || true
+        name: Check latest commit is less than a day
+        run: |
+          sha=$(git rev-list --after="24 hours" ${{ github.sha }}
+          if test -z $sha then             
+            echo "should_run=false" >> $GITHUB_OUTPUT                    
+          fi
   build:
     runs-on: self-hosted
     timeout-minutes: 30
