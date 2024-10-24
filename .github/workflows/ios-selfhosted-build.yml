@@ -47,6 +47,8 @@ jobs:
         name: Check latest commit is less than a day
         run: |
           echo "aaa"
+        env:
+          GITHUB_SHA: ${{ github.sha }}
   build:
     runs-on: self-hosted
     timeout-minutes: 30
