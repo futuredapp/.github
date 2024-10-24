@@ -35,13 +35,13 @@ jobs:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
-      project: ${{ steps.filter.outputs.project }}
+      project: ${{ steps.changes.outputs.project }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Detect Changes
         uses: dorny/paths-filter@v3
-        id: file-changes
+        id: changes
         with:
           filters: |
             project:
@@ -50,7 +50,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     needs: detect-changes
-    if: ${{ needs.changes.outputs.project == 'true' }}
+    if: ${{ needs.detect-changes.outputs.project == 'true' }}
 
     steps:
     - name: Checkout
