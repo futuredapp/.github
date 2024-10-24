@@ -50,7 +50,7 @@ jobs:
   build:
     runs-on: self-hosted
     timeout-minutes: 30
-    needs: detect-changes
+    needs: detect_changes
     if: ${{ needs.detect_changes.outputs.should_run != 'false' }}
 
     steps:
