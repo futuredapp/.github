@@ -18,9 +18,30 @@ on:
         description: Token for submitting builds to App Center.
 
 jobs:
+  detect_changes:
+    runs-on: ubuntu-latest
+    name: Detect changes
+    outputs:
+      should_run: ${{ steps.should_run.outputs.should_run }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Print latest_commit
+        run: echo ${{ github.sha }}
+      - id: should_run
+        continue-on-error: true
+        if: ${{ github.event_name == 'schedule' }}
+        name: Check latest commit is less than a day
+        run: |
+          sha=$(git rev-list --after="24 hours" ${{ github.sha }})
+          if test -z "$sha"; then
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
   build:
     runs-on: self-hosted
     timeout-minutes: 30
+    needs: detect_changes
+    if: ${{ needs.detect_changes.outputs.should_run != 'false' }}
 
     steps:
     - name: Checkout
