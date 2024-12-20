@@ -47,7 +47,7 @@ on:
 
       ## Optional Inputs
       KMP_FLAVOR:
-        description: "KMP Build flavor. This is optional and only required by KMP projects and can be ignored on pure Android projects".
+        description: "KMP Build flavor. This is optional and only required by KMP projects and can be ignored on pure Android projects"
         required: false
         type: string
         default: 'test'
