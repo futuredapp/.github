@@ -16,6 +16,16 @@ on:
         description: "A Gradle task(s) for executing unit tests, for example `testReleaseUnitTest` or `testDevEnterpriseUnitTest`"
         required: true
         type: string
+      JAVA_VERSION:
+        description: "Java version to use"
+        required: false
+        type: string
+        default: '17'
+      JAVA_DISTRIBUTION:
+        description: "Java distribution to use"
+        required: false
+        type: string
+        default: 'zulu'
 
 jobs:
   test:
@@ -32,8 +42,8 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          java-version: ${{ inputs.JAVA_VERSION }}
+          distribution: ${{ inputs.JAVA_DISTRIBUTION }}
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
       - name: Run Lint Check
