@@ -28,18 +28,6 @@ on:
         description: "Path to keystore for signing of universal APK. Example: `keystore/debug.jks' or 'androidApp/signing/debug.keystore'."
         required: true
         type: string
-      SIGNING_KEYSTORE_PASSWORD:
-        description: "Password to provided keystore"
-        required: true
-        type: string
-      SIGNING_KEY_ALIAS:
-        description: "Alias of the signing key in the provided keystore"
-        required: true
-        type: string
-      SIGNING_KEY_PASSWORD:
-        description: "Password to the key in the provided keystore"
-        required: true
-        type: string
       APP_DISTRIBUTION_GROUPS:
         description: "Comma-separated list of app distribution group IDs"
         required: true
@@ -66,7 +54,17 @@ on:
         required: false
         type: string
         default: 'zulu'
+
     secrets:
+      SIGNING_KEYSTORE_PASSWORD:
+        description: "Password to provided keystore"
+        required: true
+      SIGNING_KEY_ALIAS:
+        description: "Alias of the signing key in the provided keystore"
+        required: true
+      SIGNING_KEY_PASSWORD:
+        description: "Password to the key in the provided keystore"
+        required: true
       APP_DISTRIBUTION_SERVICE_ACCOUNT:
         required: true
         description: "Firebase App Distribution Service Account JSON key"
@@ -100,6 +98,10 @@ jobs:
         run: ./gradlew --continue ${{ inputs.TEST_GRADLE_TASKS }}
       - name: Generate Artifacts (AAB and APK)
         id: artifacts
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         shell: bash
         run: |
           ./gradlew ${{ inputs.BUNDLE_GRADLE_TASK }} -P buildkonfig.flavor=$KMP_FLAVOR
@@ -111,9 +113,9 @@ jobs:
             --output universal.apks \
             --mode universal \
             --ks ${{ inputs.SIGNING_KEYSTORE_PATH }} \
-            --ks-pass pass:${{ inputs.SIGNING_KEYSTORE_PASSWORD }} \
-            --ks-key-alias ${{ inputs.SIGNING_KEY_ALIAS }} \
-            --key-pass pass:${{ inputs.SIGNING_KEY_PASSWORD }}
+            --ks-pass pass:${{ secrets.SIGNING_KEYSTORE_PASSWORD }} \
+            --ks-key-alias ${{ secrets.SIGNING_KEY_ALIAS }} \
+            --key-pass pass:${{ secrets.SIGNING_KEY_PASSWORD }}
           unzip universal.apks -d universal_apk
           UNIVERSAL_APK_FILE=$(find universal_apk/ -name '*.apk')
           
