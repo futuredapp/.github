@@ -3,11 +3,7 @@ name: Android Pull Request Check
 on:
   workflow_call:
     inputs:
-      TIMEOUT_MINUTES:
-        description: "Job timeout in minutes"
-        required: false
-        type: number
-        default: 30
+      ## Required Inputs
       LINT_GRADLE_TASKS:
         description: "A Gradle task(s) for executing lint check, for example `lintCheck lintRelease`"
         required: true
@@ -16,6 +12,13 @@ on:
         description: "A Gradle task(s) for executing unit tests, for example `testReleaseUnitTest` or `testDevEnterpriseUnitTest`"
         required: true
         type: string
+
+      ## Optional Inputs
+      TIMEOUT_MINUTES:
+        description: "Job timeout in minutes"
+        required: false
+        type: number
+        default: 30
       JAVA_VERSION:
         description: "Java version to use"
         required: false
