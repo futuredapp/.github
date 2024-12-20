@@ -110,9 +110,9 @@ jobs:
             --bundle $BUNDLE_FILE \
             --output universal.apks \
             --mode universal \
-            --ks ${{ inputs.SIGNING_KEYSTORE_PATH }}
+            --ks ${{ inputs.SIGNING_KEYSTORE_PATH }} \
             --ks-pass pass:${{ inputs.SIGNING_KEYSTORE_PASSWORD }} \
-            --ks-key-alias ${{ inputs.SIGNING_KEY_ALIAS }}
+            --ks-key-alias ${{ inputs.SIGNING_KEY_ALIAS }} \
             --key-pass pass:${{ inputs.SIGNING_KEY_PASSWORD }}
           unzip universal.apks -d universal_apk
           UNIVERSAL_APK_FILE=$(find universal_apk/ -name '*.apk')
@@ -125,6 +125,6 @@ jobs:
           echo '${{ secrets.APP_DISTRIBUTION_SERVICE_ACCOUNT }}' > $FIREBASE_CREDENTIALS_FILE
           ./gradlew ${{ inputs.UPLOAD_GRADLE_TASK }} \
             --serviceCredentialsFile="$FIREBASE_CREDENTIALS_FILE" \
-            --groups="${{ inputs.APP_DISTRIBUTION_GROUPS }}"
+            --groups="${{ inputs.APP_DISTRIBUTION_GROUPS }}" \
             --artifactType="APK" \
             --artifactPath="${{ steps.artifacts.outputs.universal_apk_file }}"
