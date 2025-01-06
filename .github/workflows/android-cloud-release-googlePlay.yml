@@ -34,7 +34,7 @@ on:
         description: "KMP Build flavor. This is optional and only required by KMP projects and can be ignored on pure Android projects"
         required: false
         type: string
-        default: 'test'
+        default: 'prod'
       CHANGES_NOT_SENT_FOR_REVIEW:
         description: 'A changesNotSentForReview Google Play flag. Enable when last google review failed, disable when last review was successful.'
         type: boolean
