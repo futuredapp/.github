@@ -38,7 +38,7 @@ All the available reusable workflows are listed in the following table.
 | iOS (KMP)      | Self-hosted | Build                     | [`ios-kmp-selfhosted-build`](.github/workflows/ios-kmp-selfhosted-build.yml)                                           | Creates enterprise release build and submits the build to Futured App Store Connect. |
 | iOS (KMP)      | Self-hosted | Release                   | [`ios-kmp-selfhosted-release`](.github/workflows/ios-kmp-selfhosted-release.yml)                                       | Creates release build and submits it to App Store Connect.                           |
 | Android (+KMP) | Cloud       | Tests & Lint checks       | [`android-cloud-check`](.github/workflows/android-cloud-check.yml)                                                     | Runs unit tests and lint checks on pull request.                                     |
-| Android (+KMP) | Cloud       | Firebase Snapshot Release | [`android-cloud-release-firebaseAppDistribution`](.github/workflows/android-cloud-release-firebaseAppDistribution.yml) | Releases QA Snapshot build to Firebase App Distribution.                             |
+| Android (+KMP) | Cloud       | Firebase Snapshot Release | [`android-cloud-release-firebaseAppDistribution`](.github/workflows/android-cloud-release-firebaseAppDistribution.yml) | Publishes QA Snapshot build to Firebase App Distribution.                            |
 | Android (+KMP) | Cloud       | Google Play Release       | [`android-cloud-release-googlePlay`](.github/workflows/android-cloud-release-googlePlay.yml)                           | Publishes release build to Google Play.                                              |
 
 ## Contributors
