@@ -90,8 +90,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Prepare Environment
         run: |
-          echo "BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.BUILD_NUMBER_OFFSET}} ))" >> $GITHUB_ENV
-          echo "VERSION_NAME=${{ inputs.VERSION_NAME }}" >> $GITHUB_ENV
+          echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.BUILD_NUMBER_OFFSET}} ))" >> $GITHUB_ENV
+          echo "ANDROID_VERSION_NAME=${{ inputs.VERSION_NAME }}" >> $GITHUB_ENV
           echo "KMP_FLAVOR=${{ inputs.KMP_FLAVOR }}" >> $GITHUB_ENV
       - name: Run Unit tests
         shell: bash
