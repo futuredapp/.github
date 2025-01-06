@@ -100,7 +100,7 @@ jobs:
           echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.BUILD_NUMBER_OFFSET}} ))" >> $GITHUB_ENV
           echo "ANDROID_VERSION_NAME=${{ inputs.VERSION_NAME }}" >> $GITHUB_ENV
           echo "KMP_FLAVOR=${{ inputs.KMP_FLAVOR }}" >> $GITHUB_ENV
-          echo "${{ secrets.CUSTOM_SECRETS }}" > $${{ inputs.CUSTOM_SECRETS_FILE }}
+          echo "${{ secrets.CUSTOM_SECRETS }}" > ${{ inputs.CUSTOM_SECRETS_FILE }}
       - name: Generate Artifacts (AAB)
         id: artifacts
         env:
