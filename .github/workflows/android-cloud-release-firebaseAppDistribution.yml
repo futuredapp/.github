@@ -32,6 +32,11 @@ on:
         description: "Comma-separated list of app distribution group IDs"
         required: true
         type: string
+      CUSTOM_SECRETS_FILE:
+        description: "A path to file that fill be populated with contents of 'CUSTOM_SECRETS' secret. This file can be picked up for example by Secrets Gradle plugin to embed secrets into BuildConfig."
+        required: false
+        type: string
+        default: secrets.properties
 
       ## Optional Inputs
       KMP_FLAVOR:
@@ -68,6 +73,9 @@ on:
       APP_DISTRIBUTION_SERVICE_ACCOUNT:
         required: true
         description: "Firebase App Distribution Service Account JSON key"
+      CUSTOM_SECRETS:
+        required: false
+        description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'CUSTOM_SECRETS_FILE' input."
 
 jobs:
   build:
@@ -93,6 +101,7 @@ jobs:
           echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.BUILD_NUMBER_OFFSET}} ))" >> $GITHUB_ENV
           echo "ANDROID_VERSION_NAME=${{ inputs.VERSION_NAME }}" >> $GITHUB_ENV
           echo "KMP_FLAVOR=${{ inputs.KMP_FLAVOR }}" >> $GITHUB_ENV
+          echo "${{ secrets.CUSTOM_SECRETS }}" > $${{ inputs.CUSTOM_SECRETS_FILE }}
       - name: Run Unit tests
         shell: bash
         run: ./gradlew --continue ${{ inputs.TEST_GRADLE_TASKS }}

@@ -55,6 +55,11 @@ on:
         required: false
         type: string
         default: 'zulu'
+      CUSTOM_SECRETS_FILE:
+        description: "A path to file that fill be populated with contents of 'CUSTOM_SECRETS' secret. This file can be picked up for example by Secrets Gradle plugin to embed secrets into BuildConfig."
+        required: false
+        type: string
+        default: secrets.properties
 
     secrets:
       SIGNING_KEYSTORE_PASSWORD:
@@ -68,7 +73,10 @@ on:
         required: true
       GOOGLE_PLAY_PUBLISH_SERVICE_ACCOUNT:
         required: true
-        description: 'Google Play service account JSON'
+        description: "Google Play service account JSON"
+      CUSTOM_SECRETS:
+        required: false
+        description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'CUSTOM_SECRETS_FILE' input."
 
 jobs:
   build:
@@ -92,6 +100,7 @@ jobs:
           echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.BUILD_NUMBER_OFFSET}} ))" >> $GITHUB_ENV
           echo "ANDROID_VERSION_NAME=${{ inputs.VERSION_NAME }}" >> $GITHUB_ENV
           echo "KMP_FLAVOR=${{ inputs.KMP_FLAVOR }}" >> $GITHUB_ENV
+          echo "${{ secrets.CUSTOM_SECRETS }}" > $${{ inputs.CUSTOM_SECRETS_FILE }}
       - name: Generate Artifacts (AAB)
         id: artifacts
         env:
