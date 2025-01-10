@@ -1,4 +1,4 @@
-name: Android Release to Firebase App Distribution
+name: Android Release to Google Play
 
 on:
   workflow_call:
