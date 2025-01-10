@@ -100,7 +100,7 @@ jobs:
           {
           echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.BUILD_NUMBER_OFFSET}} ))";
           echo "ANDROID_VERSION_NAME=${{ inputs.VERSION_NAME }}";
-          "KMP_FLAVOR=${{ inputs.KMP_FLAVOR }}"
+          echo "KMP_FLAVOR=${{ inputs.KMP_FLAVOR }}"
           } >> "$GITHUB_ENV"
           
           echo "${{ secrets.SECRET_PROPERTIES }}" > ${{ inputs.SECRET_PROPERTIES_FILE }}
