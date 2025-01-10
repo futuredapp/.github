@@ -98,9 +98,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Prepare Environment
         run: |
-          echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.BUILD_NUMBER_OFFSET}} ))" >> $GITHUB_ENV
-          echo "ANDROID_VERSION_NAME=${{ inputs.VERSION_NAME }}" >> $GITHUB_ENV
-          echo "KMP_FLAVOR=${{ inputs.KMP_FLAVOR }}" >> $GITHUB_ENV
+          echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.BUILD_NUMBER_OFFSET}} ))" >> "$GITHUB_ENV"
+          echo "ANDROID_VERSION_NAME=${{ inputs.VERSION_NAME }}" >> "$GITHUB_ENV"
+          echo "KMP_FLAVOR=${{ inputs.KMP_FLAVOR }}" >> "$GITHUB_ENV"
           echo "${{ secrets.SECRET_PROPERTIES }}" > ${{ inputs.SECRET_PROPERTIES_FILE }}
       - name: Run Unit tests
         shell: bash
@@ -113,12 +113,12 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         shell: bash
         run: |
-          ./gradlew ${{ inputs.BUNDLE_GRADLE_TASK }} -P buildkonfig.flavor=$KMP_FLAVOR
+          ./gradlew ${{ inputs.BUNDLE_GRADLE_TASK }} -P buildkonfig.flavor="$KMP_FLAVOR"
           BUNDLE_FILE=$(find . -name '*.aab' | grep -v '.*intermediate')
           
           wget -O bundletool.jar ${{ env.BUNDLETOOL_URL }}
           java -jar bundletool.jar build-apks \
-            --bundle $BUNDLE_FILE \
+            --bundle "$BUNDLE_FILE" \
             --output universal.apks \
             --mode universal \
             --ks ${{ inputs.SIGNING_KEYSTORE_PATH }} \
@@ -128,12 +128,12 @@ jobs:
           unzip universal.apks -d universal_apk
           UNIVERSAL_APK_FILE=$(find universal_apk/ -name '*.apk')
           
-          echo "bundle_file=$BUNDLE_FILE" >> $GITHUB_OUTPUT
-          echo "universal_apk_file=$UNIVERSAL_APK_FILE" >> $GITHUB_OUTPUT
+          echo "bundle_file=$BUNDLE_FILE" >> "$GITHUB_OUTPUT"
+          echo "universal_apk_file=$UNIVERSAL_APK_FILE" >> "$GITHUB_OUTPUT"
       - name: Upload to Firebase App Distribution
         shell: bash
         run: |
-          echo '${{ secrets.APP_DISTRIBUTION_SERVICE_ACCOUNT }}' > $FIREBASE_CREDENTIALS_FILE
+          echo "${{ secrets.APP_DISTRIBUTION_SERVICE_ACCOUNT }}" > "$FIREBASE_CREDENTIALS_FILE"
           ./gradlew ${{ inputs.UPLOAD_GRADLE_TASK }} \
             --serviceCredentialsFile="$FIREBASE_CREDENTIALS_FILE" \
             --groups="${{ inputs.APP_DISTRIBUTION_GROUPS }}" \

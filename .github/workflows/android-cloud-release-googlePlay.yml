@@ -97,9 +97,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Prepare Environment
         run: |
-          echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.BUILD_NUMBER_OFFSET}} ))" >> $GITHUB_ENV
-          echo "ANDROID_VERSION_NAME=${{ inputs.VERSION_NAME }}" >> $GITHUB_ENV
-          echo "KMP_FLAVOR=${{ inputs.KMP_FLAVOR }}" >> $GITHUB_ENV
+          echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.BUILD_NUMBER_OFFSET}} ))" >> "$GITHUB_ENV"
+          echo "ANDROID_VERSION_NAME=${{ inputs.VERSION_NAME }}" >> "$GITHUB_ENV"
+          echo "KMP_FLAVOR=${{ inputs.KMP_FLAVOR }}" >> "$GITHUB_ENV"
           echo "${{ secrets.SECRET_PROPERTIES }}" > ${{ inputs.SECRET_PROPERTIES_FILE }}
       - name: Generate Artifacts (AAB)
         id: artifacts
@@ -109,12 +109,12 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         shell: bash
         run: |
-          ./gradlew ${{ inputs.BUNDLE_GRADLE_TASK }} -P buildkonfig.flavor=$KMP_FLAVOR
+          ./gradlew ${{ inputs.BUNDLE_GRADLE_TASK }} -P buildkonfig.flavor="$KMP_FLAVOR"
           BUNDLE_FILE=$(find . -name '*.aab' | grep -v '.*intermediate')
           MAPPING_FILE=$(find . -name mapping.txt)
           
-          echo "bundle_file=$BUNDLE_FILE" >> $GITHUB_OUTPUT
-          echo "mapping_file=$MAPPING_FILE" >> $GITHUB_OUTPUT
+          echo "bundle_file=$BUNDLE_FILE" >> "$GITHUB_OUTPUT"
+          echo "mapping_file=$MAPPING_FILE" >> "$GITHUB_OUTPUT"
       - name: Upload to Google Play
         uses: r0adkll/upload-google-play@v1.1.1
         with:
