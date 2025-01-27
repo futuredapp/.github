@@ -136,7 +136,7 @@ jobs:
       - name: Upload to Firebase App Distribution
         shell: bash
         run: |
-          echo ${{ secrets.APP_DISTRIBUTION_SERVICE_ACCOUNT }} > $FIREBASE_CREDENTIALS_FILE
+          echo "${{ secrets.APP_DISTRIBUTION_SERVICE_ACCOUNT }}" > "$FIREBASE_CREDENTIALS_FILE"
           ./gradlew ${{ inputs.UPLOAD_GRADLE_TASK }} \
             --serviceCredentialsFile="$FIREBASE_CREDENTIALS_FILE" \
             --groups="${{ inputs.APP_DISTRIBUTION_GROUPS }}" \
