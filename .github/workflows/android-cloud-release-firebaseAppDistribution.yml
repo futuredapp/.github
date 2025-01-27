@@ -104,8 +104,8 @@ jobs:
           echo "KMP_FLAVOR=${{ inputs.KMP_FLAVOR }}"
           } >> "$GITHUB_ENV"
           
-          echo "${{ secrets.SECRET_PROPERTIES }}" > ${{ inputs.SECRET_PROPERTIES_FILE }}
-          echo "${{ secrets.APP_DISTRIBUTION_SERVICE_ACCOUNT }}" > "$FIREBASE_CREDENTIALS_FILE"
+          echo '${{ secrets.SECRET_PROPERTIES }}' > ${{ inputs.SECRET_PROPERTIES_FILE }}
+          echo '${{ secrets.APP_DISTRIBUTION_SERVICE_ACCOUNT }}' > "$FIREBASE_CREDENTIALS_FILE"
       - name: Run Unit tests
         shell: bash
         run: ./gradlew --continue ${{ inputs.TEST_GRADLE_TASKS }}
