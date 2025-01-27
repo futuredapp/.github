@@ -128,4 +128,4 @@ jobs:
           status: draft
           whatsNewDirectory: ${{ inputs.GOOGLE_PLAY_WHATSNEW_DIRECTORY }}
           mappingFile: ${{ steps.artifacts.outputs.mapping_file }}
-          changesNotSentForReview: ${{ inputs.CHANGES_NOT_SENT_FOR_REVIEW }}
+          changesNotSentForReview: ${{ toJSON(inputs.CHANGES_NOT_SENT_FOR_REVIEW) }}
