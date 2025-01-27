@@ -6,7 +6,7 @@ This repo contains reusable workflows. These workflows are automatically
 set up when creating projects using
 [iOS project template](https://github.com/futuredapp/iOS-project-template).
 
-If you want to import them manually to your workflow configuration add a job like this:
+If you want to import them manually, reference a reusable workflow in your trigger workflow:
 
 ```yml
 jobs:
@@ -18,7 +18,7 @@ jobs:
 ```
 
 Name the job first and choose its platform, runner and action.
-Check the reusable workflow file and pass alll the required secrets to it.
+Check the reusable workflow file and pass all the required secrets to it.
 All the available reusable workflows are listed in the following table.
 
 ### Available workflows
@@ -45,7 +45,7 @@ All the available reusable workflows are listed in the following table.
 
 All contributions are welcome!
 
-Current maintainer is [Matěj Kašpar Jirásek](https://github.com/mkj-is), <matej.jirasek@futured.app>.
+Current maintainer is [Jakub Marek](https://github.com/jmarek41), <jakub.marek@futured.app> and [Matej Semančík](https://github.com/matejsemancik), <matej.semancik@futured.app>.
 
 ## License
 
