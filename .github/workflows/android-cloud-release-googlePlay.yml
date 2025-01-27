@@ -103,7 +103,7 @@ jobs:
           echo "KMP_FLAVOR=${{ inputs.KMP_FLAVOR }}"
           } >> "$GITHUB_ENV"
           
-          echo "${{ secrets.SECRET_PROPERTIES }}" > ${{ inputs.SECRET_PROPERTIES_FILE }}
+          echo '${{ secrets.SECRET_PROPERTIES }}' > ${{ inputs.SECRET_PROPERTIES_FILE }}
       - name: Generate Artifacts (AAB)
         id: artifacts
         env:
