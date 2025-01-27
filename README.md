@@ -11,7 +11,7 @@ If you want to import them manually, reference a reusable workflow in your trigg
 ```yml
 jobs:
   {name}:
-    uses: futuredapp/.github/.github/workflows/{platform}-{runner}-{action}.yml@main
+    uses: futuredapp/.github/.github/workflows/{platform}-{runner}-{action}.yml@1.0.0
     secrets:
       # Secrets to be passed to called workflow
       key: ${{ secrets.key }}
