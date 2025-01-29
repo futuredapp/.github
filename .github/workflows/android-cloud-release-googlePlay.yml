@@ -5,19 +5,15 @@ on:
     inputs:
       ## Required Inputs
       VERSION_NAME:
-        description: "Release version name"
+        description: "Build version name"
         required: true
         type: string
-      BUILD_NUMBER_OFFSET:
-        description: "Build number offset. This number will be added to GITHUB_RUN_NUMBER and can be used to make corrections to build numbers."
-        required: true
-        type: number
       BUNDLE_GRADLE_TASK:
         description: "A Gradle task for assembling app bundle, for example `bundleRelease`"
         required: true
         type: string
       SIGNING_KEYSTORE_PATH:
-        description: "Path to keystore for signing of universal APK. Example: `keystore/debug.jks' or 'androidApp/signing/debug.keystore'."
+        description: "Path to keystore for signing of universal APK. Example: `keystore/debug.jks' or 'androidApp/signing/debug.keystore'"
         required: true
         type: string
       GOOGLE_PLAY_APPLICATION_ID:
@@ -25,18 +21,23 @@ on:
         required: true
         type: string
       GOOGLE_PLAY_WHATSNEW_DIRECTORY:
-        description: "Path to directory with changelog files"
+        description: "Path to directory with changelog files according to documentation in https://github.com/r0adkll/upload-google-play"
         required: true
         type: string
 
       ## Optional Inputs
+      BUILD_NUMBER_OFFSET:
+        description: "Build number offset. This number will be added to GITHUB_RUN_NUMBER and can be used to make corrections to build numbers."
+        required: false
+        type: number
+        default: 0
       KMP_FLAVOR:
         description: "KMP Build flavor. This is optional and only required by KMP projects and can be ignored on pure Android projects"
         required: false
         type: string
         default: 'prod'
       SECRET_PROPERTIES_FILE:
-        description: "A path to file that fill be populated with contents of 'CUSTOM_SECRETS' secret. This file can be picked up for example by Secrets Gradle plugin to embed secrets into BuildConfig."
+        description: "A path to file that fill be populated with contents of 'SECRET_PROPERTIES' secret. This file can be picked up by Secrets Gradle plugin to embed secrets into BuildConfig."
         required: false
         type: string
         default: secrets.properties
@@ -73,10 +74,10 @@ on:
         required: true
       GOOGLE_PLAY_PUBLISH_SERVICE_ACCOUNT:
         required: true
-        description: "Google Play service account JSON"
+        description: "JSON key of service account with permissions to upload build to Google Play"
       SECRET_PROPERTIES:
         required: false
-        description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'CUSTOM_SECRETS_FILE' input."
+        description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input."
 
 jobs:
   build:

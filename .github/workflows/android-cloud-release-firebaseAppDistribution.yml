@@ -4,14 +4,6 @@ on:
   workflow_call:
     inputs:
       ## Required Inputs
-      VERSION_NAME:
-        description: "Version name. Example: '1.X.X-snapshot'"
-        required: true
-        type: string
-      BUILD_NUMBER_OFFSET:
-        description: "Build number offset. This number will be added to GITHUB_RUN_NUMBER and can be used to make corrections to build numbers."
-        required: true
-        type: number
       TEST_GRADLE_TASKS:
         description: "A Gradle task(s) for executing unit tests, for example `testReleaseUnitTest` or `testDevEnterpriseUnitTest`"
         required: true
@@ -34,13 +26,23 @@ on:
         type: string
 
       ## Optional Inputs
+      VERSION_NAME:
+        description: "Version name. Example: '1.X.X-snapshot'"
+        required: true
+        type: string
+        default: '1.X.X-snapshot'
+      BUILD_NUMBER_OFFSET:
+        description: "Build number offset. This number will be added to GITHUB_RUN_NUMBER and can be used to make corrections to build numbers."
+        required: false
+        type: number
+        default: 0
       KMP_FLAVOR:
         description: "KMP Build flavor. This is optional and only required by KMP projects and can be ignored on pure Android projects"
         required: false
         type: string
         default: 'test'
       SECRET_PROPERTIES_FILE:
-        description: "A path to file that fill be populated with contents of 'CUSTOM_SECRETS' secret. This file can be picked up for example by Secrets Gradle plugin to embed secrets into BuildConfig."
+        description: "A path to file that fill be populated with contents of 'SECRET_PROPERTIES' secret. This file can be picked up by Secrets Gradle plugin to embed secrets into BuildConfig."
         required: false
         type: string
         default: secrets.properties
@@ -72,10 +74,10 @@ on:
         required: true
       APP_DISTRIBUTION_SERVICE_ACCOUNT:
         required: true
-        description: "Firebase App Distribution Service Account JSON key"
+        description: "JSON key of service account with permissions to upload build to Firebase App Distribution"
       SECRET_PROPERTIES:
         required: false
-        description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'CUSTOM_SECRETS_FILE' input."
+        description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input."
 
 jobs:
   build:
