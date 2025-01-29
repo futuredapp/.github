@@ -28,7 +28,7 @@ on:
       ## Optional Inputs
       VERSION_NAME:
         description: "Version name. Example: '1.X.X-snapshot'"
-        required: true
+        required: false
         type: string
         default: '1.X.X-snapshot'
       BUILD_NUMBER_OFFSET:
