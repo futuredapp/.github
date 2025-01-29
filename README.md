@@ -10,7 +10,7 @@ If you want to import them manually, reference a reusable workflow in your trigg
 
 ```yml
 jobs:
-  {name}:
+  { name }:
     uses: futuredapp/.github/.github/workflows/{platform}-{runner}-{action}.yml@1.0.0
     secrets:
       # Secrets to be passed to called workflow
@@ -27,7 +27,6 @@ All the available reusable workflows are listed in the following table.
 |:---------------|:------------|:--------------------------|:-----------------------------------------------------------------------------------------------------------------------|:-------------------------------------------------------------------------------------|
 | Universal      | Cloud       | Backup                    | [`universal-cloud-backup`](.github/workflows/universal-cloud-backup.yml)                                               | Backups currently checked out ref to a remote repository.                            |
 | Universal      | Self-hosted | Backup                    | [`universal-selfhosted-backup`](.github/workflows/universal-selfhosted-backup.yml)                                     | Backups currently checked out ref to a remote repository.                            |
-| Universal      | Cloud       | Detect Changes            | [`universal-cloud-detect-changes`](.github/workflows/universal-cloud-detect-changes.yml)                               | Detects changed sources in KMP projects for conditional job execution.               |
 | iOS            | Self-hosted | Test                      | [`ios-selfhosted-test`](.github/workflows/ios-selfhosted-test.yml)                                                     | Lints and tests the PR.                                                              |
 | iOS            | Self-hosted | Build                     | [`ios-selfhosted-build`](.github/workflows/ios-selfhosted-build.yml)                                                   | Creates enterprise release build and submits the build to Futured App Store Connect. |
 | iOS            | Self-hosted | Release                   | [`ios-selfhosted-release`](.github/workflows/ios-selfhosted-release.yml)                                               | Creates release build and submits it to App Store Connect.                           |
@@ -40,6 +39,7 @@ All the available reusable workflows are listed in the following table.
 | Android (+KMP) | Cloud       | Tests & Lint checks       | [`android-cloud-check`](.github/workflows/android-cloud-check.yml)                                                     | Runs unit tests and lint checks on pull request.                                     |
 | Android (+KMP) | Cloud       | Firebase Snapshot Release | [`android-cloud-release-firebaseAppDistribution`](.github/workflows/android-cloud-release-firebaseAppDistribution.yml) | Publishes QA Snapshot build to Firebase App Distribution.                            |
 | Android (+KMP) | Cloud       | Google Play Release       | [`android-cloud-release-googlePlay`](.github/workflows/android-cloud-release-googlePlay.yml)                           | Publishes release build to Google Play.                                              |
+| KMP            | Cloud       | Detect Changes            | [`kmp-cloud-detect-changes`](.github/workflows/kmp-cloud-detect-changes.yml)                                           | Detects changed sources in KMP projects for conditional job execution.               |
 
 ## Contributors
 
