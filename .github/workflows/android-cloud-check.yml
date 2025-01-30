@@ -1,0 +1,67 @@
+name: Android Pull Request Check
+
+on:
+  workflow_call:
+    inputs:
+      ## Required Inputs
+      LINT_GRADLE_TASKS:
+        description: "A Gradle task(s) for executing lint check, for example `lintCheck lintRelease`"
+        required: true
+        type: string
+      TEST_GRADLE_TASKS:
+        description: "A Gradle task(s) for executing unit tests, for example `testReleaseUnitTest` or `testDevEnterpriseUnitTest`"
+        required: true
+        type: string
+
+      ## Optional Inputs
+      TIMEOUT_MINUTES:
+        description: "Job timeout in minutes"
+        required: false
+        type: number
+        default: 30
+      JAVA_VERSION:
+        description: "Java version to use"
+        required: false
+        type: string
+        default: '17'
+      JAVA_DISTRIBUTION:
+        description: "Java distribution to use"
+        required: false
+        type: string
+        default: 'zulu'
+
+jobs:
+  test:
+    name: Lint & Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.JAVA_VERSION }}
+          distribution: ${{ inputs.JAVA_DISTRIBUTION }}
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Run Lint Check
+        shell: bash
+        run: ./gradlew --continue ${{ inputs.LINT_GRADLE_TASKS }}
+      - name: Run Unit Tests
+        shell: bash
+        run: ./gradlew --continue ${{ inputs.TEST_GRADLE_TASKS }}
+      - name: Danger action
+        uses: MeilCli/danger-action@v2
+        continue-on-error: true
+        with:
+          plugins_file: 'Gemfile'
+          danger_file: 'Dangerfile'
+          danger_id: 'danger-pr'
+        env:
+          # The secrets.GITHUB_TOKEN is implicitly provided by trigger workflow
+          DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}

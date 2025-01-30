@@ -1,0 +1,56 @@
+name: Detect Changes
+
+# This workflow is a central decision point in the KMP project CI/CD pipeline that determines
+# which platform-specific workflows should run based on changed files.
+#
+# The following project structure is assumed: Android app in `androidApp/` path and iOS app in `iosApp/` path
+# relative to the repository root.
+#
+# It produces two outputs:
+# - `iosFiles`: Will be set to 'true' if any files affecting iOS build were changed
+# - `androidFiles`: Will be set to `true` if any files affecting Android build were changed
+#
+# Usage:
+#   1. Call this workflow first in your trigger workflows
+#   2. Use the outputs to conditionally run platform-specific workflows
+#
+# Example:
+#   jobs:
+#     changes:
+#       uses: ./.github/workflows/util_detect_changes.yml
+#     ios-build:
+#       needs: changes
+#       if: ${{ needs.changes.outputs.iosFiles == 'true' }}
+#       uses: ./.github/workflows/build_ios.yml
+
+on:
+  workflow_call:
+    outputs:
+      iosFiles:
+        description: "Whether files affecting iOS build changed (all files except those in androidApp/)"
+        value: ${{ jobs.detect-changes.outputs.iosFiles }}
+      androidFiles:
+        description: "Whether files affecting Android build changed (all files except those in iosApp/)"
+        value: ${{ jobs.detect-changes.outputs.androidFiles }}
+
+jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      # Matches all files which can affect iOS build if changed
+      iosFiles: ${{ steps.file-changes.outputs.iosFiles }}
+      # Matches all files which can affect Android build if changed
+      androidFiles: ${{ steps.file-changes.outputs.androidFiles }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Detect Changes
+        uses: dorny/paths-filter@v3
+        id: file-changes
+        with:
+          filters: |
+            iosFiles:
+              - "!(androidApp/**)"
+            androidFiles:
+              - "!(iosApp/**)"

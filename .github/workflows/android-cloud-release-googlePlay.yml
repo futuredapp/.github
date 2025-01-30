@@ -1,0 +1,132 @@
+name: Android Release to Google Play
+
+on:
+  workflow_call:
+    inputs:
+      ## Required Inputs
+      VERSION_NAME:
+        description: "Build version name"
+        required: true
+        type: string
+      BUNDLE_GRADLE_TASK:
+        description: "A Gradle task for assembling app bundle, for example `bundleRelease`"
+        required: true
+        type: string
+      SIGNING_KEYSTORE_PATH:
+        description: "Path to keystore for signing of universal APK. Example: `keystore/debug.jks' or 'androidApp/signing/debug.keystore'"
+        required: true
+        type: string
+      GOOGLE_PLAY_APPLICATION_ID:
+        description: "Google Play applicationId"
+        required: true
+        type: string
+      GOOGLE_PLAY_WHATSNEW_DIRECTORY:
+        description: "Path to directory with changelog files according to documentation in https://github.com/r0adkll/upload-google-play"
+        required: true
+        type: string
+
+      ## Optional Inputs
+      BUILD_NUMBER_OFFSET:
+        description: "Build number offset. This number will be added to GITHUB_RUN_NUMBER and can be used to make corrections to build numbers."
+        required: false
+        type: number
+        default: 0
+      KMP_FLAVOR:
+        description: "KMP Build flavor. This is optional and only required by KMP projects and can be ignored on pure Android projects"
+        required: false
+        type: string
+        default: 'prod'
+      SECRET_PROPERTIES_FILE:
+        description: "A path to file that fill be populated with contents of 'SECRET_PROPERTIES' secret. This file can be picked up by Secrets Gradle plugin to embed secrets into BuildConfig."
+        required: false
+        type: string
+        default: secrets.properties
+      CHANGES_NOT_SENT_FOR_REVIEW:
+        description: 'A changesNotSentForReview Google Play flag. Enable when last google review failed, disable when last review was successful.'
+        type: boolean
+        required: false
+        default: false
+      TIMEOUT_MINUTES:
+        description: "Job timeout in minutes"
+        required: false
+        type: number
+        default: 30
+      JAVA_VERSION:
+        description: "Java version to use"
+        required: false
+        type: string
+        default: '17'
+      JAVA_DISTRIBUTION:
+        description: "Java distribution to use"
+        required: false
+        type: string
+        default: 'zulu'
+
+    secrets:
+      SIGNING_KEYSTORE_PASSWORD:
+        description: "Password to provided keystore"
+        required: true
+      SIGNING_KEY_ALIAS:
+        description: "Alias of the signing key in the provided keystore"
+        required: true
+      SIGNING_KEY_PASSWORD:
+        description: "Password to the key in the provided keystore"
+        required: true
+      GOOGLE_PLAY_PUBLISH_SERVICE_ACCOUNT:
+        required: true
+        description: "JSON key of service account with permissions to upload build to Google Play"
+      SECRET_PROPERTIES:
+        required: false
+        description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input."
+
+jobs:
+  build:
+    name: Release Build
+    runs-on: [ ubuntu-latest ]
+    timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
+    env:
+      EXCLUDE_AAB_FILTER: .*intermediate
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.JAVA_VERSION }}
+          distribution: ${{ inputs.JAVA_DISTRIBUTION }}
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Prepare Environment
+        run: |
+          {
+          echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.BUILD_NUMBER_OFFSET}} ))";
+          echo "ANDROID_VERSION_NAME=${{ inputs.VERSION_NAME }}";
+          echo "KMP_FLAVOR=${{ inputs.KMP_FLAVOR }}"
+          } >> "$GITHUB_ENV"
+          
+          echo '${{ secrets.SECRET_PROPERTIES }}' > ${{ inputs.SECRET_PROPERTIES_FILE }}
+      - name: Generate Artifacts (AAB)
+        id: artifacts
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          ./gradlew ${{ inputs.BUNDLE_GRADLE_TASK }} -P buildkonfig.flavor="$KMP_FLAVOR"
+          BUNDLE_FILE=$(find . -name '*.aab' | grep -v '.*intermediate')
+          MAPPING_FILE=$(find . -name mapping.txt)
+          
+          echo "bundle_file=$BUNDLE_FILE" >> "$GITHUB_OUTPUT"
+          echo "mapping_file=$MAPPING_FILE" >> "$GITHUB_OUTPUT"
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@v1.1.1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_PUBLISH_SERVICE_ACCOUNT }}
+          packageName: ${{ inputs.GOOGLE_PLAY_APPLICATION_ID }}
+          releaseFiles: ${{ steps.artifacts.outputs.bundle_file }}
+          track: internal
+          status: draft
+          whatsNewDirectory: ${{ inputs.GOOGLE_PLAY_WHATSNEW_DIRECTORY }}
+          mappingFile: ${{ steps.artifacts.outputs.mapping_file }}
+          changesNotSentForReview: ${{ toJSON(inputs.CHANGES_NOT_SENT_FOR_REVIEW) }}
