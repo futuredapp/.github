@@ -144,3 +144,4 @@ jobs:
             --groups="${{ inputs.APP_DISTRIBUTION_GROUPS }}" \
             --artifactType="APK" \
             --artifactPath="${{ steps.artifacts.outputs.universal_apk_file }}"
+            --releaseNotes='${{ github.event.head_commit.message }}'
