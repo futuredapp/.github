@@ -143,5 +143,5 @@ jobs:
             --serviceCredentialsFile="$FIREBASE_CREDENTIALS_FILE" \
             --groups="${{ inputs.APP_DISTRIBUTION_GROUPS }}" \
             --artifactType="APK" \
-            --artifactPath="${{ steps.artifacts.outputs.universal_apk_file }}"
+            --artifactPath="${{ steps.artifacts.outputs.universal_apk_file }}" \
             --releaseNotes='${{ github.event.head_commit.message }}'
