@@ -36,6 +36,11 @@ on:
         required: false
         type: number
         default: 0
+      RELEASE_NOTES:
+        description: "Release notes for this build"
+        required: false
+        type: string
+        default: ${{ github.event.head_commit.message }}
       KMP_FLAVOR:
         description: "KMP Build flavor. This is optional and only required by KMP projects and can be ignored on pure Android projects"
         required: false
@@ -143,4 +148,5 @@ jobs:
             --serviceCredentialsFile="$FIREBASE_CREDENTIALS_FILE" \
             --groups="${{ inputs.APP_DISTRIBUTION_GROUPS }}" \
             --artifactType="APK" \
-            --artifactPath="${{ steps.artifacts.outputs.universal_apk_file }}"
+            --artifactPath="${{ steps.artifacts.outputs.universal_apk_file }}" \
+            --releaseNotes='${{ inputs.RELEASE_NOTES }}'
