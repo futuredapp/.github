@@ -65,6 +65,11 @@ on:
         required: false
         type: string
         default: 'zulu'
+      GRADLE_OPTS:
+        description: "Gradle options"
+        required: false
+        type: string
+        default: ""
 
     secrets:
       SIGNING_KEYSTORE_PASSWORD:
@@ -89,6 +94,7 @@ jobs:
     runs-on: [ ubuntu-latest ]
     timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
     env:
+      GRADLE_OPTS: ${{ inputs.GRADLE_OPTS }}
       FIREBASE_CREDENTIALS_FILE: firebase_credentials.json
       BUNDLETOOL_URL: https://github.com/google/bundletool/releases/download/1.17.2/bundletool-all-1.17.2.jar
       EXCLUDE_AAB_FILTER: .*intermediate
