@@ -61,6 +61,11 @@ on:
         required: false
         type: string
         default: 'zulu'
+      GRADLE_OPTS:
+        description: "Gradle options"
+        required: false
+        type: string
+        default: ""
 
     secrets:
       SIGNING_KEYSTORE_PASSWORD:
@@ -85,6 +90,7 @@ jobs:
     runs-on: [ ubuntu-latest ]
     timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
     env:
+      GRADLE_OPTS: ${{ inputs.GRADLE_OPTS }}
       EXCLUDE_AAB_FILTER: .*intermediate
     steps:
       - name: Checkout
