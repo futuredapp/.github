@@ -29,12 +29,19 @@ on:
         required: false
         type: string
         default: 'zulu'
+      GRADLE_OPTS:
+        description: "Gradle options"
+        required: false
+        type: string
+        default: ""
 
 jobs:
   test:
     name: Lint & Tests
     runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
+    env:
+      GRADLE_OPTS: ${{ inputs.GRADLE_OPTS }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
