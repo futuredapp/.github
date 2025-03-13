@@ -17,6 +17,21 @@ on:
         type: number
         required: false
         default: 30
+      kmp_swift_package_enabled:
+        description: "Whether KMP is integrated in Xcode project as a Swift Package"
+        type: boolean
+        default: false
+        required: false
+      kmp_swift_package_path:
+        description: "If `swift_package_integration` is 'true', then specifies a location of local Swift Package with Makefile. Example: 'iosApp/shared/KMP`"
+        type: string
+        default: iosApp/shared/KMP
+        required: false
+      kmp_swift_package_flavor:
+        description: "Build flavor of KMP Package"
+        type: string
+        required: false
+        default: dev
 
 jobs:
   test:
@@ -31,6 +46,14 @@ jobs:
           fetch-depth: 0
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+      - name: Build KMP Package
+        if: ${{ inputs.kmp_swift_package_enabled }}
+        env:
+          KMP_BUILD_FLAVOR: ${{ inputs.kmp_swift_package_flavor }}
+          KMP_FRAMEWORK_BUILD_TYPE: debug
+        run: |
+          cd ${{ inputs.kmp_swift_package_path }}
+          make build
       - name: Fastlane Test
         working-directory: iosApp
         run: |
