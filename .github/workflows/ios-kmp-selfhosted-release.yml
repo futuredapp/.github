@@ -12,6 +12,22 @@ on:
         description: "Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: \"CUSTOM-1: 1; CUSTOM-2: 2\""
         type: string
         required: false
+      kmp_swift_package_integration:
+        description: "Whether KMP is integrated in Xcode project as a Swift Package"
+        type: boolean
+        required: false
+        default: false
+      kmp_swift_package_path:
+        description: "If `swift_package_integration` is 'true', then specifies a location of local Swift Package with Makefile. Example: 'iosApp/shared/KMP`"
+        type: string
+        required: false
+        default: iosApp/shared/KMP
+      kmp_swift_package_flavor:
+        description: "Build flavor of KMP Package"
+        type: string
+        default: prod
+        required: false
+
     secrets:
       MATCH_PASSWORD:
         required: true
@@ -42,6 +58,14 @@ jobs:
         lfs: ${{ inputs.use_git_lfs }}
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
+    - name: Build KMP Package
+      if: ${{ inputs.kmp_swift_package_integration }}
+      env:
+        KMP_BUILD_FLAVOR: ${{ inputs.kmp_swift_package_flavor }}
+        KMP_FRAMEWORK_BUILD_TYPE: release
+      run: |
+        cd ${{ inputs.kmp_swift_package_path }}
+        make build
     - name: Fastlane Release
       working-directory: iosApp
       run: |
