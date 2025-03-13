@@ -16,6 +16,11 @@ on:
         description: Whether to download Git-LFS files.
         type: boolean
         required: false
+      push_tags:
+        description: Whether to also push tags to backup origin.
+        type: boolean
+        required: false
+        default: false
     secrets:
       SSH_PRIVATE_KEY:
         required: true
@@ -48,3 +53,6 @@ jobs:
       run: git remote add backup ${{ inputs.remote }}
     - name: Push to partner repository
       run: git push backup HEAD:"$GITHUB_REF"
+    - name: Push tags
+      if: ${{ inputs.push_tags }}
+      run: git push backup HEAD:"$GITHUB_REF" --tags
