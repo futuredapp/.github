@@ -17,7 +17,7 @@ on:
         type: number
         required: false
         default: 30
-      kmp_swift_package_enabled:
+      kmp_swift_package_integration:
         description: "Whether KMP is integrated in Xcode project as a Swift Package"
         type: boolean
         default: false
