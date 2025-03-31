@@ -110,7 +110,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-         lfs: ${{ inputs.USE_GIT_LFS }}
+          lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
