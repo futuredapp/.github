@@ -26,6 +26,11 @@ on:
         type: string
 
       ## Optional Inputs
+      USE_GIT_LFS:
+        description: "Whether to download Git-LFS files"
+        type: boolean
+        required: false
+        default: false
       BUILD_NUMBER_OFFSET:
         description: "Build number offset. This number will be added to GITHUB_RUN_NUMBER and can be used to make corrections to build numbers."
         required: false
@@ -95,6 +100,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+         lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
