@@ -18,6 +18,16 @@ on:
         required: false
         default: 'self-hosted' # Default if you don't specify a particular runner
 
+      changelog_debug:
+        description: Enable debug mode for changelog generation. Default is false.
+        type: boolean
+        required: false
+        default: false
+      changelog_depth:
+        description: The depth of the git history to fetch for changelog generation. Default is 100.
+        type: number
+        required: false
+        default: 100
     secrets:
       MATCH_PASSWORD:
         required: true
@@ -37,30 +47,18 @@ on:
           Private App Store Connect API issuer key for submitting build to App Store.
 
 jobs:
-  detect_changes:
-    runs-on: ubuntu-latest
-    name: Detect changes
-    outputs:
-      should_run: ${{ steps.should_run.outputs.should_run }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Print latest_commit
-        run: echo ${{ github.sha }}
-      - id: should_run
-        continue-on-error: true
-        if: ${{ github.event_name == 'schedule' }}
-        name: Check latest commit is less than a day
-        run: |
-          sha=$(git rev-list --after="24 hours" ${{ github.sha }})
-          if test -z "$sha"; then
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-          fi
+  detect_changes_and_generate_changelog:
+    name: Detect changes and generate changelog
+    uses: ./.github/workflows/universal-detect-changes-and-generate-changelog.yml
+    with:
+      depth: ${{ inputs.changelog_depth }}
+      debug: ${{ inputs.changelog_debug }}
+
   build:
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', inputs.runner_label)) }}
     timeout-minutes: 30
-    needs: detect_changes
-    if: ${{ needs.detect_changes.outputs.should_run != 'false' }}
+    needs: detect_changes_and_generate_changelog
+    if: ${{ needs.detect_changes_and_generate_changelog.outputs.skip_build != 'true' }}
 
     steps:
     - name: Checkout
@@ -89,3 +87,12 @@ jobs:
       with:
         name: Build.app.dSYM.zip
         path: build_output/*.app.dSYM.zip
+    - name: Save latest build commit
+      run: |
+        echo "${{ github.sha }}" > latest_builded_commit.txt
+    - name: Store lastest build commit
+      id: get_last_build_commit
+      uses: actions/cache@v4
+      with:
+        path: latest_builded_commit.txt
+        key: latest_builded_commit-${{github.run_number}}
