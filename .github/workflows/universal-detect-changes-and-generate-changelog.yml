@@ -13,13 +13,17 @@ on:
                 description: Enable debug mode. Default is false.
                 type: boolean
                 default: false
+        outputs:
+            skip_build:
+                description: "Indicates if the build should be skipped"
+                value: ${{ jobs.get_last_merge_commit.outputs.skip_build }}
 
 jobs:
   get_last_merge_commit:
     runs-on: ubuntu-latest
     name: Get last merge commit
     outputs:
-        skip_build: ${{ steps.get_last_merge_commit.outputs.latest_commit == ''}}
+        skip_build: ${{ steps.get_last_merge_commit.outputs.latest_commit == '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,13 +59,13 @@ jobs:
 
             if [ -z "$LAST_COMMIT" ]; then
               # If there are no merge commits in the last 24 hours
-              echo "latest_commit=''" >> $GITHUB_OUTPUT
+              echo "latest_commit=" >> $GITHUB_OUTPUT
               if [ "${{ inputs.debug }}" == "true" ]; then
                 echo "DEBUG - No merge commits in the last 24 hours"
               fi
             elif [ "$LAST_COMMIT" == "$LASTEST_BUILD_COMMIT" ]; then
               # If the last commit is the same as the last build commit
-              echo "latest_commit=''" >> $GITHUB_OUTPUT
+              echo "latest_commit=" >> $GITHUB_OUTPUT
                 if [ "${{ inputs.debug }}" == "true" ]; then
                     echo "DEBUG - Last commit is the same as the last build commit"
                 fi
@@ -81,6 +85,7 @@ jobs:
             fi
             echo "latest_commit=$LAST_COMMIT" >> $GITHUB_OUTPUT
           fi
+          sync
       - name: Generate changelog
         if: steps.get_last_merge_commit.outputs.latest_commit != ''
         run: |
