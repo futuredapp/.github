@@ -61,6 +61,10 @@ jobs:
     if: ${{ needs.detect_changes_and_generate_changelog.outputs.skip_build != 'true' }}
 
     steps:
+    - name: Print debug info
+      if: ${{ inputs.changelog_debug }}
+      run: |
+        echo "DEBUG - Skip build: ${{ needs.detect_changes_and_generate_changelog.outputs.skip_build }}"
     - name: Checkout
       uses: actions/checkout@v4
       with:
