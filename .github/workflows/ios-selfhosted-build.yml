@@ -61,22 +61,40 @@ jobs:
     if: ${{ needs.detect_changes_and_generate_changelog.outputs.skip_build != 'true' }}
 
     steps:
-    - name: Print debug info
-      if: ${{ inputs.changelog_debug }}
-      run: |
-        echo "DEBUG - Skip build: ${{ needs.detect_changes_and_generate_changelog.outputs.skip_build }}"
     - name: Checkout
       uses: actions/checkout@v4
       with:
         lfs: ${{ inputs.use_git_lfs }}
+    - name: Get changelog
+      id: get_changelog
+      uses: actions/download-artifact@v4
+      with:
+        name: changelog
+    - name: Format changelog
+      id: format_changelog
+      run: |
+        if [ -f changelog.txt ]; then
+          CHANGELOG=$(tr '\n' ', ' < changelog.txt)
+          echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
+          if [ "${{ inputs.changelog_debug }}" == 'true' ]; then
+            echo "DEBUG - Changelog: $CHANGELOG"
+          fi
+        else
+          if [ "${{ inputs.changelog_debug }}" == 'true' ]; then
+            echo "DEBUG - Changelog file not found."
+          fi
+        fi
     - name: Fastlane Beta
       run: |
         gem install bundler
         bundle install --jobs 4 --retry 3
+        if [ "${{ inputs.changelog_debug }}" == 'true' ]; then
+          echo "DEBUG - Running Fastlane with changelog: ${{ steps.format_changelog.outputs.changelog }}"
+        fi
         bundle exec fastlane beta
       env:
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-        PR_TITLE: ${{ github.event.pull_request.title }}
+        PR_TITLE: ${{ steps.format_changelog.outputs.changelog }}
         APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
         APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
         APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
