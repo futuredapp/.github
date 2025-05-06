@@ -78,9 +78,9 @@ jobs:
             fi
           else
             # If the file doesn't exist, we will get the last merge commit from the last 24 hours
-            echo "latest_builded_commit.txt does not exist"
             LAST_COMMIT=$(git rev-list --merges --after="24 hours ago" HEAD | tail -n 1)
             if [ "${{ inputs.debug }}" == "true" ]; then
+              echo "DEBUG - latest_builded_commit.txt does not exist"
               echo "DEBUG - Last commit $LAST_COMMIT"
             fi
             echo "latest_commit=$LAST_COMMIT" >> $GITHUB_OUTPUT
@@ -91,7 +91,7 @@ jobs:
         run: |
           FROM_COMMIT=${{ steps.get_last_merge_commit.outputs.latest_commit }}
           LAST_COMMIT=$(git rev-parse HEAD)
-          if [ "$FROM_COMMIT" = "$LAST_COMMIT" ]; then
+          if [ "$FROM_COMMIT" == "$LAST_COMMIT" ]; then
             # If the last merged commit and the current commit are the same, get the changelog from the commit before the current commit to the current commit
             CHANGELOG=$(git log --merges --pretty=format:"%b" HEAD~1..$LAST_COMMIT)
           else
@@ -99,7 +99,7 @@ jobs:
             CHANGELOG=$(git log --merges --pretty=format:"%b" $FROM_COMMIT..$LAST_COMMIT)
           fi
           if [ "${{ inputs.debug }}" == "true" ]; then
-            echo "DEBUG - Generate changelog $CHANGELOG"
+            echo "DEBUG - Generated changelog $CHANGELOG"
           fi
           echo "$CHANGELOG" > changelog.txt
       - name: Save changelog
