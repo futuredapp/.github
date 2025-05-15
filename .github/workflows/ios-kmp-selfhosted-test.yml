@@ -33,6 +33,11 @@ on:
         default: dev
         required: false
 
+    secrets:
+      GRADLE_CACHE_ENCRYPTION_KEY:
+        required: false
+        description: "Configuration cache encryption key"
+
 jobs:
   test:
     name: Test
