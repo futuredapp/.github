@@ -68,6 +68,7 @@ jobs:
     - name: Get changelog
       id: get_changelog
       uses: actions/download-artifact@v4
+      continue-on-error: true
       with:
         name: changelog
     - name: Format changelog
