@@ -1,0 +1,149 @@
+name: Detect changes and generate changelog
+description: Detects changes since the last built commit and generates a changelog.
+
+inputs:
+  depth:
+    required: false
+    description: The depth of the git history to fetch. Default is 100.
+    type: number
+    default: 100
+  debug:
+    required: false
+    description: Enable debug mode. Default is false.
+    type: boolean
+    default: false
+
+outputs:
+  skip_build:
+    description: "Indicates if the build should be skipped"
+    value: ${{ steps.determine_skip.outputs.skip }}
+  changelog:
+    description: "The generated changelog formatted as a string"
+    value: ${{ steps.generate_changelog.outputs.changelog_string }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: ${{ inputs.depth }}
+
+    - name: Calculate previous run id
+      id: prev_run_id
+      shell: bash
+      run: |
+        # Calculate previous run ID for cache key.
+        echo "run_id=$(expr ${{ github.run_number }} - 1)" >> $GITHUB_OUTPUT
+
+    - name: Restore cache for previous build commit SHA
+      id: restore_last_build_cache
+      uses: actions/cache@v4
+      continue-on-error: true
+      with:
+        path: latest_builded_commit.txt
+        key: latest_builded_commit-${{ steps.prev_run_id.outputs.run_id }}
+
+    - name: Determine commit range for changelog and skip build
+      id: determine_range
+      shell: bash
+      run: |
+        LASTEST_BUILD_COMMIT=""
+        if [ -f latest_builded_commit.txt ]; then
+          LASTEST_BUILD_COMMIT=$(< latest_builded_commit.txt)
+        fi
+
+        if [ "${{ inputs.debug }}" == "true" ]; then
+          echo "DEBUG - Previous built commit SHA from cache: '$LASTEST_BUILD_COMMIT'"
+        fi
+
+        # Find the most recent merge commit in the last 24 hours since LASTEST_BUILD_COMMIT.
+        GIT_RANGE=""
+        if [ -n "$LASTEST_BUILD_COMMIT" ]; then
+          GIT_RANGE="$LASTEST_BUILD_COMMIT..HEAD"
+          if [ "${{ inputs.debug }}" == "true" ]; then echo "DEBUG - Using git range: '$GIT_RANGE'"; fi
+        else
+          GIT_RANGE="HEAD"
+          if [ "${{ inputs.debug }}" == "true" ]; then echo "DEBUG - No previous built commit, looking in last 24 hours."; fi
+        fi
+        LAST_RELEVANT_COMMIT=$(git rev-list --merges --max-count=1 --before="24 hours ago" $GIT_RANGE)
+        CURRENT_HEAD_SHA=$(git rev-parse HEAD)
+
+        if [ -z "$LAST_RELEVANT_COMMIT" ] || [ "$LAST_RELEVANT_COMMIT" == "$LASTEST_BUILD_COMMIT" ]; then
+          echo "No new relevant merge commits found. Skipping build."
+          echo "build_should_skip=true" >> $GITHUB_OUTPUT
+          echo "from_commit=$CURRENT_HEAD_SHA" >> $GITHUB_OUTPUT # Set to HEAD if skipping
+        else
+          echo "Relevant merge commits found. Proceeding with build."
+          echo "build_should_skip=false" >> $GITHUB_OUTPUT
+          # If LASTEST_BUILD_COMMIT was empty, use LAST_RELEVANT_COMMIT as the start for changelog.
+          # Otherwise, use the actual LASTEST_BUILD_COMMIT from cache.
+          if [ -z "$LASTEST_BUILD_COMMIT" ]; then
+            echo "from_commit=$LAST_RELEVANT_COMMIT" >> $GITHUB_OUTPUT
+          else
+            echo "from_commit=$LASTEST_BUILD_COMMIT" >> $GITHUB_OUTPUT
+          fi
+          echo "to_commit=$CURRENT_HEAD_SHA" >> $GITHUB_OUTPUT
+        fi
+
+        if [ "${{ inputs.debug }}" == "true" ]; then
+          echo "DEBUG - build_should_skip output: $(grep '^build_should_skip=' $GITHUB_OUTPUT | cut -d= -f2)"
+          echo "DEBUG - from_commit output: $(grep '^from_commit=' $GITHUB_OUTPUT | cut -d= -f2)"
+          echo "DEBUG - to_commit output: $(grep '^to_commit=' $GITHUB_OUTPUT | cut -d= -f2)"
+        fi
+
+    - name: Set skip_build output
+      id: determine_skip
+      shell: bash
+      run: |
+        # Set composite action output based on previous step's result.
+        echo "skip=${{ steps.determine_range.outputs.build_should_skip }}" >> $GITHUB_OUTPUT
+
+    - name: Generate changelog
+      id: generate_changelog
+      shell: bash
+      # Only run if build is NOT skipped and a valid from_commit exists.
+      if: steps.determine_skip.outputs.skip == 'false' && steps.determine_range.outputs.from_commit != ''
+      run: |
+        FROM_COMMIT=${{ steps.determine_range.outputs.from_commit }}
+        TO_COMMIT=${{ steps.determine_range.outputs.to_commit }}
+
+        if [ "${{ inputs.debug }}" == "true" ]; then
+          echo "DEBUG - Generating changelog from $FROM_COMMIT to $TO_COMMIT"
+        fi
+
+        # Get changelog between FROM_COMMIT and TO_COMMIT.
+        # Special case for same commit range (e.g., if FROM_COMMIT is just before HEAD).
+        if [ "$FROM_COMMIT" == "$TO_COMMIT" ]; then
+           if [ "${{ inputs.debug }}" == "true" ]; then echo "DEBUG - FROM_COMMIT is same as HEAD. Using range HEAD~1..HEAD"; fi
+           CHANGELOG=$(git log --merges --pretty=format:"%b" HEAD~1..$TO_COMMIT)
+        else
+           if [ "${{ inputs.debug }}" == "true" ]; then echo "DEBUG - Using range $FROM_COMMIT..$TO_COMMIT"; fi
+           CHANGELOG=$(git log --merges --pretty=format:"%b" $FROM_COMMIT..$TO_COMMIT)
+        fi
+
+        echo "$CHANGELOG" > changelog.txt
+
+        # Format changelog for string output: remove empty lines, join with ', ', trim whitespace.
+        FORMATTED_CHANGELOG=$(echo "$CHANGELOG" | grep -v '^$' | paste -sd, -)
+        FORMATTED_CHANGELOG=$(echo "$FORMATTED_CHANGELOG" | sed 's/,/, /g') # Add space after comma
+        FORMATTED_CHANGELOG="$(echo "$FORMATTED_CHANGELOG" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
+        if [ "${{ inputs.debug }}" == "true" ]; then
+          echo "DEBUG - Generated raw changelog:"
+          echo "$CHANGELOG"
+          echo "DEBUG - Formatted changelog for output: '$FORMATTED_CHANGELOG'"
+        fi
+
+        # Set step output for the formatted changelog string.
+        # Use delimited string for multi-line outputs.
+        CHANGELOG_STRING_OUTPUT=$(echo "${FORMATTED_CHANGELOG}" | sed 's/%/%25/g' | sed 's/\n/%0A/g' | sed 's/\r/%0D/g')
+        echo "changelog_string=${CHANGELOG_STRING_OUTPUT}" >> $GITHUB_OUTPUT
+
+    - name: Save changelog artifact
+      if: steps.determine_skip.outputs.skip == 'false'
+      uses: actions/upload-artifact@v4
+      with:
+        name: changelog
+        path: changelog.txt
+        retention-days: 1

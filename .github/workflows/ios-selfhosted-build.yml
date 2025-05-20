@@ -47,75 +47,69 @@ on:
           Private App Store Connect API issuer key for submitting build to App Store.
 
 jobs:
-  detect_changes_and_generate_changelog:
-    name: Detect changes and generate changelog
-    uses: ./.github/workflows/universal-detect-changes-and-generate-changelog.yml
-    with:
-      depth: ${{ inputs.changelog_depth }}
-      debug: ${{ inputs.changelog_debug }}
 
   build:
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', inputs.runner_label)) }}
     timeout-minutes: 30
-    needs: detect_changes_and_generate_changelog
-    if: ${{ needs.detect_changes_and_generate_changelog.outputs.skip_build != 'true' }}
 
     steps:
+    - name: Use Composite Action - Detect changes and get changelog
+      id: detect_changes
+      uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@feature/Changelog
+      with:
+        depth: ${{ inputs.changelog_depth }}
+        debug: ${{ inputs.changelog_debug }}
+
     - name: Checkout
+      if: ${{ steps.detect_changes.outputs.skip_build != 'true' && inputs.use_git_lfs == 'true'  }}
       uses: actions/checkout@v4
       with:
         lfs: ${{ inputs.use_git_lfs }}
-    - name: Get changelog
-      id: get_changelog
-      uses: actions/download-artifact@v4
-      continue-on-error: true
-      with:
-        name: changelog
-    - name: Format changelog
-      id: format_changelog
-      run: |
-        if [ -f changelog.txt ]; then
-          CHANGELOG=$(tr '\n' ', ' < changelog.txt)
-          echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
-          if [ "${{ inputs.changelog_debug }}" == 'true' ]; then
-            echo "DEBUG - Changelog: $CHANGELOG"
-          fi
-        else
-          if [ "${{ inputs.changelog_debug }}" == 'true' ]; then
-            echo "DEBUG - Changelog file not found."
-          fi
-        fi
+
     - name: Fastlane Beta
+      if: ${{ steps.detect_changes.outputs.skip_build != 'true' }}
       run: |
         gem install bundler
         bundle install --jobs 4 --retry 3
+        CHANGELOG_FOR_FASTLANE="${{ steps.detect_changes.outputs.changelog }}"
         if [ "${{ inputs.changelog_debug }}" == 'true' ]; then
-          echo "DEBUG - Running Fastlane with changelog: ${{ steps.format_changelog.outputs.changelog }}"
+          echo "DEBUG - Running Fastlane with changelog: $CHANGELOG_FOR_FASTLANE"
         fi
         bundle exec fastlane beta
       env:
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-        PR_TITLE: ${{ steps.format_changelog.outputs.changelog }}
+        PR_TITLE: ${{ steps.detect_changes.outputs.changelog }}
         APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
         APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
         APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
         CUSTOM_VALUES: ${{ inputs.custom_values }}
+
     - name: Upload IPA
+      if: ${{ steps.detect_changes.outputs.skip_build != 'true' }}
       uses: actions/upload-artifact@v4
       with:
         name: Build.ipa
         path: build_output/*.ipa
+
     - name: Upload dSYM
+      if: ${{ steps.detect_changes.outputs.skip_build != 'true' }}
       uses: actions/upload-artifact@v4
       with:
         name: Build.app.dSYM.zip
         path: build_output/*.app.dSYM.zip
-    - name: Save latest build commit
+
+    - name: Save latest build commit SHA to file
+      if: success() && steps.detect_changes.outputs.skip_build != 'true'
+      shell: bash
       run: |
         echo "${{ github.sha }}" > latest_builded_commit.txt
-    - name: Store lastest build commit
-      id: get_last_build_commit
+        if [ "${{ inputs.changelog_debug }}" == 'true' ]; then
+            echo "DEBUG - Saved commit SHA ${{ github.sha }} to latest_builded_commit.txt"
+        fi
+
+    - name: Store latest build commit SHA in cache
+      if: success() && steps.detect_changes.outputs.skip_build != 'true'
       uses: actions/cache@v4
       with:
         path: latest_builded_commit.txt
-        key: latest_builded_commit-${{github.run_number}}
+        key: latest_builded_commit-${{ github.run_number }}
