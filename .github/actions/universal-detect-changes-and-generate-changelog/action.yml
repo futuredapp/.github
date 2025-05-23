@@ -116,18 +116,30 @@ runs:
         # Special case for same commit range (e.g., if FROM_COMMIT is just before HEAD).
         if [ "$FROM_COMMIT" == "$TO_COMMIT" ]; then
            if [ "${{ inputs.debug }}" == "true" ]; then echo "DEBUG - FROM_COMMIT is same as HEAD. Using range HEAD~1..HEAD"; fi
-           CHANGELOG=$(git log --merges --pretty=format:"%b" HEAD~1..$TO_COMMIT)
+           CHANGELOG=$(git log --merges --pretty=format:"%b" HEAD~1..$TO_COMMIT 2>&1)
+           GIT_LOG_EXIT_CODE=$?
         else
            if [ "${{ inputs.debug }}" == "true" ]; then echo "DEBUG - Using range $FROM_COMMIT..$TO_COMMIT"; fi
-           CHANGELOG=$(git log --merges --pretty=format:"%b" $FROM_COMMIT..$TO_COMMIT)
+           CHANGELOG=$(git log --merges --pretty=format:"%b" $FROM_COMMIT..$TO_COMMIT 2>&1)
+           GIT_LOG_EXIT_CODE=$?
         fi
 
-        echo "$CHANGELOG" > changelog.txt
+        # Initialize FORMATTED_CHANGELOG
+        FORMATTED_CHANGELOG=""
 
-        # Format changelog for string output: remove empty lines, join with ', ', trim whitespace.
-        FORMATTED_CHANGELOG=$(echo "$CHANGELOG" | grep -v '^$' | paste -sd, -)
-        FORMATTED_CHANGELOG=$(echo "$FORMATTED_CHANGELOG" | sed 's/,/, /g') # Add space after comma
-        FORMATTED_CHANGELOG="$(echo "$FORMATTED_CHANGELOG" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+        # Check if git log command actually failed (exit code non-zero)
+        if [ $GIT_LOG_EXIT_CODE -ne 0 ]; then
+            echo "##[error]git log command failed with exit code $GIT_LOG_EXIT_CODE. Output: $CHANGELOG"
+            FORMATTED_CHANGELOG="Error generating changelog: command failed."
+        elif [ -z "$(echo "$CHANGELOG" | tr -d '\n\r')" ]; then # Kontrola, zda je CHANGELOG prázdný (po odstranění whitespace)
+            if [ "true" == "true" ]; then echo "DEBUG - Raw changelog is empty. Setting default message."; fi
+            FORMATTED_CHANGELOG="No changelog provided."
+        else
+            # Your existing formatting logic for non-empty changelog
+            FORMATTED_CHANGELOG=$(echo "$CHANGELOG" | grep -v '^$' | paste -sd, -)
+            FORMATTED_CHANGELOG=$(echo "$FORMATTED_CHANGELOG" | sed 's/,/, /g') # Add space after comma
+            FORMATTED_CHANGELOG="$(echo "$FORMATTED_CHANGELOG" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+        fi
 
         if [ "${{ inputs.debug }}" == "true" ]; then
           echo "DEBUG - Generated raw changelog:"
