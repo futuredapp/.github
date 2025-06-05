@@ -50,6 +50,9 @@ on:
         required: true
         description: >
           Private App Store Connect API issuer key for submitting build to App Store.
+      GRADLE_CACHE_ENCRYPTION_KEY:
+        required: false
+        description: "Configuration cache encryption key"
 
 jobs:
   build:
@@ -62,6 +65,8 @@ jobs:
           lfs: ${{ inputs.use_git_lfs }}
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
       - name: Build KMP Package
         if: ${{ inputs.kmp_swift_package_integration }}
         env:

@@ -40,6 +40,11 @@ on:
         type: string
         default: ""
 
+    secrets:
+      GRADLE_CACHE_ENCRYPTION_KEY:
+        required: false
+        description: "Configuration cache encryption key"
+
 jobs:
   test:
     name: Lint & Tests
@@ -63,6 +68,8 @@ jobs:
           distribution: ${{ inputs.JAVA_DISTRIBUTION }}
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
       - name: Run Lint Check
         shell: bash
         run: ./gradlew --continue ${{ inputs.LINT_GRADLE_TASKS }}
