@@ -66,7 +66,7 @@ runs:
           GIT_RANGE="HEAD"
           if [ "${{ inputs.debug }}" == "true" ]; then echo "DEBUG - No previous built commit, looking in last 24 hours."; fi
         fi
-        LAST_RELEVANT_COMMIT=$(git rev-list --merges --max-count=1 --before="24 hours ago" $GIT_RANGE)
+        LAST_RELEVANT_COMMIT=$(git rev-list --merges --max-count=1 --after="24 hours" $GIT_RANGE)
         CURRENT_HEAD_SHA=$(git rev-parse HEAD)
 
         if [ -z "$LAST_RELEVANT_COMMIT" ] || [ "$LAST_RELEVANT_COMMIT" == "$LASTEST_BUILD_COMMIT" ]; then
