@@ -51,6 +51,8 @@ jobs:
           java-version: '17'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-disabled: true
       - name: Setup GMD
         run: ./gradlew ${{ inputs.TEST_GRADLE_TASKS }}
           --info
