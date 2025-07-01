@@ -51,6 +51,9 @@ on:
       SIGNING_KEY_PASSWORD:
         description: "Password to the key in the provided keystore"
         required: true
+      GRADLE_CACHE_ENCRYPTION_KEY:
+        required: false
+        description: "Configuration cache encryption key"
       SECRET_PROPERTIES:
         required: false
         description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input."
@@ -89,7 +92,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          cache-disabled: false
+          cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
       - name: Prepare Environment
         run: |
           echo '${{ secrets.SECRET_PROPERTIES }}' > ${{ inputs.SECRET_PROPERTIES_FILE }}
