@@ -1,11 +1,11 @@
-name: Android Google Play Release
+name: Generate baseline profiles
 
 on:
   workflow_call:
     inputs:
       ## Required Inputs
       TASK_NAME:
-        description: "A Gradle task(s) for executing baseline profiles `generateBaselineProfile`"
+        description: "A Gradle task for executing baseline profiles, for example `generateBaselineProfile`"
         required: true
         type: string
 
@@ -63,7 +63,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  release:
+  generate:
     name: Generate Baseline Profiles
     runs-on: [ ubuntu-latest ]
     timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
