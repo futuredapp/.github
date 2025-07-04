@@ -56,21 +56,37 @@ runs:
         CURRENT_COMMIT_SHA=$(git rev-parse origin/${{ env.TARGET_BRANCH }})
         LAST_COMMIT_SHA=$(cat last_commit_sha.txt 2>/dev/null || echo "")
 
+        if [ "${{ inputs.debug }}" == "true" ]; then
+          echo "DEBUG - CURRENT_COMMIT_SHA: $CURRENT_COMMIT_SHA"
+          echo "DEBUG - LAST_COMMIT_SHA: $LAST_COMMIT_SHA"
+        fi
+
         CHANGELOG_ENTRIES=""
         if [ -z "$LAST_COMMIT_SHA" ]; then
           if [ "${{ inputs.debug }}" == "true" ]; then
             echo "DEBUG - No valid cache found. Comparing against the last 24 hours."
+            echo "DEBUG - Executing: git log --pretty=format:\"%H\" origin/${{ env.TARGET_BRANCH }} --first-parent --since=\"24 hours ago\""
           fi
           # Execute git log directly for 24 hours ago
           while IFS= read -r commit_sha; do
+            if [ "${{ inputs.debug }}" == "true" ]; then
+              echo "DEBUG - Processing commit SHA: $commit_sha"
+            fi
             if git rev-parse --quiet --verify "$commit_sha^2" > /dev/null; then
+              # It's a merge commit, get body
               commit_message=$(git log -1 --pretty=format:"%b" "$commit_sha")
             else
+              # Not a merge commit, get subject
               commit_message=$(git log -1 --pretty=format:"%s" "$commit_sha")
             fi
+            if [ "${{ inputs.debug }}" == "true" ]; then
+              echo "DEBUG - Commit message: $commit_message"
+            fi
+            
             if [ -n "$commit_message" ]; then
               if [ -n "$CHANGELOG_ENTRIES" ]; then
-                CHANGELOG_ENTRIES="$CHANGELOG_ENTRIES\n$commit_message"
+                CHANGELOG_ENTRIES="$CHANGELOG_ENTRIES
+$commit_message"
               else
                 CHANGELOG_ENTRIES="$commit_message"
               fi
@@ -79,17 +95,26 @@ runs:
         else
           if [ "${{ inputs.debug }}" == "true" ]; then
             echo "DEBUG - Valid cache found. Comparing against commit $LAST_COMMIT_SHA."
+            echo "DEBUG - Executing: git log --pretty=format:\"%H\" \"$LAST_COMMIT_SHA\"..\"$CURRENT_COMMIT_SHA\" --first-parent"
           fi
           # Execute git log directly for commit range
           while IFS= read -r commit_sha; do
+            if [ "${{ inputs.debug }}" == "true" ]; then
+              echo "DEBUG - Processing commit SHA: $commit_sha"
+            fi
             if git rev-parse --quiet --verify "$commit_sha^2" > /dev/null; then
               commit_message=$(git log -1 --pretty=format:"%b" "$commit_sha")
             else
               commit_message=$(git log -1 --pretty=format:"%s" "$commit_sha")
             fi
+            if [ "${{ inputs.debug }}" == "true" ]; then
+              echo "DEBUG - Commit message: $commit_message"
+            fi
+            
             if [ -n "$commit_message" ]; then
               if [ -n "$CHANGELOG_ENTRIES" ]; then
-                CHANGELOG_ENTRIES="$CHANGELOG_ENTRIES\n$commit_message"
+                CHANGELOG_ENTRIES="$CHANGELOG_ENTRIES
+$commit_message"
               else
                 CHANGELOG_ENTRIES="$commit_message"
               fi
