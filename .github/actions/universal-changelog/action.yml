@@ -1,12 +1,11 @@
-name: Universal Changelog Action
+name: Changelog Action
 description: 'Generates a changelog based on recent commits, differentiating between merge commit bodies and regular commit subjects, comparing against a cached last commit SHA or a time-based fallback.'
 
 inputs:
   branch:
     description: 'Branch to check for changes'
-    required: false
+    required: true
     type: string
-    default: ${{ github.event.repository.default_branch }}
   
   debug:
     required: false

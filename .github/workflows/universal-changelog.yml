@@ -7,7 +7,7 @@ on:
         description: 'Branch to check for changes'
         required: false
         type: string
-        default: ${{ github.event.repository.default_branch }}
+        default: ${{ github.ref_name }}
       depth:
         description: 'The depth of the git history to fetch. Default is 0 (all history).'
         required: false
