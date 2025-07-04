@@ -31,22 +31,40 @@ jobs:
         with:
           fetch-depth: 0 # Fetch all history for all branches and tags
 
+      - name: Determine Branch
+        id: get_branch
+        run: |
+          BRANCH_NAME=""
+          if [ "${{ github.event_name }}" == "workflow_call" ]; then
+            BRANCH_NAME="${{ inputs.branch }}"
+          elif [ "${{ github.event_name }}" == "push" ]; then
+            BRANCH_NAME="${{ github.ref_name }}"
+          fi
+          
+          if [ -z "$BRANCH_NAME" ]; then
+            echo "Branch name could not be determined, falling back to default 'main'"
+            BRANCH_NAME="main"
+          fi
+          echo "TARGET_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
+          echo "Determined branch to check: $BRANCH_NAME"
+
       - name: Restore last commit SHA from cache
         id: cache-commit-sha
         uses: actions/cache@v4
         with:
           path: last_commit_sha.txt
           # A unique key is used to force a cache miss and trigger a save post-job.
-          key: last-commit-sha-${{ github.repository }}-${{ inputs.branch }}-${{ github.run_id }}
+          key: last-commit-sha-${{ github.repository }}-${{ env.TARGET_BRANCH }}-${{ github.run_id }}
           # The most recent cache is restored using a partial key match.
           restore-keys: |
-            last-commit-sha-${{ github.repository }}-${{ inputs.branch }}-
+            last-commit-sha-${{ github.repository }}-${{ env.TARGET_BRANCH }}-
 
       - name: Generate changelog
         id: changelog
         run: |
+          echo "Working with branch: ${{ env.TARGET_BRANCH }}"
           # Get the SHA of the latest commit on the branch
-          CURRENT_COMMIT_SHA=$(git rev-parse origin/${{ inputs.branch }})
+          CURRENT_COMMIT_SHA=$(git rev-parse origin/${{ env.TARGET_BRANCH }})
 
           # Get the previously cached SHA. If the file doesn't exist, the variable will be empty.
           LAST_COMMIT_SHA=$(cat last_commit_sha.txt 2>/dev/null || echo "")
@@ -54,7 +72,7 @@ jobs:
           # If no SHA was restored, fall back to a time-based comparison.
           if [ -z "$LAST_COMMIT_SHA" ]; then
             echo "No valid cache found. Comparing against the last 24 hours."
-            COMMIT_LOG=$(git log origin/${{ inputs.branch }} --since="24 hours ago" --pretty=format:"%s")
+            COMMIT_LOG=$(git log origin/${{ env.TARGET_BRANCH }} --since="24 hours ago" --pretty=format:"%s")
           else
             echo "Valid cache found. Comparing against commit $LAST_COMMIT_SHA."
             COMMIT_LOG=$(git log $LAST_COMMIT_SHA..$CURRENT_COMMIT_SHA --pretty=format:"%s")
