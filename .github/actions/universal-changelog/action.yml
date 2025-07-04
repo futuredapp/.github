@@ -7,11 +7,7 @@ inputs:
     required: false
     type: string
     default: ${{ github.event.repository.default_branch }}
-  depth:
-    required: false
-    description: The depth of the git history to fetch. Default is 0 (all history).
-    type: number
-    default: 0
+  
   debug:
     required: false
     description: Enable debug mode. Default is false.
@@ -29,11 +25,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: ${{ inputs.depth }} # Use the new depth input
-
     - name: Determine Branch
       id: get_branch
       run: |
