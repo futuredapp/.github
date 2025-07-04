@@ -10,7 +10,7 @@ on:
         description: 'Branch to check for changes'
         required: false
         type: string
-        default: 'develop'
+        default: 'main'
     outputs:
       has_changes:
         description: "True if there were changes"
