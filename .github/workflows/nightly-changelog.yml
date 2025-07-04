@@ -1,8 +1,6 @@
 name: Nightly Changelog
 
 on:
-  schedule:
-    - cron: '*/2 * * * *'
   push:
     branches:
       - feature/nightlies
