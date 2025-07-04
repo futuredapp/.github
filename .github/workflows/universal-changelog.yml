@@ -1,0 +1,45 @@
+name: Universal Changelog Workflow
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: 'Branch to check for changes'
+        required: false
+        type: string
+        default: ${{ github.event.repository.default_branch }}
+      depth:
+        description: 'The depth of the git history to fetch. Default is 0 (all history).'
+        required: false
+        type: number
+        default: 0
+      debug:
+        description: 'Enable debug mode.'
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      has_changes:
+        description: "True if there were changes"
+        value: ${{ jobs.generate_changelog.outputs.has_changes }}
+      changelog:
+        description: "The changelog"
+        value: ${{ jobs.generate_changelog.outputs.changelog }}
+
+jobs:
+  generate_changelog:
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.run_action.outputs.has_changes }}
+      changelog: ${{ steps.run_action.outputs.changelog }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Universal Changelog Action
+        id: run_action
+        uses: ./.github/actions/universal-changelog
+        with:
+          branch: ${{ inputs.branch }}
+          depth: ${{ inputs.depth }}
+          debug: ${{ inputs.debug }}
