@@ -72,10 +72,10 @@ jobs:
           # If no SHA was restored, fall back to a time-based comparison.
           if [ -z "$LAST_COMMIT_SHA" ]; then
             echo "No valid cache found. Comparing against the last 24 hours."
-            COMMIT_LOG=$(git log origin/${{ env.TARGET_BRANCH }} --since="24 hours ago" --pretty=format:"%s")
+            COMMIT_LOG=$(git log origin/${{ env.TARGET_BRANCH }} --first-parent --since="24 hours ago" --pretty=format:"%s")
           else
             echo "Valid cache found. Comparing against commit $LAST_COMMIT_SHA."
-            COMMIT_LOG=$(git log $LAST_COMMIT_SHA..$CURRENT_COMMIT_SHA --pretty=format:"%s")
+            COMMIT_LOG=$(git log $LAST_COMMIT_SHA..$CURRENT_COMMIT_SHA --first-parent --pretty=format:"%s")
           fi
 
           # Set outputs
