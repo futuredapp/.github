@@ -35,11 +35,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ inputs.depth }}
 
       - name: Run Universal Changelog Action
         id: run_action
-        uses: ./.github/actions/universal-changelog
+        uses: futuredapp/.github/.github/actions/universal-changelog@matsem/feature/changelog # TODO update to main branch
         with:
           branch: ${{ inputs.branch }}
-          depth: ${{ inputs.depth }}
           debug: ${{ inputs.debug }}
