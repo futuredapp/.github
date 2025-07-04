@@ -1,0 +1,132 @@
+name: Universal Changelog Action
+description: 'Generates a changelog based on recent commits, differentiating between merge commit bodies and regular commit subjects, comparing against a cached last commit SHA or a time-based fallback.'
+
+inputs:
+  branch:
+    description: 'Branch to check for changes'
+    required: false
+    type: string
+    default: ${{ github.event.repository.default_branch }}
+  depth:
+    required: false
+    description: The depth of the git history to fetch. Default is 0 (all history).
+    type: number
+    default: 0
+  debug:
+    required: false
+    description: Enable debug mode. Default is false.
+    type: boolean
+    default: false
+
+outputs:
+  has_changes:
+    description: "True if there were changes"
+    value: ${{ steps.changelog.outputs.has_changes }}
+  changelog:
+    description: "The changelog"
+    value: ${{ steps.changelog.outputs.changelog }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: ${{ inputs.depth }} # Use the new depth input
+
+    - name: Determine Branch
+      id: get_branch
+      run: |
+        BRANCH_NAME="${{ inputs.branch }}"
+        
+        if [ -z "$BRANCH_NAME" ]; then
+          echo "Branch name could not be determined, falling back to default 'main'"
+          BRANCH_NAME="main"
+        fi
+        echo "TARGET_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
+        echo "Determined branch to check: $BRANCH_NAME"
+      shell: bash
+
+    - name: Restore last commit SHA from cache
+      id: cache-commit-sha
+      uses: actions/cache@v4
+      with:
+        path: last_commit_sha.txt
+        key: last-commit-sha-${{ github.repository }}-${{ env.TARGET_BRANCH }}-${{ github.run_id }}
+        restore-keys: |
+          last-commit-sha-${{ github.repository }}-${{ env.TARGET_BRANCH }}-
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        if [ "${{ inputs.debug }}" == "true" ]; then
+          echo "DEBUG - Working with branch: ${{ env.TARGET_BRANCH }}"
+        fi
+
+        CURRENT_COMMIT_SHA=$(git rev-parse origin/${{ env.TARGET_BRANCH }})
+        LAST_COMMIT_SHA=$(cat last_commit_sha.txt 2>/dev/null || echo "")
+
+        COMMIT_RANGE=""
+        if [ -z "$LAST_COMMIT_SHA" ]; then
+          if [ "${{ inputs.debug }}" == "true" ]; then
+            echo "DEBUG - No valid cache found. Comparing against the last 24 hours."
+          fi
+          COMMIT_RANGE="origin/${{ env.TARGET_BRANCH }} --first-parent --since=\"24 hours ago\""
+        else
+          if [ "${{ inputs.debug }}" == "true" ]; then
+            echo "DEBUG - Valid cache found. Comparing against commit $LAST_COMMIT_SHA."
+          fi
+          COMMIT_RANGE="$LAST_COMMIT_SHA..$CURRENT_COMMIT_SHA --first-parent"
+        fi
+
+        CHANGELOG_ENTRIES=""
+        # Get all commit SHAs in the range
+        while IFS= read -r commit_sha; do
+          if git rev-parse --quiet --verify "$commit_sha^2" > /dev/null; then
+            # It's a merge commit, get body
+            commit_message=$(git log -1 --pretty=format:"%b" "$commit_sha")
+          else
+            # Not a merge commit, get subject
+            commit_message=$(git log -1 --pretty=format:"%s" "$commit_sha")
+          fi
+          
+          if [ -n "$commit_message" ]; then
+            if [ -n "$CHANGELOG_ENTRIES" ]; then
+              CHANGELOG_ENTRIES="$CHANGELOG_ENTRIES\n$commit_message"
+            else
+              CHANGELOG_ENTRIES="$commit_message"
+            fi
+          fi
+        done < <(git log --pretty=format:"%H" $COMMIT_RANGE)
+
+        # Set outputs
+        if [ -z "$CHANGELOG_ENTRIES" ]; then
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+          echo "changelog=" >> $GITHUB_OUTPUT
+        else
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_ENTRIES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_ENTRIES" > changelog.txt # Save to file for artifact
+        fi
+
+        # Overwrite the local file with the new SHA to be cached post-job.
+        echo $CURRENT_COMMIT_SHA > last_commit_sha.txt
+      shell: bash
+
+    - name: Save changelog artifact
+      if: steps.changelog.outputs.has_changes == 'true' # Only upload if there are changes
+      uses: actions/upload-artifact@v4
+      with:
+        name: changelog
+        path: changelog.txt
+        retention-days: 30
+
+    - name: Debug Outputs
+      if: always() && inputs.debug == 'true' # Only run if debug is true
+      run: |
+        echo "Debug Outputs:"
+        echo "has_changes: ${{ steps.changelog.outputs.has_changes }}"
+        echo "changelog: ${{ steps.changelog.outputs.changelog }}"
+      shell: bash
