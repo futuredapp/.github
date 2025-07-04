@@ -1,4 +1,4 @@
-name: Changelog Action
+name: Universal Changelog Action
 description: 'Generates a changelog based on recent commits, differentiating between merge commit bodies and regular commit subjects, comparing against a cached last commit SHA or a time-based fallback.'
 
 inputs:
@@ -6,7 +6,11 @@ inputs:
     description: 'Branch to check for changes'
     required: true
     type: string
-  
+  depth:
+    required: false
+    description: The depth of the git history to fetch. Default is 0 (all history).
+    type: number
+    default: 0
   debug:
     required: false
     description: Enable debug mode. Default is false.
@@ -24,6 +28,11 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: ${{ inputs.depth }} # Use the new depth input
+
     - name: Determine Branch
       id: get_branch
       run: |
@@ -85,8 +94,7 @@ runs:
             
             if [ -n "$commit_message" ]; then
               if [ -n "$CHANGELOG_ENTRIES" ]; then
-                CHANGELOG_ENTRIES="$CHANGELOG_ENTRIES
-$commit_message"
+                CHANGELOG_ENTRIES="$CHANGELOG_ENTRIES\n$commit_message"
               else
                 CHANGELOG_ENTRIES="$commit_message"
               fi
@@ -113,8 +121,7 @@ $commit_message"
             
             if [ -n "$commit_message" ]; then
               if [ -n "$CHANGELOG_ENTRIES" ]; then
-                CHANGELOG_ENTRIES="$CHANGELOG_ENTRIES
-$commit_message"
+                CHANGELOG_ENTRIES="$CHANGELOG_ENTRIES\n$commit_message"
               else
                 CHANGELOG_ENTRIES="$commit_message"
               fi
