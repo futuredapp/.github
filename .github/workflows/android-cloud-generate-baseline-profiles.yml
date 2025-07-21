@@ -92,7 +92,7 @@ jobs:
       - name: Prepare Environment
         run: |
           echo '${{ secrets.SECRET_PROPERTIES }}' > ${{ inputs.SECRET_PROPERTIES_FILE }}
-      - name: Setup GMD
+      - name: Generate Baseline profiles
         run: ./gradlew ${{ inputs.TASK_NAME }}
           -Pandroid.experimental.testOptions.managedDevices.emulator.showKernelLogging=true
           -Pandroid.testoptions.manageddevices.emulator.gpu="swiftshader_indirect"
