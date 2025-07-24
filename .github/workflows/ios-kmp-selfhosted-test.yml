@@ -32,6 +32,16 @@ on:
         type: string
         default: dev
         required: false
+      java_version:
+        description: "Java version to use"
+        required: false
+        type: string
+        default: '17'
+      java_distribution:
+        description: "Java distribution to use"
+        required: false
+        type: string
+        default: 'zulu'
 
     secrets:
       GRADLE_CACHE_ENCRYPTION_KEY:
@@ -49,6 +59,11 @@ jobs:
         with:
           lfs: ${{ inputs.use_git_lfs }}
           fetch-depth: 0
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java_version }}
+          distribution: ${{ inputs.java_distribution }}
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
