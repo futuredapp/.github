@@ -40,12 +40,15 @@ runs:
       with:
         fetch-depth: ${{ inputs.depth }}
 
-    - name: Calculate previous run id
-      id: prev_run_id
+    - name: Calculate cache keys
+      id: cache_keys
       shell: bash
       run: |
-        # Calculate previous run ID for cache key.
-        echo "run_id=$(expr ${{ github.run_number }} - 1)" >> $GITHUB_OUTPUT
+        echo "prev_run=$(expr ${{ github.run_number }} - 1)" >> $GITHUB_OUTPUT
+        echo "prev_run2=$(expr ${{ github.run_number }} - 2)" >> $GITHUB_OUTPUT
+        echo "prev_run3=$(expr ${{ github.run_number }} - 3)" >> $GITHUB_OUTPUT
+        echo "prev_run4=$(expr ${{ github.run_number }} - 4)" >> $GITHUB_OUTPUT
+        echo "prev_run5=$(expr ${{ github.run_number }} - 5)" >> $GITHUB_OUTPUT
 
     - name: Restore cache for previous build commit SHA
       id: restore_last_build_cache
@@ -53,7 +56,12 @@ runs:
       continue-on-error: true
       with:
         path: latest_builded_commit.txt
-        key: latest_builded_commit-${{ steps.prev_run_id.outputs.run_id }}
+        key: latest_builded_commit-${{ steps.cache_keys.outputs.prev_run }}
+        restore-keys: |
+          latest_builded_commit-${{ steps.cache_keys.outputs.prev_run2 }}
+          latest_builded_commit-${{ steps.cache_keys.outputs.prev_run3 }}
+          latest_builded_commit-${{ steps.cache_keys.outputs.prev_run4 }}
+          latest_builded_commit-${{ steps.cache_keys.outputs.prev_run5 }}
 
     - name: Determine commit range for changelog and skip build
       id: determine_range
