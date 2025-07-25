@@ -89,7 +89,7 @@ runs:
 
           if [ -n "$OLDEST_MERGE_COMMIT" ]; then
             if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Oldest merge commit in last 24 hours found. Proceeding with build."; fi
-            FROM_COMMIT="$OLDEST_MERGE_COMMIT"
+            FROM_COMMIT="$OLDEST_MERGE_COMMIT^"
           else
             if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] No merge commits found in the last 24 hours. Skipping build."; fi
             BUILD_SHOULD_SKIP="true"
@@ -137,8 +137,8 @@ runs:
            CHANGELOG=$(git log --merges --first-parent --pretty=format:"%b" HEAD~1..HEAD 2>&1)
            GIT_LOG_EXIT_CODE=$?
         else
-           if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Using range ${FROM_COMMIT}^..${TO_COMMIT}"; fi
-           CHANGELOG=$(git log --merges --first-parent --pretty=format:"%b" ${FROM_COMMIT}^..${TO_COMMIT} 2>&1)
+           if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Using range ${FROM_COMMIT}..${TO_COMMIT}"; fi
+           CHANGELOG=$(git log --merges --first-parent --pretty=format:"%b" ${FROM_COMMIT}..${TO_COMMIT} 2>&1)
            GIT_LOG_EXIT_CODE=$?
         fi
 
