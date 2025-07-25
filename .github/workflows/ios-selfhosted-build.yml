@@ -68,6 +68,8 @@ jobs:
       with:
         depth: ${{ inputs.changelog_depth }}
         debug: ${{ inputs.changelog_debug }}
+        time_value: ${{ inputs.changelog_time_value }}
+        time_unit: ${{ inputs.changelog_time_unit }}
 
     - name: Checkout
       if: ${{ steps.detect_changes.outputs.skip_build != 'true' && inputs.use_git_lfs == 'true'  }}
