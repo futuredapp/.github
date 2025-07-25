@@ -176,7 +176,8 @@ runs:
                 
                 # Append branch names to changelog with proper spacing and header
                 # Use printf to ensure proper newline handling and put branches on new line
-                FORMATTED_CHANGELOG=$(printf "%s\n\nMERGED BRANCHES:\n%s" "$FORMATTED_CHANGELOG" "$FORMATTED_BRANCH_NAMES")
+                # Use a safe separator that won't conflict with GitHub Actions output syntax
+                FORMATTED_CHANGELOG=$(printf "%s\n\n### Merged branches:\n%s" "$FORMATTED_CHANGELOG" "$FORMATTED_BRANCH_NAMES")
             fi
         fi
 
@@ -191,5 +192,6 @@ runs:
 
         # Set step output for the formatted changelog string.
         # Use delimited string for multi-line outputs.
+        # Escape any potential GitHub Actions output syntax
         CHANGELOG_STRING_OUTPUT=$(echo "$FORMATTED_CHANGELOG" | sed 's/%/%25/g' | sed 's/\n/%0A/g' | sed 's/\r/%0D/g')
         echo "changelog_string=${CHANGELOG_STRING_OUTPUT}" >> $GITHUB_OUTPUT
