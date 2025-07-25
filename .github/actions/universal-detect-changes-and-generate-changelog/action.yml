@@ -143,10 +143,12 @@ runs:
         if [ "$FROM_COMMIT" == "$TO_COMMIT" ]; then
            if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] FROM_COMMIT is same as HEAD. Using range HEAD~1..HEAD"; fi
            CHANGELOG=$(git log --merges --first-parent --pretty=format:"%b" HEAD~1..HEAD 2>&1)
+           BRANCH_NAMES=$(git log --merges --first-parent --pretty=format:"%s" HEAD~1..HEAD | sed -e "s/Merge branch '//" -e "s/Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" 2>&1)
            GIT_LOG_EXIT_CODE=$?
         else
            if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Using range ${FROM_COMMIT}..${TO_COMMIT}"; fi
            CHANGELOG=$(git log --merges --first-parent --pretty=format:"%b" ${FROM_COMMIT}..${TO_COMMIT} 2>&1)
+           BRANCH_NAMES=$(git log --merges --first-parent --pretty=format:"%s" ${FROM_COMMIT}..${TO_COMMIT} | sed -e "s/Merge branch '//" -e "s/Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" 2>&1)
            GIT_LOG_EXIT_CODE=$?
         fi
 
@@ -165,15 +167,29 @@ runs:
             FORMATTED_CHANGELOG=$(echo "$CHANGELOG" | grep -v '^$' | paste -sd, -)
             FORMATTED_CHANGELOG=$(echo "$FORMATTED_CHANGELOG" | sed 's/,/, /g') # Add space after comma
             FORMATTED_CHANGELOG="$(echo "$FORMATTED_CHANGELOG" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
+            # Format branch names if they exist
+            if [ -n "$(echo "$BRANCH_NAMES" | tr -d '\n\r')" ]; then
+                FORMATTED_BRANCH_NAMES=$(echo "$BRANCH_NAMES" | grep -v '^$' | paste -sd, -)
+                FORMATTED_BRANCH_NAMES=$(echo "$FORMATTED_BRANCH_NAMES" | sed 's/,/, /g') # Add space after comma
+                FORMATTED_BRANCH_NAMES="$(echo "$FORMATTED_BRANCH_NAMES" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+                
+                # Append branch names to changelog with proper spacing and header
+                # Use printf to ensure proper newline handling and put branches on new line
+                FORMATTED_CHANGELOG=$(printf "%s\n\nMERGED BRANCHES:\n%s" "$FORMATTED_CHANGELOG" "$FORMATTED_BRANCH_NAMES")
+            fi
         fi
 
         if [ "${{ inputs.debug }}" == "true" ]; then
-          echo "[DEBUG] Generated raw changelog:"
-          echo "$CHANGELOG"
-          echo "[DEBUG] Formatted changelog for output: '$FORMATTED_CHANGELOG'"
+            echo "[DEBUG] Generated raw changelog:"
+            echo "$CHANGELOG"
+            echo "[DEBUG] Generated raw branch names:"
+            echo "$BRANCH_NAMES"
+            echo "[DEBUG] Formatted changelog for output:"
+            echo "$FORMATTED_CHANGELOG"
         fi
 
         # Set step output for the formatted changelog string.
         # Use delimited string for multi-line outputs.
-        CHANGELOG_STRING_OUTPUT=$(echo "${FORMATTED_CHANGELOG}" | sed 's/%/%25/g' | sed 's/\n/%0A/g' | sed 's/\r/%0D/g')
+        CHANGELOG_STRING_OUTPUT=$(echo "$FORMATTED_CHANGELOG" | sed 's/%/%25/g' | sed 's/\n/%0A/g' | sed 's/\r/%0D/g')
         echo "changelog_string=${CHANGELOG_STRING_OUTPUT}" >> $GITHUB_OUTPUT
