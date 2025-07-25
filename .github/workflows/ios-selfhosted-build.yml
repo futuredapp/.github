@@ -73,7 +73,7 @@ jobs:
         bundle install --jobs 4 --retry 3
         CHANGELOG_FOR_FASTLANE="${{ steps.detect_changes.outputs.changelog }}"
         if [ "${{ inputs.changelog_debug }}" == 'true' ]; then
-          echo "DEBUG - Running Fastlane with changelog: $CHANGELOG_FOR_FASTLANE"
+          echo "[DEBUG] Running Fastlane with changelog: $CHANGELOG_FOR_FASTLANE"
         fi
         bundle exec fastlane beta
       env:
@@ -104,7 +104,7 @@ jobs:
       run: |
         echo "${{ github.sha }}" > latest_builded_commit.txt
         if [ "${{ inputs.changelog_debug }}" == 'true' ]; then
-            echo "DEBUG - Saved commit SHA ${{ github.sha }} to latest_builded_commit.txt"
+            echo "[DEBUG] Saved commit SHA ${{ github.sha }} to latest_builded_commit.txt"
         fi
 
     - name: Store latest build commit SHA in cache

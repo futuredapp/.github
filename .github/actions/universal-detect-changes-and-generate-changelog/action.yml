@@ -53,43 +53,61 @@ runs:
           LASTEST_BUILD_COMMIT=$(< latest_builded_commit.txt)
         fi
 
-        if [ "${{ inputs.debug }}" == "true" ]; then
-          echo "DEBUG - Previous built commit SHA from cache: '$LASTEST_BUILD_COMMIT'"
-        fi
+        if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Previous built commit SHA from cache: '$LASTEST_BUILD_COMMIT'";fi
 
-        # Find the most recent merge commit in the last 24 hours since LASTEST_BUILD_COMMIT.
-        GIT_RANGE=""
-        if [ -n "$LASTEST_BUILD_COMMIT" ]; then
-          GIT_RANGE="$LASTEST_BUILD_COMMIT..HEAD"
-          if [ "${{ inputs.debug }}" == "true" ]; then echo "DEBUG - Using git range: '$GIT_RANGE'"; fi
-        else
-          GIT_RANGE="HEAD"
-          if [ "${{ inputs.debug }}" == "true" ]; then echo "DEBUG - No previous built commit, looking in last 24 hours."; fi
-        fi
-        LAST_RELEVANT_COMMIT=$(git rev-list --merges --max-count=1 --after="24 hours" $GIT_RANGE)
         CURRENT_HEAD_SHA=$(git rev-parse HEAD)
+        FROM_COMMIT=""
+        TO_COMMIT="$CURRENT_HEAD_SHA"
+        BUILD_SHOULD_SKIP="false"
 
-        if [ -z "$LAST_RELEVANT_COMMIT" ] || [ "$LAST_RELEVANT_COMMIT" == "$LASTEST_BUILD_COMMIT" ]; then
-          echo "No new relevant merge commits found. Skipping build."
-          echo "build_should_skip=true" >> $GITHUB_OUTPUT
-          echo "from_commit=$CURRENT_HEAD_SHA" >> $GITHUB_OUTPUT # Set to HEAD if skipping
-        else
-          echo "Relevant merge commits found. Proceeding with build."
-          echo "build_should_skip=false" >> $GITHUB_OUTPUT
-          # If LASTEST_BUILD_COMMIT was empty, use LAST_RELEVANT_COMMIT as the start for changelog.
-          # Otherwise, use the actual LASTEST_BUILD_COMMIT from cache.
-          if [ -z "$LASTEST_BUILD_COMMIT" ]; then
-            echo "from_commit=$LAST_RELEVANT_COMMIT" >> $GITHUB_OUTPUT
-          else
-            echo "from_commit=$LASTEST_BUILD_COMMIT" >> $GITHUB_OUTPUT
+        if [ -n "$LASTEST_BUILD_COMMIT" ]; then
+          # Case 1: We have a last built commit.
+          # Check if the commit exists in history, otherwise it might have been rebased.
+          if ! git cat-file -e $LASTEST_BUILD_COMMIT 2>/dev/null; then
+            echo "[WARNING] Last build commit '$LASTEST_BUILD_COMMIT' not found in history. Will look for oldest commit in last 24 hours."
+            LASTEST_BUILD_COMMIT="" # Reset to fall through to the next block.
           fi
-          echo "to_commit=$CURRENT_HEAD_SHA" >> $GITHUB_OUTPUT
+        fi
+
+        if [ -n "$LASTEST_BUILD_COMMIT" ]; then
+            # Happy path: previous build commit exists and is valid.
+            if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Using git range: '$LASTEST_BUILD_COMMIT..HEAD'"; fi
+            MERGE_COMMITS_EXIST=$(git rev-list --merges --first-parent --count $LASTEST_BUILD_COMMIT..HEAD)
+
+            if [ "$MERGE_COMMITS_EXIST" -gt 0 ]; then
+                if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] New merge commits found since last build. Proceeding with build."; fi
+                FROM_COMMIT="$LASTEST_BUILD_COMMIT"
+            else
+                if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] No new merge commits found since last build. Skipping build."; fi
+                BUILD_SHOULD_SKIP="true"
+            fi
+        else
+          # Case 2: No last built commit or it was invalid.
+          # Find the oldest merge commit in the last 24 hours.
+          if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] No previous built commit or it was invalid, looking for oldest merge commit in last 24 hours."; fi
+          OLDEST_MERGE_COMMIT=$(git rev-list --merges --first-parent --reverse --after="24 hours ago" HEAD | head -n 1)
+
+          if [ -n "$OLDEST_MERGE_COMMIT" ]; then
+            if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Oldest merge commit in last 24 hours found. Proceeding with build."; fi
+            FROM_COMMIT="$OLDEST_MERGE_COMMIT"
+          else
+            if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] No merge commits found in the last 24 hours. Skipping build."; fi
+            BUILD_SHOULD_SKIP="true"
+          fi
+        fi
+
+        if [ "$BUILD_SHOULD_SKIP" == "true" ]; then
+          echo "build_should_skip=true" >> $GITHUB_OUTPUT
+        else
+          echo "build_should_skip=false" >> $GITHUB_OUTPUT
+          echo "from_commit=$FROM_COMMIT" >> $GITHUB_OUTPUT
+          echo "to_commit=$TO_COMMIT" >> $GITHUB_OUTPUT
         fi
 
         if [ "${{ inputs.debug }}" == "true" ]; then
-          echo "DEBUG - build_should_skip output: $(grep '^build_should_skip=' $GITHUB_OUTPUT | cut -d= -f2)"
-          echo "DEBUG - from_commit output: $(grep '^from_commit=' $GITHUB_OUTPUT | cut -d= -f2)"
-          echo "DEBUG - to_commit output: $(grep '^to_commit=' $GITHUB_OUTPUT | cut -d= -f2)"
+          echo "[DEBUG] build_should_skip output: $(grep '^build_should_skip=' $GITHUB_OUTPUT | cut -d= -f2)"
+          echo "[DEBUG] from_commit output: $(grep '^from_commit=' $GITHUB_OUTPUT | cut -d= -f2)"
+          echo "[DEBUG] to_commit output: $(grep '^to_commit=' $GITHUB_OUTPUT | cut -d= -f2)"
         fi
 
     - name: Set skip_build output
@@ -109,18 +127,18 @@ runs:
         TO_COMMIT=${{ steps.determine_range.outputs.to_commit }}
 
         if [ "${{ inputs.debug }}" == "true" ]; then
-          echo "DEBUG - Generating changelog from $FROM_COMMIT to $TO_COMMIT"
+          echo "[DEBUG] Generating changelog from $FROM_COMMIT to $TO_COMMIT"
         fi
 
         # Get changelog between FROM_COMMIT and TO_COMMIT.
-        # Special case for same commit range (e.g., if FROM_COMMIT is just before HEAD).
+        # Special case for same commit range.
         if [ "$FROM_COMMIT" == "$TO_COMMIT" ]; then
-           if [ "${{ inputs.debug }}" == "true" ]; then echo "DEBUG - FROM_COMMIT is same as HEAD. Using range HEAD~1..HEAD"; fi
-           CHANGELOG=$(git log --merges --pretty=format:"%b" HEAD~1..$TO_COMMIT 2>&1)
+           if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] FROM_COMMIT is same as HEAD. Using range HEAD~1..HEAD"; fi
+           CHANGELOG=$(git log --merges --first-parent --pretty=format:"%b" HEAD~1..HEAD 2>&1)
            GIT_LOG_EXIT_CODE=$?
         else
-           if [ "${{ inputs.debug }}" == "true" ]; then echo "DEBUG - Using range $FROM_COMMIT..$TO_COMMIT"; fi
-           CHANGELOG=$(git log --merges --pretty=format:"%b" $FROM_COMMIT..$TO_COMMIT 2>&1)
+           if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Using range ${FROM_COMMIT}^..${TO_COMMIT}"; fi
+           CHANGELOG=$(git log --merges --first-parent --pretty=format:"%b" ${FROM_COMMIT}^..${TO_COMMIT} 2>&1)
            GIT_LOG_EXIT_CODE=$?
         fi
 
@@ -129,10 +147,10 @@ runs:
 
         # Check if git log command actually failed (exit code non-zero)
         if [ $GIT_LOG_EXIT_CODE -ne 0 ]; then
-            echo "##[error]git log command failed with exit code $GIT_LOG_EXIT_CODE. Output: $CHANGELOG"
+            echo "##[WARNING] Git log command failed with exit code $GIT_LOG_EXIT_CODE. Output: $CHANGELOG"
             FORMATTED_CHANGELOG="Error generating changelog: command failed."
-        elif [ -z "$(echo "$CHANGELOG" | tr -d '\n\r')" ]; then # Kontrola, zda je CHANGELOG prázdný (po odstranění whitespace)
-            if [ "true" == "true" ]; then echo "DEBUG - Raw changelog is empty. Setting default message."; fi
+        elif [ -z "$(echo "$CHANGELOG" | tr -d '\n\r')" ]; then # Check if CHANGELOG is empty (after removing whitespace)
+            if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Raw changelog is empty. Setting default message."; fi
             FORMATTED_CHANGELOG="No changelog provided."
         else
             # Your existing formatting logic for non-empty changelog
@@ -142,20 +160,12 @@ runs:
         fi
 
         if [ "${{ inputs.debug }}" == "true" ]; then
-          echo "DEBUG - Generated raw changelog:"
+          echo "[DEBUG] Generated raw changelog:"
           echo "$CHANGELOG"
-          echo "DEBUG - Formatted changelog for output: '$FORMATTED_CHANGELOG'"
+          echo "[DEBUG] Formatted changelog for output: '$FORMATTED_CHANGELOG'"
         fi
 
         # Set step output for the formatted changelog string.
         # Use delimited string for multi-line outputs.
         CHANGELOG_STRING_OUTPUT=$(echo "${FORMATTED_CHANGELOG}" | sed 's/%/%25/g' | sed 's/\n/%0A/g' | sed 's/\r/%0D/g')
         echo "changelog_string=${CHANGELOG_STRING_OUTPUT}" >> $GITHUB_OUTPUT
-
-    - name: Save changelog artifact
-      if: steps.determine_skip.outputs.skip == 'false'
-      uses: actions/upload-artifact@v4
-      with:
-        name: changelog
-        path: changelog.txt
-        retention-days: 1
