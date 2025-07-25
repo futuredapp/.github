@@ -17,7 +17,6 @@ on:
         type: string
         required: false
         default: 'self-hosted' # Default if you don't specify a particular runner
-
       changelog_debug:
         description: Enable debug mode for changelog generation. Default is false.
         type: boolean
