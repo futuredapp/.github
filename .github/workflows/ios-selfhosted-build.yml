@@ -64,7 +64,7 @@ jobs:
     steps:
     - name: Use Composite Action - Detect changes and get changelog
       id: detect_changes
-      uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@feature/Changelog
+      uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
       with:
         depth: ${{ inputs.changelog_depth }}
         debug: ${{ inputs.changelog_debug }}
