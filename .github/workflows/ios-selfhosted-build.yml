@@ -28,6 +28,16 @@ on:
         type: number
         required: false
         default: 100
+      changelog_time_value:
+        description: The amount of time to look back for merge commits when no previous build commit is found. Default is 24.
+        type: string
+        required: false
+        default: "24"
+      changelog_time_unit:
+        description: The unit of time to look back (hours, days, weeks, months). Default is hours.
+        type: string
+        required: false
+        default: "hours"
     secrets:
       MATCH_PASSWORD:
         required: true
