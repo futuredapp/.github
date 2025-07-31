@@ -44,7 +44,7 @@ runs:
 
     - name: Restore cache for previous build commit SHA
       id: restore_last_build_cache
-      uses: actions/cache@v4
+      uses: actions/cache/restore@v4
       continue-on-error: true
       with:
         path: latest_builded_commit.txt
