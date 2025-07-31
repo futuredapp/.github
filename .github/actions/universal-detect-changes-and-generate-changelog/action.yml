@@ -2,7 +2,7 @@ name: Detect changes and generate changelog
 description: Detects changes since the last built commit and generates a changelog.
 
 inputs:
-  depth:
+  checkout_depth:
     required: false
     description: The depth of the git history to fetch. Default is 100.
     type: number
@@ -12,14 +12,10 @@ inputs:
     description: Enable debug mode. Default is false.
     type: boolean
     default: false
-  time_value:
+  fallback_lookback:
     required: false
-    description: The amount of time to look back for merge commits when no previous build commit is found. Default is 24.
-    default: "24"
-  time_unit:
-    required: false
-    description: The unit of time to look back (hours, days, weeks, months). Default is hours.
-    default: "hours"
+    description: The amount of time to look back for merge commits when no previous build commit is found (e.g., "24 hours", "7 days", "2 weeks"). Default is "24 hours".
+    default: "24 hours"
 
 outputs:
   skip_build:
@@ -38,7 +34,7 @@ runs:
     - name: Checkout
       uses: actions/checkout@v4
       with:
-        fetch-depth: ${{ inputs.depth }}
+        fetch-depth: ${{ inputs.checkout_depth }}
 
     - name: Calculate cache keys
       id: cache_keys
@@ -103,14 +99,14 @@ runs:
         else
           # Case 2: No last built commit or it was invalid.
           # Find the oldest merge commit in the specified time window.
-          if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] No previous built commit or it was invalid, looking for oldest merge commit in last ${{ inputs.time_value }} ${{ inputs.time_unit }}."; fi
-          OLDEST_MERGE_COMMIT=$(git rev-list --merges --first-parent --reverse --after="${{ inputs.time_value }} ${{ inputs.time_unit }}" HEAD | head -n 1)
+          if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] No previous built commit or it was invalid, looking for oldest merge commit in last ${{ inputs.fallback_lookback }}."; fi
+          OLDEST_MERGE_COMMIT=$(git rev-list --merges --first-parent --reverse --after="${{ inputs.fallback_lookback }}" HEAD | head -n 1)
 
           if [ -n "$OLDEST_MERGE_COMMIT" ]; then
-            if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Oldest merge commit in last ${{ inputs.time_value }} ${{ inputs.time_unit }} found. Proceeding with build."; fi
+            if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Oldest merge commit in last ${{ inputs.fallback_lookback }} found. Proceeding with build."; fi
             FROM_COMMIT="$OLDEST_MERGE_COMMIT^"
           else
-            if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] No merge commits found in the last ${{ inputs.time_value }} ${{ inputs.time_unit }}. Skipping build."; fi
+            if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] No merge commits found in the last ${{ inputs.fallback_lookback }}. Skipping build."; fi
             BUILD_SHOULD_SKIP="true"
           fi
         fi
