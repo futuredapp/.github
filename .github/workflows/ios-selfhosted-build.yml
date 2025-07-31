@@ -22,21 +22,16 @@ on:
         type: boolean
         required: false
         default: false
-      changelog_depth:
+      changelog_checkout_depth:
         description: The depth of the git history to fetch for changelog generation. Default is 100.
         type: number
         required: false
         default: 100
-      changelog_time_value:
-        description: The amount of time to look back for merge commits when no previous build commit is found. Default is 24.
+      changelog_fallback_lookback:
+        description: The amount of time to look back for merge commits when no previous build commit is found. Default is 24 hours.
         type: string
         required: false
-        default: "24"
-      changelog_time_unit:
-        description: The unit of time to look back (hours, days, weeks, months). Default is hours.
-        type: string
-        required: false
-        default: "hours"
+        default: "24 hours"
     secrets:
       MATCH_PASSWORD:
         required: true
@@ -66,10 +61,9 @@ jobs:
       id: detect_changes
       uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@feature/Changelog
       with:
-        depth: ${{ inputs.changelog_depth }}
+        checkout_depth: ${{ inputs.changelog_checkout_depth }}
         debug: ${{ inputs.changelog_debug }}
-        time_value: ${{ inputs.changelog_time_value }}
-        time_unit: ${{ inputs.changelog_time_unit }}
+        fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
 
     - name: Checkout
       if: ${{ steps.detect_changes.outputs.skip_build != 'true' && inputs.use_git_lfs == 'true'  }}
