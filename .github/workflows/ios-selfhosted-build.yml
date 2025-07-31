@@ -120,7 +120,7 @@ jobs:
 
     - name: Store latest build commit SHA in cache
       if: success() && steps.detect_changes.outputs.skip_build != 'true'
-      uses: actions/cache@v4
+      uses: actions/cache/save@v4
       with:
         path: latest_builded_commit.txt
         key: latest_builded_commit-${{ github.run_number }}
