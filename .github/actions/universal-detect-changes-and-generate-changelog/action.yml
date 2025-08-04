@@ -1,0 +1,196 @@
+name: Detect changes and generate changelog
+description: Detects changes since the last built commit and generates a changelog.
+
+inputs:
+  checkout_depth:
+    required: false
+    description: The depth of the git history to fetch. Default is 100.
+    type: number
+    default: 100
+  debug:
+    required: false
+    description: Enable debug mode. Default is false.
+    type: boolean
+    default: false
+  fallback_lookback:
+    required: false
+    description: The amount of time to look back for merge commits when no previous build commit is found (e.g., "24 hours", "7 days", "2 weeks"). Default is "24 hours".
+    default: "24 hours"
+
+outputs:
+  skip_build:
+    description: "Indicates if the build should be skipped"
+    value: ${{ steps.determine_skip.outputs.skip }}
+  changelog:
+    description: "The generated changelog formatted as a string"
+    value: ${{ steps.generate_changelog.outputs.changelog_string }}
+  merged_branches:
+    description: "List of merged branch names"
+    value: ${{ steps.generate_changelog.outputs.merged_branches }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: ${{ inputs.checkout_depth }}
+
+    - name: Calculate cache keys
+      id: cache_keys
+      shell: bash
+      run: |
+        echo "prev_run=$(expr ${{ github.run_number }} - 1)" >> $GITHUB_OUTPUT
+
+    - name: Restore cache for previous build commit SHA
+      id: restore_last_build_cache
+      uses: actions/cache/restore@v4
+      continue-on-error: true
+      with:
+        path: latest_builded_commit.txt
+        key: latest_builded_commit-${{ steps.cache_keys.outputs.prev_run }}
+        restore-keys: |
+          latest_builded_commit-
+
+    - name: Determine commit range for changelog and skip build
+      id: determine_range
+      shell: bash
+      run: |
+        LASTEST_BUILD_COMMIT=""
+        if [ -f latest_builded_commit.txt ]; then
+          LASTEST_BUILD_COMMIT=$(< latest_builded_commit.txt)
+        fi
+
+        if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Previous built commit SHA from cache: '$LASTEST_BUILD_COMMIT'";fi
+
+        CURRENT_HEAD_SHA=$(git rev-parse HEAD)
+        FROM_COMMIT=""
+        TO_COMMIT="$CURRENT_HEAD_SHA"
+        BUILD_SHOULD_SKIP="false"
+
+        if [ -n "$LASTEST_BUILD_COMMIT" ]; then
+          # Case 1: We have a last built commit.
+          # Check if the commit exists in history, otherwise it might have been rebased.
+          if ! git cat-file -e $LASTEST_BUILD_COMMIT 2>/dev/null; then
+            echo "[WARNING] Last build commit '$LASTEST_BUILD_COMMIT' not found in history. Will look for oldest commit in last 24 hours."
+            LASTEST_BUILD_COMMIT="" # Reset to fall through to the next block.
+          fi
+        fi
+
+        if [ -n "$LASTEST_BUILD_COMMIT" ]; then
+            # Happy path: previous build commit exists and is valid.
+            if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Using git range: '$LASTEST_BUILD_COMMIT..HEAD'"; fi
+            MERGE_COMMITS_EXIST=$(git rev-list --merges --first-parent --count $LASTEST_BUILD_COMMIT..HEAD)
+
+            if [ "$MERGE_COMMITS_EXIST" -gt 0 ]; then
+                if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] New merge commits found since last build. Proceeding with build."; fi
+                FROM_COMMIT="$LASTEST_BUILD_COMMIT"
+            else
+                if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] No new merge commits found since last build. Skipping build."; fi
+                BUILD_SHOULD_SKIP="true"
+            fi
+        else
+          # Case 2: No last built commit or it was invalid.
+          # Find the oldest merge commit in the specified time window.
+          if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] No previous built commit or it was invalid, looking for oldest merge commit in last ${{ inputs.fallback_lookback }}."; fi
+          OLDEST_MERGE_COMMIT=$(git rev-list --merges --first-parent --reverse --after="${{ inputs.fallback_lookback }}" HEAD | head -n 1)
+
+          if [ -n "$OLDEST_MERGE_COMMIT" ]; then
+            if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Oldest merge commit in last ${{ inputs.fallback_lookback }} found. Proceeding with build."; fi
+            FROM_COMMIT="$OLDEST_MERGE_COMMIT^"
+          else
+            if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] No merge commits found in the last ${{ inputs.fallback_lookback }}. Skipping build."; fi
+            BUILD_SHOULD_SKIP="true"
+          fi
+        fi
+
+        if [ "$BUILD_SHOULD_SKIP" == "true" ]; then
+          echo "build_should_skip=true" >> $GITHUB_OUTPUT
+        else
+          echo "build_should_skip=false" >> $GITHUB_OUTPUT
+          echo "from_commit=$FROM_COMMIT" >> $GITHUB_OUTPUT
+          echo "to_commit=$TO_COMMIT" >> $GITHUB_OUTPUT
+        fi
+
+        if [ "${{ inputs.debug }}" == "true" ]; then
+          echo "[DEBUG] build_should_skip output: $(grep '^build_should_skip=' $GITHUB_OUTPUT | cut -d= -f2)"
+          echo "[DEBUG] from_commit output: $(grep '^from_commit=' $GITHUB_OUTPUT | cut -d= -f2)"
+          echo "[DEBUG] to_commit output: $(grep '^to_commit=' $GITHUB_OUTPUT | cut -d= -f2)"
+        fi
+
+    - name: Set skip_build output
+      id: determine_skip
+      shell: bash
+      run: |
+        # Set composite action output based on previous step's result.
+        echo "skip=${{ steps.determine_range.outputs.build_should_skip }}" >> $GITHUB_OUTPUT
+
+    - name: Generate changelog
+      id: generate_changelog
+      shell: bash
+      # Only run if build is NOT skipped and a valid from_commit exists.
+      if: steps.determine_skip.outputs.skip == 'false' && steps.determine_range.outputs.from_commit != ''
+      run: |
+        FROM_COMMIT=${{ steps.determine_range.outputs.from_commit }}
+        TO_COMMIT=${{ steps.determine_range.outputs.to_commit }}
+
+        if [ "${{ inputs.debug }}" == "true" ]; then
+          echo "[DEBUG] Generating changelog from $FROM_COMMIT to $TO_COMMIT"
+        fi
+
+        # Get changelog between FROM_COMMIT and TO_COMMIT.
+        # Special case for same commit range.
+        if [ "$FROM_COMMIT" == "$TO_COMMIT" ]; then
+           if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] FROM_COMMIT is same as HEAD. Using range HEAD~1..HEAD"; fi
+           CHANGELOG=$(git log --merges --first-parent --pretty=format:"%b" HEAD~1..HEAD 2>&1)
+           BRANCH_NAMES=$(git log --merges --first-parent --pretty=format:"%s" HEAD~1..HEAD | sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | grep -v '^$' 2>&1)
+           GIT_LOG_EXIT_CODE=$?
+        else
+           if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Using range ${FROM_COMMIT}..${TO_COMMIT}"; fi
+           CHANGELOG=$(git log --merges --first-parent --pretty=format:"%b" ${FROM_COMMIT}..${TO_COMMIT} 2>&1)
+           BRANCH_NAMES=$(git log --merges --first-parent --pretty=format:"%s" ${FROM_COMMIT}..${TO_COMMIT} | sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | grep -v '^$' 2>&1)
+           GIT_LOG_EXIT_CODE=$?
+        fi
+
+        # Initialize variables
+        FORMATTED_CHANGELOG=""
+        FORMATTED_BRANCH_NAMES=""
+
+        # Check if git log command actually failed (exit code non-zero)
+        if [ $GIT_LOG_EXIT_CODE -ne 0 ]; then
+            echo "##[WARNING] Git log command failed with exit code $GIT_LOG_EXIT_CODE. Output: $CHANGELOG"
+            FORMATTED_CHANGELOG="Error generating changelog: command failed."
+        elif [ -z "$(echo "$CHANGELOG" | tr -d '\n\r')" ]; then # Check if CHANGELOG is empty (after removing whitespace)
+            if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Raw changelog is empty. Setting default message."; fi
+            FORMATTED_CHANGELOG="No changelog provided."
+        else
+            # Format changelog
+            FORMATTED_CHANGELOG=$(echo "$CHANGELOG" | grep -v '^$' | paste -sd, -)
+            FORMATTED_CHANGELOG=$(echo "$FORMATTED_CHANGELOG" | sed 's/,/, /g') # Add space after comma
+            FORMATTED_CHANGELOG="$(echo "$FORMATTED_CHANGELOG" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
+            # Format branch names
+            if [ -n "$BRANCH_NAMES" ]; then
+                FORMATTED_BRANCH_NAMES=$(echo "$BRANCH_NAMES" | sort -u | paste -sd, -)
+                FORMATTED_BRANCH_NAMES=$(echo "$FORMATTED_BRANCH_NAMES" | sed 's/,/, /g') # Add space after comma
+                FORMATTED_BRANCH_NAMES="$(echo "$FORMATTED_BRANCH_NAMES" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+            fi
+        fi
+
+        if [ "${{ inputs.debug }}" == "true" ]; then
+            echo "[DEBUG] Generated raw changelog:"
+            echo "$CHANGELOG"
+            echo "[DEBUG] Generated raw branch names:"
+            echo "$BRANCH_NAMES"
+            echo "[DEBUG] Formatted changelog for output:"
+            echo "$FORMATTED_CHANGELOG"
+            echo "[DEBUG] Formatted branch names for output:"
+            echo "$FORMATTED_BRANCH_NAMES"
+        fi
+
+        # Set step outputs for the formatted strings
+        # Use delimited string for multi-line outputs
+        CHANGELOG_STRING_OUTPUT=$(echo "$FORMATTED_CHANGELOG" | sed 's/%/%25/g' | sed 's/\n/%0A/g' | sed 's/\r/%0D/g')
+        BRANCH_NAMES_OUTPUT=$(echo "$FORMATTED_BRANCH_NAMES" | sed 's/%/%25/g' | sed 's/\n/%0A/g' | sed 's/\r/%0D/g')
+        echo "changelog_string=${CHANGELOG_STRING_OUTPUT}" >> $GITHUB_OUTPUT
+        echo "merged_branches=${BRANCH_NAMES_OUTPUT}" >> $GITHUB_OUTPUT
