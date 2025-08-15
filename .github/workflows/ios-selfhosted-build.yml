@@ -70,20 +70,20 @@ jobs:
 
     - name: Use Composite Action - Detect changes and get changelog
       id: detect_changes
-      if: ${{ inputs.force_build != 'true' }}
+      if: ${{ inputs.force_build != true }}
       uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
       with:
         debug: ${{ inputs.changelog_debug }}
         fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
 
     - name: Set changelog for forced build
-      if: ${{ inputs.force_build == 'true' }}
+      if: ${{ inputs.force_build == true }}
       id: changelog
       run: |
         echo "changelog=Forced build" >> $GITHUB_OUTPUT
         
     - name: Fastlane Beta
-      if: ${{ steps.detect_changes.outputs.skip_build != 'true' || inputs.force_build == 'true' }}
+      if: ${{ steps.detect_changes.outputs.skip_build != 'true' || inputs.force_build == true }}
       run: |
         gem install bundler
         bundle install --jobs 4 --retry 3
@@ -101,21 +101,21 @@ jobs:
         CUSTOM_VALUES: ${{ inputs.custom_values }}
 
     - name: Upload IPA
-      if: ${{ steps.detect_changes.outputs.skip_build != 'true' || inputs.force_build == 'true' }}
+      if: ${{ steps.detect_changes.outputs.skip_build != 'true' || inputs.force_build == true }}
       uses: actions/upload-artifact@v4
       with:
         name: Build.ipa
         path: build_output/*.ipa
 
     - name: Upload dSYM
-      if: ${{ steps.detect_changes.outputs.skip_build != 'true' || inputs.force_build == 'true' }}
+      if: ${{ steps.detect_changes.outputs.skip_build != 'true' || inputs.force_build == true }}
       uses: actions/upload-artifact@v4
       with:
         name: Build.app.dSYM.zip
         path: build_output/*.app.dSYM.zip
 
     - name: Save latest build commit SHA to file
-      if: success() && steps.detect_changes.outputs.skip_build != 'true' && inputs.force_build != 'true'
+      if: success() && steps.detect_changes.outputs.skip_build != 'true' && inputs.force_build != true
       shell: bash
       run: |
         echo "${{ github.sha }}" > latest_builded_commit.txt
@@ -124,7 +124,7 @@ jobs:
         fi
 
     - name: Store latest build commit SHA in cache
-      if: success() && steps.detect_changes.outputs.skip_build != 'true' && inputs.force_build != 'true'
+      if: success() && steps.detect_changes.outputs.skip_build != 'true' && inputs.force_build != true
       uses: actions/cache/save@v4
       with:
         path: latest_builded_commit.txt
