@@ -70,7 +70,6 @@ jobs:
 
     - name: Use Composite Action - Detect changes and get changelog
       id: detect_changes
-      if: ${{ inputs.force_build != true }}
       uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
       with:
         debug: ${{ inputs.changelog_debug }}
