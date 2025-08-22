@@ -37,6 +37,16 @@ on:
         required: false
         type: string
         default: 'zulu'
+      xcconfig_path:
+        description: Path to the .xcconfig file. Selected secret properties will be appended to the end of this file.
+        type: string
+        required: false
+        default: ""
+      required_keys:
+        description: Comma-separated list of required keys.
+        type: string
+        required: false
+        default: ""
 
     secrets:
       MATCH_PASSWORD:
@@ -55,6 +65,10 @@ on:
         required: true
         description: >
           Private App Store Connect API issuer key for submitting build to App Store.
+      SECRET_PROPERTIES:
+        required: false
+        description: >
+         Secrets in the format KEY = VALUE (one per line).
 
 jobs:
   release:
@@ -66,6 +80,13 @@ jobs:
       uses: actions/checkout@v4
       with:
         lfs: ${{ inputs.use_git_lfs }}
+    - name: Export secrets to .xcconfig file
+      if: ${{ inputs.xcconfig_path != '' && inputs.required_keys != '' }}
+      uses: futuredapp/.github/.github/actions/export_secrets_ios@feature/iOS-secrets-injection
+      with:
+        XCCONFIG_PATH: ${{ inputs.xcconfig_path }}
+        SECRET_PROPERTIES: ${{ secrets.SECRET_PROPERTIES }}
+        REQUIRED_KEYS: ${{ inputs.required_keys }}
     - name: Setup Java
       uses: actions/setup-java@v4
       with:
