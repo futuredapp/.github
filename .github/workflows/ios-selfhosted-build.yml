@@ -87,7 +87,7 @@ jobs:
 
     - name: Export secrets to .xcconfig file
       if: ${{ inputs.xcconfig_path != '' && inputs.required_keys != '' }}
-      uses: futuredapp/.github/.github/actions/export_secrets_ios@feature/iOS-secrets-injection
+      uses: futuredapp/.github/.github/actions/export_secrets_ios@main
       with:
         XCCONFIG_PATH: ${{ inputs.xcconfig_path }}
         SECRET_PROPERTIES: ${{ secrets.SECRET_PROPERTIES }}
