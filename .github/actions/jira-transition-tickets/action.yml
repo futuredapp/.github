@@ -1,0 +1,53 @@
+name: 'JIRA Transition Tickets'
+description: 'Finds and transitions JIRA tickets based on branch names or components.'
+
+inputs:
+  jira_base_url:
+    description: 'The base URL of the JIRA instance.'
+    required: false
+    default: 'https://thefuntasty.atlassian.net'
+  jira_user_email:
+    description: 'The email of the user for JIRA API authentication.'
+    required: true
+  jira_api_token:
+    description: 'The JIRA API token for authentication.'
+    required: true
+  target_status:
+    description: 'The name of the status to transition the JIRA tickets to.'
+    required: true
+  merged_branches:
+    description: 'A comma-separated string of merged branch names.'
+    required: false
+  components:
+    description: 'A comma-separated string of JIRA components.'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Make scripts executable
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        chmod +x ./scripts/extract-and-build-jql.sh
+        chmod +x ./scripts/transition-issues.sh
+
+    - name: Extract Keys and Build JQL
+      id: jql
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        ./scripts/extract-and-build-jql.sh \
+          "${{ inputs.merged_branches }}" \
+          "${{ inputs.components }}"
+
+    - name: Transition JIRA Tickets
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        ./scripts/transition-issues.sh \
+          "${{ inputs.jira_user_email }}" \
+          "${{ inputs.jira_api_token }}" \
+          "${{ inputs.jira_base_url }}" \
+          "${{ inputs.target_status }}" \
+          "${{ steps.jql.outputs.jql }}"
