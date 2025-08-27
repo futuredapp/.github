@@ -140,3 +140,13 @@ jobs:
       with:
         path: latest_builded_commit.txt
         key: latest_builded_commit-${{ github.run_number }}
+
+    - name: Transition JIRA Tickets
+      if: success() && steps.detect_changes.outputs.skip_build != 'true'
+      uses: ./.github/actions/jira-transition-tickets
+      with:
+        jira_user_email: ${{ secrets.JIRA_USERNAME }}
+        jira_api_token: ${{ secrets.JIRA_API_TOKEN }}
+        target_status: 'Testing'
+        merged_branches: ${{ steps.detect_changes.outputs.merged_branches }}
+        components: 'iOS'
