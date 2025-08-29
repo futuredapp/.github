@@ -1,0 +1,91 @@
+name: Enterprise build
+description: Builds and uploads app to Firebase App Distribution.
+
+inputs:
+  ## Required Inputs
+  test_gradle_task:
+    description: "A Gradle task(s) for executing unit tests, for example `testReleaseUnitTest` or `testDevEnterpriseUnitTest`"
+    required: true
+  package_gradle_task:
+    description: "A Gradle task for packaging universal APK"
+    required: true
+    default: packageEnterpriseUniversalApk
+  upload_gradle_task:
+    description: "A Gradle task for uploading APK, for example `appDistributionUploadEnterprise`"
+    required: true
+  app_distribution_groups:
+    description: "Comma-separated list of Firebase App Distribution group IDs"
+    required: true
+  app_distribution_service_account:
+    required: true
+    description: "JSON key of service account with permissions to upload build to Firebase App Distribution"
+
+  ## Optional Inputs
+  version_name:
+    description: "Version name. Example: '1.X.X-snapshot'"
+    required: false
+  build_number_offset:
+    description: "Build number offset. This number will be added to GITHUB_RUN_NUMBER and can be used to make corrections to build numbers."
+    required: false
+    default: 0
+  release_notes:
+    description: "Release notes for this build"
+    required: false
+    default: ${{ github.event.head_commit.message }}
+  kmp_flavor:
+    description: "KMP Build flavor. This is optional and only required by KMP projects and can be ignored on pure Android projects"
+    required: false
+    default: 'test'
+  secret_properties_file:
+    description: "A path to file that will be populated with contents of 'SECRET_PROPERTIES' secret. This file can be picked up by Secrets Gradle plugin to embed secrets into BuildConfig."
+    required: false
+    default: 'secrets.properties'
+  secret_properties:
+    required: false
+    description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input."
+
+runs:
+  using: "composite"
+  steps:
+    - name: Prepare Environment
+      shell: bash
+      run: |
+        {
+        echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.build_number_offset}} ))";
+        echo "KMP_FLAVOR=${{ inputs.kmp_flavor }}"
+        } >> "$GITHUB_ENV"
+
+        # Set ANDROID_VERSION_NAME only if VERSION_NAME is provided
+        if [[ -n "${{ inputs.version_name }}" ]]; then
+          echo "ANDROID_VERSION_NAME=${{ inputs.version_name }}" >> "$GITHUB_ENV"
+        fi
+
+        echo '${{ inputs.secret_properties }}' > ${{ inputs.secret_properties_file }}
+    - name: Run Unit tests
+      shell: bash
+      run: ./gradlew --continue ${{ inputs.test_gradle_task }}
+    - name: Build universal APK
+      id: build_apk
+      shell: bash
+      run: |
+        ./gradlew ${{ inputs.package_gradle_task }} -P buildkonfig.flavor="$KMP_FLAVOR"
+        APK_FILE=$(find . -name '*.apk' | grep -v -e '.*intermediate' -e '.*baseline')
+        echo "universal_apk_file=$APK_FILE" >> "$GITHUB_OUTPUT"
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: universal_apk
+        path: ${{ steps.build_apk.outputs.universal_apk_file }}
+    - name: Upload APK to Firebase App Distribution
+      shell: bash
+      run: |
+        echo '${{ inputs.app_distribution_service_account }}' > "firebase_credentials.json"
+        
+        ./gradlew ${{ inputs.upload_gradle_task }} \
+          --serviceCredentialsFile="firebase_credentials.json" \
+          --groups="${{ inputs.app_distribution_groups }}" \
+          --artifactType="APK" \
+          --artifactPath="${{ steps.build_apk.outputs.universal_apk_file }}" \
+          --releaseNotes='${{ inputs.release_notes }}'
+        
+        rm firebase_credentials.json
