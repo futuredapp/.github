@@ -1,0 +1,35 @@
+name: KMP Detect Changes
+description: Detects changes in KMP project to determine which platform-specific workflows should run
+
+inputs:
+  USE_GIT_LFS:
+    description: "Whether to download Git-LFS files"
+    type: boolean
+    required: false
+    default: false
+
+outputs:
+  iosFiles:
+    description: "Whether files affecting iOS build changed (all files except those in androidApp/)"
+    value: ${{ steps.file-changes.outputs.iosFiles }}
+  androidFiles:
+    description: "Whether files affecting Android build changed (all files except those in iosApp/)"
+    value: ${{ steps.file-changes.outputs.androidFiles }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        lfs: ${{ inputs.USE_GIT_LFS }}
+    
+    - name: Detect Changes
+      uses: dorny/paths-filter@v3
+      id: file-changes
+      with:
+        filters: |
+          iosFiles:
+            - "!(androidApp/**)"
+          androidFiles:
+            - "!(iosApp/**)"
