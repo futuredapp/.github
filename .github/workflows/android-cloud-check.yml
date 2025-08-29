@@ -58,13 +58,13 @@ jobs:
         with:
           lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Set up environment
-        uses: ./.github/actions/android-setup-environment
+        uses: futuredapp/.github/.github/actions/android-setup-environment@feature/matsem/changelog-android
         with:
           java_version: ${{ inputs.JAVA_VERSION }}
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
       - name: Run checks
-        uses: ./.github/actions/android-check
+        uses: futuredapp/.github/.github/actions/android-check@feature/matsem/changelog-android
         with:
           lint_gradle_task: ${{ inputs.LINT_GRADLE_TASKS }}
           test_gradle_task: ${{ inputs.TEST_GRADLE_TASKS }}
