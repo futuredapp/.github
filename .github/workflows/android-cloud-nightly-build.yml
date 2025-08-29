@@ -145,6 +145,14 @@ jobs:
           kmp_flavor: ${{ inputs.KMP_FLAVOR }}
           secret_properties_file: ${{ inputs.SECRET_PROPERTIES_FILE }}
           secret_properties: ${{ secrets.SECRET_PROPERTIES }}
+      - name: Save latest build commit SHA to file
+        if: success() && needs.changelog.outputs.skip_build != 'true'
+        shell: bash
+        run: |
+          echo "${{ github.sha }}" > latest_builded_commit.txt
+          if [ "${{ inputs.CHANGELOG_DEBUG }}" == 'true' ]; then
+              echo "[DEBUG] Saved commit SHA ${{ github.sha }} to latest_builded_commit.txt"
+          fi
       - name: Store latest build commit SHA in cache
         if: success() && needs.changelog.outputs.skip_build != 'true'
         uses: actions/cache/save@v4
