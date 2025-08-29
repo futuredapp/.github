@@ -98,12 +98,14 @@ jobs:
     outputs:
       skip_build: ${{ steps.detect_changes.outputs.skip_build }}
       changelog: ${{ steps.detect_changes.outputs.changelog }}
+      cache_key: ${{ steps.detect_changes.outputs.cache_key }}
     name: Detect changes and generate changelog
     runs-on: ubuntu-latest
     steps:
       - name: Detect changes and generate changelog
         id: detect_changes
-        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
+        # TODO update branch ref to main, reject pull request if you see this
+        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@feature/matsem/changelog-android
         with:
           checkout_depth: ${{ inputs.CHANGELOG_CHECKOUT_DEPTH }}
           debug: ${{ inputs.CHANGELOG_DEBUG }}
@@ -143,3 +145,9 @@ jobs:
           kmp_flavor: ${{ inputs.KMP_FLAVOR }}
           secret_properties_file: ${{ inputs.SECRET_PROPERTIES_FILE }}
           secret_properties: ${{ secrets.SECRET_PROPERTIES }}
+      - name: Store latest build commit SHA in cache
+        if: success() && needs.changelog.outputs.skip_build != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: latest_builded_commit.txt
+          key: ${{ needs.changelog.outputs.cache_key }}
