@@ -74,7 +74,7 @@ runs:
         BUNDLE_FILE=$(find . -name '*.aab' | grep -v -e '.*intermediate' -e '.*baseline')
         MAPPING_FILE=$(find . -name mapping.txt)
         
-        echo "bundle_file=BUNDLE_FILE" >> "$GITHUB_OUTPUT"
+        echo "bundle_file=$BUNDLE_FILE" >> "$GITHUB_OUTPUT"
         echo "mapping_file=$MAPPING_FILE" >> "$GITHUB_OUTPUT"
     - name: Upload AAB artifact
       uses: actions/upload-artifact@v4
