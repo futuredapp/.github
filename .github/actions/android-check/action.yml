@@ -27,5 +27,4 @@ runs:
         danger_file: 'Dangerfile'
         danger_id: 'danger-pr'
       env:
-        # The secrets.GITHUB_TOKEN is implicitly provided by trigger workflow
-        DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        DANGER_GITHUB_API_TOKEN: ${{ github.token }}
