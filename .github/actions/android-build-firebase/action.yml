@@ -7,9 +7,8 @@ inputs:
     description: "A Gradle task(s) for executing unit tests, for example `testReleaseUnitTest` or `testDevEnterpriseUnitTest`"
     required: true
   package_gradle_task:
-    description: "A Gradle task for packaging universal APK"
+    description: "A Gradle task for packaging universal APK, eg. 'packageEnterpriseUniversalApk'"
     required: true
-    default: packageEnterpriseUniversalApk
   upload_gradle_task:
     description: "A Gradle task for uploading APK, for example `appDistributionUploadEnterprise`"
     required: true

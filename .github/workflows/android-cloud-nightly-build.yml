@@ -1,0 +1,145 @@
+name: Android nightly build
+
+on:
+  workflow_call:
+    inputs:
+      ## Required Inputs
+      TEST_GRADLE_TASKS:
+        description: "A Gradle task(s) for executing unit tests, for example `testReleaseUnitTest` or `testDevEnterpriseUnitTest`"
+        required: true
+        type: string
+      PACKAGE_GRADLE_TASK:
+        description: "A Gradle task for packaging universal APK, eg. 'packageEnterpriseUniversalApk'"
+        required: true
+        type: string
+      UPLOAD_GRADLE_TASK:
+        description: "A Gradle task for uploading APK, for example `appDistributionUploadEnterprise`"
+        required: true
+        type: string
+      APP_DISTRIBUTION_GROUPS:
+        description: "Comma-separated list of app distribution group IDs"
+        required: true
+        type: string
+
+      ## Optional Inputs
+      USE_GIT_LFS:
+        description: "Whether to download Git-LFS files"
+        type: boolean
+        required: false
+        default: false
+      VERSION_NAME:
+        description: "Version name. Example: '1.X.X-snapshot'"
+        required: false
+        type: string
+      BUILD_NUMBER_OFFSET:
+        description: "Build number offset. This number will be added to GITHUB_RUN_NUMBER and can be used to make corrections to build numbers."
+        required: false
+        type: number
+        default: 0
+      KMP_FLAVOR:
+        description: "KMP Build flavor. This is optional and only required by KMP projects and can be ignored on pure Android projects"
+        required: false
+        type: string
+        default: 'test'
+      SECRET_PROPERTIES_FILE:
+        description: "A path to file that will be populated with contents of 'SECRET_PROPERTIES' secret. This file can be picked up by Secrets Gradle plugin to embed secrets into BuildConfig."
+        required: false
+        type: string
+        default: secrets.properties
+      JAVA_VERSION:
+        description: "Java version to use"
+        required: false
+        type: string
+        default: '17'
+      JAVA_DISTRIBUTION:
+        description: "Java distribution to use"
+        required: false
+        type: string
+        default: 'zulu'
+      GRADLE_OPTS:
+        description: "Gradle options"
+        required: false
+        type: string
+        default: ""
+      CHANGELOG_DEBUG:
+        description: "Enable debug mode for changelog generation. Default is false."
+        type: boolean
+        required: false
+        default: false
+      CHANGELOG_CHECKOUT_DEPTH:
+        description: "The depth of the git history to fetch for changelog generation. Default is 100."
+        type: number
+        required: false
+        default: 100
+      CHANGELOG_FALLBACK_LOOKBACK:
+        description: "The amount of time to look back for merge commits when no previous build commit is found. Default is 24 hours."
+        type: string
+        required: false
+        default: "24 hours"
+      TIMEOUT_MINUTES:
+        description: "Job timeout in minutes"
+        required: false
+        type: number
+        default: 30
+
+    secrets:
+      APP_DISTRIBUTION_SERVICE_ACCOUNT:
+        required: true
+        description: "JSON key of service account with permissions to upload build to Firebase App Distribution"
+      GRADLE_CACHE_ENCRYPTION_KEY:
+        required: false
+        description: "Configuration cache encryption key"
+      SECRET_PROPERTIES:
+        required: false
+        description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input."
+
+jobs:
+  changelog:
+    outputs:
+      skip_build: ${{ steps.detect_changes.outputs.skip_build }}
+      changelog: ${{ steps.detect_changes.outputs.changelog }}
+    name: Detect changes and generate changelog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Detect changes and generate changelog
+        id: detect_changes
+        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
+        with:
+          checkout_depth: ${{ inputs.CHANGELOG_CHECKOUT_DEPTH }}
+          debug: ${{ inputs.CHANGELOG_DEBUG }}
+          fallback_lookback: ${{ inputs.CHANGELOG_FALLBACK_LOOKBACK }}
+  build:
+    name: Enterprise build
+    runs-on: ubuntu-latest
+    needs: changelog
+    if: ${{ needs.changelog.outputs.skip_build != 'true' }}
+    timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
+    env:
+      GRADLE_OPTS: ${{ inputs.GRADLE_OPTS }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: ${{ inputs.USE_GIT_LFS }}
+      - name: Set up environment
+        # TODO update branch ref to main, reject pull request if you see this
+        uses: futuredapp/.github/.github/actions/android-setup-environment@feature/matsem/changelog-android
+        with:
+          java_version: ${{ inputs.JAVA_VERSION }}
+          java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
+          gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
+      - name: Build and upload to App Distribution
+        # TODO update branch ref to main, reject pull request if you see this
+        uses: futuredapp/.github/.github/actions/android-build-firebase@feature/matsem/changelog-android
+        with:
+          test_gradle_task: ${{ inputs.TEST_GRADLE_TASKS }}
+          package_gradle_task: ${{ inputs.PACKAGE_GRADLE_TASK }}
+          upload_gradle_task: ${{ inputs.UPLOAD_GRADLE_TASK }}
+          app_distribution_groups: ${{ inputs.APP_DISTRIBUTION_GROUPS }}
+          app_distribution_service_account: ${{ secrets.APP_DISTRIBUTION_SERVICE_ACCOUNT }}
+          version_name: ${{ inputs.VERSION_NAME }}
+          build_number_offset: ${{ inputs.BUILD_NUMBER_OFFSET }}
+          release_notes: ${{ needs.changelog.outputs.changelog }}
+          kmp_flavor: ${{ inputs.KMP_FLAVOR }}
+          secret_properties_file: ${{ inputs.SECRET_PROPERTIES_FILE }}
+          secret_properties: ${{ secrets.SECRET_PROPERTIES }}
