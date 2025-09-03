@@ -79,7 +79,7 @@ jobs:
       if: ${{ inputs.force_build == true }}
       id: changelog
       run: |
-        echo "changelog=Forced build" >> $GITHUB_OUTPUT
+        echo "changelog=Forced build" >> "$GITHUB_OUTPUT"
         
     - name: Fastlane Beta
       if: ${{ steps.detect_changes.outputs.skip_build != 'true' || inputs.force_build == true }}
