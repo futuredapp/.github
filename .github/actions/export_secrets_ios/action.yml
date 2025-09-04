@@ -17,7 +17,8 @@ runs:
   steps:
     - name: Run script
       shell: sh
-      run: ./.github/actions/export_secrets_ios/entrypoint.sh
+      working-directory: ${{ github.action_path }}
+      run: ./entrypoint.sh
       env:
         XCCONFIG_PATH: ${{ inputs.XCCONFIG_PATH }}
         SECRET_PROPERTIES: ${{ inputs.SECRET_PROPERTIES }}
