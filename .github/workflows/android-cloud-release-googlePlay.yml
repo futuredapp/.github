@@ -96,52 +96,31 @@ jobs:
     timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
     env:
       GRADLE_OPTS: ${{ inputs.GRADLE_OPTS }}
-      EXCLUDE_AAB_FILTER: .*intermediate
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           lfs: ${{ inputs.USE_GIT_LFS }}
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - name: Set up environment
+        # TODO update branch ref to main, reject pull request if you see this
+        uses: futuredapp/.github/.github/actions/android-setup-environment@feature/matsem/changelog-android
         with:
-          java-version: ${{ inputs.JAVA_VERSION }}
-          distribution: ${{ inputs.JAVA_DISTRIBUTION }}
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+          java_version: ${{ inputs.JAVA_VERSION }}
+          java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
+      - name: Build and release
+        # TODO update branch ref to main, reject pull request if you see this
+        uses: futuredapp/.github/.github/actions/android-build-googlePlay@feature/matsem/changelog-android
         with:
-          cache-disabled: true
-      - name: Prepare Environment
-        run: |
-          {
-          echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.BUILD_NUMBER_OFFSET}} ))";
-          echo "ANDROID_VERSION_NAME=${{ inputs.VERSION_NAME }}";
-          echo "KMP_FLAVOR=${{ inputs.KMP_FLAVOR }}"
-          } >> "$GITHUB_ENV"
-          
-          echo '${{ secrets.SECRET_PROPERTIES }}' > ${{ inputs.SECRET_PROPERTIES_FILE }}
-      - name: Generate Artifacts (AAB)
-        id: artifacts
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        shell: bash
-        run: |
-          ./gradlew ${{ inputs.BUNDLE_GRADLE_TASK }} -P buildkonfig.flavor="$KMP_FLAVOR"
-          BUNDLE_FILE=$(find . -name '*.aab' | grep -v '.*intermediate')
-          MAPPING_FILE=$(find . -name mapping.txt)
-          
-          echo "bundle_file=$BUNDLE_FILE" >> "$GITHUB_OUTPUT"
-          echo "mapping_file=$MAPPING_FILE" >> "$GITHUB_OUTPUT"
-      - name: Upload to Google Play
-        uses: r0adkll/upload-google-play@v1.1.1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_PUBLISH_SERVICE_ACCOUNT }}
-          packageName: ${{ inputs.GOOGLE_PLAY_APPLICATION_ID }}
-          releaseFiles: ${{ steps.artifacts.outputs.bundle_file }}
-          track: internal
-          status: draft
-          whatsNewDirectory: ${{ inputs.GOOGLE_PLAY_WHATSNEW_DIRECTORY }}
-          mappingFile: ${{ steps.artifacts.outputs.mapping_file }}
-          changesNotSentForReview: ${{ toJSON(inputs.CHANGES_NOT_SENT_FOR_REVIEW) }}
+          bundle_gradle_task: ${{ inputs.BUNDLE_GRADLE_TASK }}
+          version_name: ${{ inputs.VERSION_NAME }}
+          signing_keystore_password: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          signing_key_alias: ${{ secrets.SIGNING_KEY_ALIAS }}
+          signing_key_password: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          google_play_application_id: ${{ inputs.GOOGLE_PLAY_APPLICATION_ID }}
+          google_play_whatsnew_dir: ${{ inputs.GOOGLE_PLAY_WHATSNEW_DIRECTORY }}
+          google_play_publish_service_account: ${{ secrets.GOOGLE_PLAY_PUBLISH_SERVICE_ACCOUNT }}
+          changes_not_sent_for_review: ${{ inputs.CHANGES_NOT_SENT_FOR_REVIEW }}
+          build_number_offset: ${{ inputs.BUILD_NUMBER_OFFSET }}
+          kmp_flavor: ${{ inputs.KMP_FLAVOR }}
+          secret_properties_file: ${{ inputs.SECRET_PROPERTIES_FILE }}
+          secret_properties: ${{ secrets.SECRET_PROPERTIES }}

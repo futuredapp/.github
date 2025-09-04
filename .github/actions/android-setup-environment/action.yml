@@ -1,0 +1,39 @@
+name: Set up Android environment
+description: Sets up Java, Gradle and Ruby and other preconditions for CI runs at Futured Android workflows.
+
+inputs:
+  # Required inputs
+  java_version:
+    description: "Java version to use, eg. '17'."
+    required: true
+    default: '17'
+  java_distribution:
+    description: "Java distribution to use, eg 'zulu'."
+    required: true
+    default: 'zulu'
+
+  # Optional inputs
+  gradle_cache_encryption_key:
+    description: "Configuration cache encryption key. Leave empty if you don't need cache."
+    required: false
+  ruby_version:
+    description: "Ruby version."
+    required: false
+    default: '3.4'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ inputs.ruby_version }}
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ inputs.java_version }}
+        distribution: ${{ inputs.java_distribution }}
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        cache-encryption-key: ${{ inputs.gradle_cache_encryption_key }}

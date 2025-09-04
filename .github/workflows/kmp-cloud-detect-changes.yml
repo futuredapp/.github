@@ -3,6 +3,9 @@ name: Detect Changes
 # This workflow is a central decision point in the KMP project CI/CD pipeline that determines
 # which platform-specific workflows should run based on changed files.
 #
+# This workflow serves as a wrapper around the reusable kmp-detect-changes action 
+# (.github/actions/kmp-detect-changes) to provide a callable workflow interface.
+#
 # The following project structure is assumed: Android app in `androidApp/` path and iOS app in `iosApp/` path
 # relative to the repository root.
 #
@@ -17,11 +20,15 @@ name: Detect Changes
 # Example:
 #   jobs:
 #     changes:
-#       uses: ./.github/workflows/util_detect_changes.yml
+#       uses: ./.github/workflows/kmp-cloud-detect-changes.yml
 #     ios-build:
 #       needs: changes
 #       if: ${{ needs.changes.outputs.iosFiles == 'true' }}
 #       uses: ./.github/workflows/build_ios.yml
+#
+# Note: For direct action usage in other workflows, you can also use:
+#   - name: Detect Changes
+#     uses: futuredapp/.github/.github/actions/kmp-detect-changes@main
 
 on:
   workflow_call:
@@ -45,20 +52,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       # Matches all files which can affect iOS build if changed
-      iosFiles: ${{ steps.file-changes.outputs.iosFiles }}
+      iosFiles: ${{ steps.detect.outputs.iosFiles }}
       # Matches all files which can affect Android build if changed
-      androidFiles: ${{ steps.file-changes.outputs.androidFiles }}
+      androidFiles: ${{ steps.detect.outputs.androidFiles }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Detect Changes
-        uses: dorny/paths-filter@v3
-        id: file-changes
+        id: detect
+        uses: ./.github/actions/kmp-detect-changes
         with:
-          filters: |
-            iosFiles:
-              - "!(androidApp/**)"
-            androidFiles:
-              - "!(iosApp/**)"
+          USE_GIT_LFS: ${{ inputs.USE_GIT_LFS }}
