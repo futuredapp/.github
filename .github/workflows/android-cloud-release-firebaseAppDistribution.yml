@@ -8,16 +8,12 @@ on:
         description: "A Gradle task(s) for executing unit tests, for example `testReleaseUnitTest` or `testDevEnterpriseUnitTest`"
         required: true
         type: string
-      BUNDLE_GRADLE_TASK:
-        description: "A Gradle task for assembling app bundle, for example `bundleEnterprise`"
+      PACKAGE_GRADLE_TASK:
+        description: "A Gradle task for packaging universal APK, eg. 'packageEnterpriseUniversalApk'"
         required: true
         type: string
       UPLOAD_GRADLE_TASK:
         description: "A Gradle task for uploading APK, for example `appDistributionUploadEnterprise`"
-        required: true
-        type: string
-      SIGNING_KEYSTORE_PATH:
-        description: "Path to keystore for signing of universal APK. Example: `keystore/debug.jks' or 'androidApp/signing/debug.keystore'."
         required: true
         type: string
       APP_DISTRIBUTION_GROUPS:
@@ -55,11 +51,6 @@ on:
         required: false
         type: string
         default: secrets.properties
-      TIMEOUT_MINUTES:
-        description: "Job timeout in minutes"
-        required: false
-        type: number
-        default: 30
       JAVA_VERSION:
         description: "Java version to use"
         required: false
@@ -75,17 +66,13 @@ on:
         required: false
         type: string
         default: ""
+      TIMEOUT_MINUTES:
+        description: "Job timeout in minutes"
+        required: false
+        type: number
+        default: 30
 
     secrets:
-      SIGNING_KEYSTORE_PASSWORD:
-        description: "Password to provided keystore"
-        required: true
-      SIGNING_KEY_ALIAS:
-        description: "Alias of the signing key in the provided keystore"
-        required: true
-      SIGNING_KEY_PASSWORD:
-        description: "Password to the key in the provided keystore"
-        required: true
       APP_DISTRIBUTION_SERVICE_ACCOUNT:
         required: true
         description: "JSON key of service account with permissions to upload build to Firebase App Distribution"
@@ -99,74 +86,34 @@ on:
 jobs:
   build:
     name: Enterprise Build
-    runs-on: [ ubuntu-latest ]
+    runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
     env:
       GRADLE_OPTS: ${{ inputs.GRADLE_OPTS }}
-      FIREBASE_CREDENTIALS_FILE: firebase_credentials.json
-      BUNDLETOOL_URL: https://github.com/google/bundletool/releases/download/1.17.2/bundletool-all-1.17.2.jar
-      EXCLUDE_AAB_FILTER: .*intermediate
-      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
-      ANDROID_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-      ANDROID_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           lfs: ${{ inputs.USE_GIT_LFS }}
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - name: Set up environment
+        # TODO update branch ref to main, reject pull request if you see this
+        uses: futuredapp/.github/.github/actions/android-setup-environment@feature/matsem/changelog-android
         with:
-          java-version: ${{ inputs.JAVA_VERSION }}
-          distribution: ${{ inputs.JAVA_DISTRIBUTION }}
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+          java_version: ${{ inputs.JAVA_VERSION }}
+          java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
+          gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
+      - name: Build and upload to App Distribution
+        # TODO update branch ref to main, reject pull request if you see this
+        uses: futuredapp/.github/.github/actions/android-build-firebase@feature/matsem/changelog-android
         with:
-          cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
-      - name: Prepare Environment
-        run: |
-          {
-          echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.BUILD_NUMBER_OFFSET}} ))";
-          echo "KMP_FLAVOR=${{ inputs.KMP_FLAVOR }}"
-          } >> "$GITHUB_ENV"
-
-          # Set ANDROID_VERSION_NAME only if VERSION_NAME is provided
-          if [[ -n "${{ inputs.VERSION_NAME }}" ]]; then
-            echo "ANDROID_VERSION_NAME=${{ inputs.VERSION_NAME }}" >> "$GITHUB_ENV"
-          fi
-
-          echo '${{ secrets.SECRET_PROPERTIES }}' > ${{ inputs.SECRET_PROPERTIES_FILE }}
-          echo '${{ secrets.APP_DISTRIBUTION_SERVICE_ACCOUNT }}' > "$FIREBASE_CREDENTIALS_FILE"
-      - name: Run Unit tests
-        shell: bash
-        run: ./gradlew --continue ${{ inputs.TEST_GRADLE_TASKS }}
-      - name: Generate Artifacts (AAB and APK)
-        id: artifacts
-        shell: bash
-        run: |
-          ./gradlew ${{ inputs.BUNDLE_GRADLE_TASK }} -P buildkonfig.flavor="$KMP_FLAVOR"
-          BUNDLE_FILE=$(find . -name '*.aab' | grep -v '.*intermediate')
-          
-          wget -O bundletool.jar ${{ env.BUNDLETOOL_URL }}
-          java -jar bundletool.jar build-apks \
-            --bundle "$BUNDLE_FILE" \
-            --output universal.apks \
-            --mode universal \
-            --ks ${{ inputs.SIGNING_KEYSTORE_PATH }} \
-            --ks-pass pass:${{ secrets.SIGNING_KEYSTORE_PASSWORD }} \
-            --ks-key-alias ${{ secrets.SIGNING_KEY_ALIAS }} \
-            --key-pass pass:${{ secrets.SIGNING_KEY_PASSWORD }}
-          unzip universal.apks -d universal_apk
-          UNIVERSAL_APK_FILE=$(find universal_apk/ -name '*.apk')
-          
-          echo "bundle_file=$BUNDLE_FILE" >> "$GITHUB_OUTPUT"
-          echo "universal_apk_file=$UNIVERSAL_APK_FILE" >> "$GITHUB_OUTPUT"
-      - name: Upload to Firebase App Distribution
-        shell: bash
-        run: |
-          ./gradlew ${{ inputs.UPLOAD_GRADLE_TASK }} \
-            --serviceCredentialsFile="$FIREBASE_CREDENTIALS_FILE" \
-            --groups="${{ inputs.APP_DISTRIBUTION_GROUPS }}" \
-            --artifactType="APK" \
-            --artifactPath="${{ steps.artifacts.outputs.universal_apk_file }}" \
-            --releaseNotes='${{ inputs.RELEASE_NOTES }}'
+          test_gradle_task: ${{ inputs.TEST_GRADLE_TASKS }}
+          package_gradle_task: ${{ inputs.PACKAGE_GRADLE_TASK }}
+          upload_gradle_task: ${{ inputs.UPLOAD_GRADLE_TASK }}
+          app_distribution_groups: ${{ inputs.APP_DISTRIBUTION_GROUPS }}
+          app_distribution_service_account: ${{ secrets.APP_DISTRIBUTION_SERVICE_ACCOUNT }}
+          version_name: ${{ inputs.VERSION_NAME }}
+          build_number_offset: ${{ inputs.BUILD_NUMBER_OFFSET }}
+          release_notes: ${{ inputs.RELEASE_NOTES }}
+          kmp_flavor: ${{ inputs.KMP_FLAVOR }}
+          secret_properties_file: ${{ inputs.SECRET_PROPERTIES_FILE }}
+          secret_properties: ${{ secrets.SECRET_PROPERTIES }}
