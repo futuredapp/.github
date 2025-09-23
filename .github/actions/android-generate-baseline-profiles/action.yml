@@ -1,0 +1,53 @@
+name: Generate Baseline Profiles
+description: Generates baseline profiles and creates a PR with the changes
+
+inputs:
+  # Required inputs
+  generate_gradle_task:
+    description: "A Gradle task for generating baseline profiles, for example `generateBaselineProfile`"
+    required: true
+  signing_keystore_password:
+    description: "Password to provided keystore"
+    required: true
+  signing_key_alias:
+    description: "Alias of the signing key in the provided keystore"
+    required: true
+  signing_key_password:
+    description: "Password to the key in the provided keystore"
+    required: true
+  secret_properties_file:
+    description: "A path to file that will be populated with contents of 'SECRET_PROPERTIES' secret. This file can be picked up by Secrets Gradle plugin to embed secrets into BuildConfig."
+    required: false
+    default: 'secrets.properties'
+  secret_properties:
+    required: false
+    description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input."
+
+runs:
+  using: "composite"
+  steps:
+    - name: Enable KVM group perms
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+        ls /dev/kvm
+    - name: Prepare Environment
+      run: |
+        echo '${{ inputs.secret_properties }}' > ${{ inputs.secret_properties_file }}
+    - name: Generate profiles
+      env:
+        ANDROID_KEYSTORE_PASSWORD: ${{ inputs.signing_keystore_password }}
+        ANDROID_KEY_ALIAS: ${{ inputs.signing_key_alias }}
+        ANDROID_KEY_PASSWORD: ${{ inputs.signing_key_password }}
+      run: ./gradlew ${{ inputs.generate_gradle_task }}
+        -Pandroid.experimental.testOptions.managedDevices.emulator.showKernelLogging=true
+        -Pandroid.testoptions.manageddevices.emulator.gpu="swiftshader_indirect"
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v7
+      with:
+        commit-message: 'Generate baseline profiles'
+        branch: 'feature/generate-baseline-profiles'
+        title: 'Generate baseline profiles'
+        body: ''
+
