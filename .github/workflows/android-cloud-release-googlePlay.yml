@@ -103,13 +103,13 @@ jobs:
           lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Set up environment
         # TODO update branch ref to main, reject pull request if you see this
-        uses: futuredapp/.github/.github/actions/android-setup-environment@feature/matsem/changelog-android
+        uses: futuredapp/.github/.github/actions/android-setup-environment@feature/android-refactor
         with:
           java_version: ${{ inputs.JAVA_VERSION }}
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
       - name: Build and release
         # TODO update branch ref to main, reject pull request if you see this
-        uses: futuredapp/.github/.github/actions/android-build-googlePlay@feature/matsem/changelog-android
+        uses: futuredapp/.github/.github/actions/android-build-googlePlay@feature/android-refactor
         with:
           bundle_gradle_task: ${{ inputs.BUNDLE_GRADLE_TASK }}
           version_name: ${{ inputs.VERSION_NAME }}

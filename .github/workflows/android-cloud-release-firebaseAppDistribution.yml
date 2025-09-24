@@ -97,14 +97,14 @@ jobs:
           lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Set up environment
         # TODO update branch ref to main, reject pull request if you see this
-        uses: futuredapp/.github/.github/actions/android-setup-environment@feature/matsem/changelog-android
+        uses: futuredapp/.github/.github/actions/android-setup-environment@feature/android-refactor
         with:
           java_version: ${{ inputs.JAVA_VERSION }}
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
       - name: Build and upload to App Distribution
         # TODO update branch ref to main, reject pull request if you see this
-        uses: futuredapp/.github/.github/actions/android-build-firebase@feature/matsem/changelog-android
+        uses: futuredapp/.github/.github/actions/android-build-firebase@feature/android-refactor
         with:
           test_gradle_task: ${{ inputs.TEST_GRADLE_TASKS }}
           package_gradle_task: ${{ inputs.PACKAGE_GRADLE_TASK }}
