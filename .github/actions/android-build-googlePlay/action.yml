@@ -65,12 +65,15 @@ runs:
     - name: Generate Artifacts (AAB)
       id: build_aab
       shell: bash
-      env:
-        ANDROID_KEYSTORE_PASSWORD: ${{ inputs.signing_keystore_password }}
-        ANDROID_KEY_ALIAS: ${{ inputs.signing_key_alias }}
-        ANDROID_KEY_PASSWORD: ${{ inputs.signing_key_password }}
       run: |
-        ./gradlew ${{ inputs.bundle_gradle_task }} -P buildkonfig.flavor="$KMP_FLAVOR"
+        ./gradlew ${{ inputs.bundle_gradle_task }} \
+          -P android.build_number="$ANDROID_BUILD_NUMBER" \
+          -P android.version_name="$ANDROID_VERSION_NAME" \
+          -P buildkonfig.flavor="$KMP_FLAVOR" \
+          -P android.signing.keystore.password="${{ inputs.signing_keystore_password }}" \
+          -P android.signing.key.alias="${{ inputs.signing_key_alias }}" \
+          -P android.signing.key.password="${{ inputs.signing_key_password }}" 
+        
         BUNDLE_FILE=$(find . -name '*.aab' | grep -v -e '.*intermediate' -e '.*baseline')
         MAPPING_FILE=$(find . -name mapping.txt)
         

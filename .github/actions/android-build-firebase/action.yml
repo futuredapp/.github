@@ -52,12 +52,12 @@ runs:
         {
         echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.build_number_offset}} ))";
         echo "KMP_FLAVOR=${{ inputs.kmp_flavor }}"
-        } >> "$GITHUB_ENV"
-
+        
         # Set ANDROID_VERSION_NAME only if VERSION_NAME is provided
         if [[ -n "${{ inputs.version_name }}" ]]; then
-          echo "ANDROID_VERSION_NAME=${{ inputs.version_name }}" >> "$GITHUB_ENV"
+          echo "ANDROID_VERSION_NAME=${{ inputs.version_name }}"
         fi
+        } >> "$GITHUB_ENV"
 
         echo '${{ inputs.secret_properties }}' > ${{ inputs.secret_properties_file }}
     - name: Run Unit tests
@@ -67,7 +67,11 @@ runs:
       id: build_apk
       shell: bash
       run: |
-        ./gradlew ${{ inputs.package_gradle_task }} -P buildkonfig.flavor="$KMP_FLAVOR"
+        ./gradlew ${{ inputs.package_gradle_task }} \
+          -P android.build_number="$ANDROID_BUILD_NUMBER" \
+          -P android.version_name="$ANDROID_VERSION_NAME" \
+          -P buildkonfig.flavor="$KMP_FLAVOR"
+        
         APK_FILE=$(find . -name '*.apk' | grep -v -e '.*intermediate' -e '.*baseline')
         echo "universal_apk_file=$APK_FILE" >> "$GITHUB_OUTPUT"
     - name: Upload artifact
