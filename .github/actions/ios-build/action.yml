@@ -15,9 +15,6 @@ inputs:
   app_store_connect_api_key_issuer_id:
     required: true
     description: "Private App Store Connect API issuer key for submitting build to App Store."
-  testflight_changelog:
-    required: true
-    description: "Will be used as TestFlight changelog"
   # Optional
   secret_xcconfig_path:
     description: "Path to the .xcconfig file. Selected secret properties will be appended to the end of this file."
@@ -40,6 +37,10 @@ inputs:
   custom_values:
     description: "Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: \"CUSTOM-1: 1; CUSTOM-2: 2\""
     required: false
+  testflight_changelog:
+    required: false
+    description: "Will be used as TestFlight changelog"
+
 runs:
   using: "composite"
   steps:
