@@ -61,7 +61,7 @@ jobs:
         lfs: ${{ inputs.use_git_lfs }}
     - name: Export secrets to .xcconfig file
       if: ${{ inputs.xcconfig_path != '' }}
-      uses: futuredapp/.github/.github/actions/export_secrets_ios@main
+      uses: futuredapp/.github/.github/actions/ios-export-secrets@main
       with:
         XCCONFIG_PATH: ${{ inputs.xcconfig_path }}
         SECRET_PROPERTIES: ${{ secrets.SECRET_PROPERTIES }}
