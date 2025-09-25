@@ -99,6 +99,7 @@ jobs:
           java_version: ${{ inputs.java_version }}
           java_distribution: ${{ inputs.java_distribution }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
+          ruby: 'false'
       - name: Build and upload to TestFlight
         # TODO update branch ref to main, reject pull request if you see this
         uses: futuredapp/.github/.github/actions/ios-build@feature/android-refactor
