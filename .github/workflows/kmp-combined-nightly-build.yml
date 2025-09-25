@@ -75,6 +75,18 @@ on:
         required: false
         type: string
         default: secrets.properties
+      ios_secret_xcconfig_path:
+        description: "Path to the .xcconfig file. Selected secret properties will be appended to the end of this file."
+        type: string
+        required: false
+      ios_secret_required_keys:
+        description: "Comma-separated list of required secret keys."
+        type: string
+        required: false
+      ios_custom_values:
+        description: "Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: \"CUSTOM-1: 1; CUSTOM-2: 2\""
+        required: false
+        type: string
       changelog_debug:
         description: "Enable debug mode for changelog generation. Default is false."
         type: boolean
@@ -90,22 +102,6 @@ on:
         type: string
         required: false
         default: "24 hours"
-      ios_secret_xcconfig_path:
-        description: "Path to the .xcconfig file. Selected secret properties will be appended to the end of this file."
-        type: string
-        required: false
-      ios_secret_properties:
-        required: false
-        type: string
-        description: "Secrets in the format KEY = VALUE (one per line)."
-      ios_secret_required_keys:
-        description: "Comma-separated list of required secret keys."
-        type: string
-        required: false
-      ios_custom_values:
-        description: "Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: \"CUSTOM-1: 1; CUSTOM-2: 2\""
-        required: false
-        type: string
 
     secrets:
       firebase_app_distribution_service_account:
@@ -117,6 +113,9 @@ on:
       android_secret_properties:
         required: false
         description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'android_secret_properties_file' input."
+      ios_secret_properties:
+        required: false
+        description: "Secrets in the format KEY = VALUE (one per line)."
       ios_match_password:
         description: "Password for decrypting of certificates and provisioning profiles."
         required: true
@@ -131,7 +130,6 @@ on:
         description: "Private App Store Connect API issuer key for submitting build to App Store."
 
 jobs:
-
   changelog:
     outputs:
       skip_build: ${{ steps.detect_changes.outputs.skip_build }}
@@ -148,7 +146,6 @@ jobs:
           checkout_depth: ${{ inputs.changelog_checkout_depth }}
           debug: ${{ inputs.changelog_debug }}
           fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
-
   ios_build:
     name: iOS Build
     runs-on: self-hosted
@@ -179,14 +176,13 @@ jobs:
           app_store_connect_api_key_key_id: ${{ secrets.ios_app_store_connect_api_key_key_id }}
           app_store_connect_api_key_issuer_id: ${{ secrets.ios_app_store_connect_api_key_issuer_id }}
           secret_xcconfig_path: ${{ inputs.ios_secret_xcconfig_path }}
-          secret_properties: ${{ inputs.ios_secret_properties }}
+          secret_properties: ${{ secrets.ios_secret_properties }}
           secret_required_keys: ${{ inputs.ios_secret_required_keys }}
           kmp_swift_package_integration: ${{ inputs.kmp_swift_package_integration }}
           kmp_swift_package_path: ${{ inputs.kmp_swift_package_path }}
           kmp_swift_package_flavor: ${{ inputs.kmp_flavor }}
           custom_values: ${{ inputs.ios_custom_values }}
           testflight_changelog: ${{ needs.changelog.outputs.changelog }}
-
   android_build:
     name: Android Build
     runs-on: ubuntu-latest
@@ -222,7 +218,6 @@ jobs:
           kmp_flavor: ${{ inputs.kmp_flavor }}
           secret_properties_file: ${{ inputs.android_secret_properties_file }}
           secret_properties: ${{ secrets.android_secret_properties }}
-
   save_cache:
     name: Cache last build commit SHA
     runs-on: ubuntu-latest
