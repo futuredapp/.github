@@ -139,8 +139,7 @@ jobs:
     steps:
       - name: Detect changes and generate changelog
         id: detect_changes
-        # TODO update branch ref to main, reject pull request if you see this
-        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@feature/android-refactor
+        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
         with:
           checkout_depth: ${{ inputs.changelog_checkout_depth }}
           debug: ${{ inputs.changelog_debug }}
@@ -159,16 +158,14 @@ jobs:
         with:
           lfs: ${{ inputs.use_git_lfs }}
       - name: Set up environment
-        # TODO update branch ref to main, reject pull request if you see this
-        uses: futuredapp/.github/.github/actions/android-setup-environment@feature/android-refactor
+        uses: futuredapp/.github/.github/actions/android-setup-environment@main
         with:
           java_version: ${{ inputs.java_version }}
           java_distribution: ${{ inputs.java_distribution }}
           gradle_cache_encryption_key: ${{ secrets.gradle_cache_encryption_key }}
           ruby: 'false'
       - name: Build and upload to TestFlight
-        # TODO update branch ref to main, reject pull request if you see this
-        uses: futuredapp/.github/.github/actions/ios-build@feature/android-refactor
+        uses: futuredapp/.github/.github/actions/ios-build@main
         with:
           match_password: ${{ secrets.ios_match_password }}
           app_store_connect_api_key_key: ${{ secrets.ios_app_store_connect_api_key_key }}
@@ -196,15 +193,13 @@ jobs:
         with:
           lfs: ${{ inputs.use_git_lfs }}
       - name: Set up environment
-        # TODO update branch ref to main, reject pull request if you see this
-        uses: futuredapp/.github/.github/actions/android-setup-environment@feature/android-refactor
+        uses: futuredapp/.github/.github/actions/android-setup-environment@main
         with:
           java_version: ${{ inputs.java_version }}
           java_distribution: ${{ inputs.java_distribution }}
           gradle_cache_encryption_key: ${{ secrets.gradle_cache_encryption_key }}
       - name: Build and upload to App Distribution
-        # TODO update branch ref to main, reject pull request if you see this
-        uses: futuredapp/.github/.github/actions/android-build-firebase@feature/android-refactor
+        uses: futuredapp/.github/.github/actions/android-build-firebase@main
         with:
           test_gradle_task: ${{ inputs.android_test_gradle_task }}
           package_gradle_task: ${{ inputs.android_package_gradle_task }}

@@ -104,8 +104,7 @@ jobs:
     steps:
       - name: Detect changes and generate changelog
         id: detect_changes
-        # TODO update branch ref to main, reject pull request if you see this
-        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@feature/android-refactor
+        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
         with:
           checkout_depth: ${{ inputs.CHANGELOG_CHECKOUT_DEPTH }}
           debug: ${{ inputs.CHANGELOG_DEBUG }}
@@ -124,15 +123,13 @@ jobs:
         with:
           lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Set up environment
-        # TODO update branch ref to main, reject pull request if you see this
-        uses: futuredapp/.github/.github/actions/android-setup-environment@feature/android-refactor
+        uses: futuredapp/.github/.github/actions/android-setup-environment@main
         with:
           java_version: ${{ inputs.JAVA_VERSION }}
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
       - name: Build and upload to App Distribution
-        # TODO update branch ref to main, reject pull request if you see this
-        uses: futuredapp/.github/.github/actions/android-build-firebase@feature/android-refactor
+        uses: futuredapp/.github/.github/actions/android-build-firebase@main
         with:
           test_gradle_task: ${{ inputs.TEST_GRADLE_TASKS }}
           package_gradle_task: ${{ inputs.PACKAGE_GRADLE_TASK }}

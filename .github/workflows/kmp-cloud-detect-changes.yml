@@ -58,7 +58,6 @@ jobs:
     steps:
       - name: Detect Changes
         id: detect
-        # TODO update branch ref to main, reject pull request if you see this
-        uses: futuredapp/.github/.github/actions/kmp-detect-changes@feature/android-refactor
+        uses: futuredapp/.github/.github/actions/kmp-detect-changes@main
         with:
           USE_GIT_LFS: ${{ inputs.USE_GIT_LFS }}

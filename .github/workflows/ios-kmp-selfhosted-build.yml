@@ -93,16 +93,14 @@ jobs:
         with:
           lfs: ${{ inputs.use_git_lfs }}
       - name: Set up environment
-        # TODO update branch ref to main, reject pull request if you see this
-        uses: futuredapp/.github/.github/actions/android-setup-environment@feature/android-refactor
+        uses: futuredapp/.github/.github/actions/android-setup-environment@main
         with:
           java_version: ${{ inputs.java_version }}
           java_distribution: ${{ inputs.java_distribution }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
           ruby: 'false'
       - name: Build and upload to TestFlight
-        # TODO update branch ref to main, reject pull request if you see this
-        uses: futuredapp/.github/.github/actions/ios-build@feature/android-refactor
+        uses: futuredapp/.github/.github/actions/ios-build@main
         with:
           match_password: ${{ secrets.MATCH_PASSWORD }}
           app_store_connect_api_key_key: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
