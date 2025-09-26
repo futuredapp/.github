@@ -12,10 +12,6 @@ on:
         description: "A Gradle task for assembling app bundle, for example `bundleRelease`"
         required: true
         type: string
-      SIGNING_KEYSTORE_PATH:
-        description: "Path to keystore for signing of universal APK. Example: `keystore/debug.jks' or 'androidApp/signing/debug.keystore'"
-        required: true
-        type: string
       GOOGLE_PLAY_APPLICATION_ID:
         description: "Google Play applicationId"
         required: true
