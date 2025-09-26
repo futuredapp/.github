@@ -4,127 +4,127 @@ on:
   workflow_call:
     inputs:
       ## Required Inputs
-      android_test_gradle_task:
+      ANDROID_TEST_GRADLE_TASK:
         description: "A Gradle task(s) for executing unit tests, for example `testReleaseUnitTest` or `testDevEnterpriseUnitTest`"
         required: true
         type: string
-      android_package_gradle_task:
+      ANDROID_PACKAGE_GRADLE_TASK:
         description: "A Gradle task for packaging universal APK, eg. 'packageEnterpriseUniversalApk'"
         required: true
         type: string
-      android_upload_gradle_task:
+      ANDROID_UPLOAD_GRADLE_TASK:
         description: "A Gradle task for uploading APK, for example `appDistributionUploadEnterprise`"
         required: true
         type: string
-      kmp_flavor:
+      KMP_FLAVOR:
         description: "KMP Build flavor. This is optional and only required by KMP projects and can be ignored on pure Android projects"
         required: true
         type: string
-      firebase_app_distribution_groups:
+      FIREBASE_APP_DISTRIBUTION_GROUPS:
         description: "Comma-separated list of app distribution group IDs"
         required: true
         type: string
 
       ## Optional Inputs
-      timeout_minutes:
+      TIMEOUT_MINUTES:
         description: "Job timeout in minutes"
         required: false
         type: number
         default: 30
-      use_git_lfs:
+      USE_GIT_LFS:
         description: "Whether to download Git-LFS files"
         type: boolean
         required: false
         default: false
-      gradle_opts:
+      GRADLE_OPTS:
         description: "Gradle options"
         required: false
         type: string
         default: ""
-      java_version:
+      JAVA_VERSION:
         description: "Java version to use"
         required: false
         type: string
         default: '17'
-      java_distribution:
+      JAVA_DISTRIBUTION:
         description: "Java distribution to use"
         required: false
         type: string
         default: 'zulu'
-      android_version_name:
+      ANDROID_VERSION_NAME:
         description: "Version name. Example: '1.X.X-snapshot'"
         required: false
         type: string
-      android_build_number_offset:
+      ANDROID_BUILD_NUMBER_OFFSET:
         description: "Build number offset. This number will be added to GITHUB_RUN_NUMBER and can be used to make corrections to build numbers."
         required: false
         type: number
         default: 0
-      kmp_swift_package_integration:
+      KMP_SWIFT_PACKAGE_INTEGRATION:
         description: "Whether KMP is integrated in Xcode project as a Swift Package"
         required: false
         type: boolean
         default: false
-      kmp_swift_package_path:
-        description: "If `kmp_swift_package_integration` is 'true', then specifies a location of local Swift Package with Makefile. Example: 'iosApp/shared/KMP`"
+      KMP_SWIFT_PACKAGE_PATH:
+        description: "If `KMP_SWIFT_PACKAGE_INTEGRATION` is 'true', then specifies a location of local Swift Package with Makefile. Example: 'iosApp/shared/KMP`"
         required: false
         type: string
-      android_secret_properties_file:
+      ANDROID_SECRET_PROPERTIES_FILE:
         description: "A path to file that will be populated with contents of 'android_secret_properties' secret. This file can be picked up by Secrets Gradle plugin to embed secrets into BuildConfig."
         required: false
         type: string
         default: secrets.properties
-      ios_secret_xcconfig_path:
+      IOS_SECRET_XCCONFIG_PATH:
         description: "Path to the .xcconfig file. Selected secret properties will be appended to the end of this file."
         type: string
         required: false
-      ios_secret_required_keys:
+      IOS_SECRET_REQUIRED_KEYS:
         description: "Comma-separated list of required secret keys."
         type: string
         required: false
-      ios_custom_values:
+      IOS_CUSTOM_VALUES:
         description: "Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: \"CUSTOM-1: 1; CUSTOM-2: 2\""
         required: false
         type: string
-      changelog_debug:
+      CHANGELOG_DEBUG:
         description: "Enable debug mode for changelog generation. Default is false."
         type: boolean
         required: false
         default: false
-      changelog_checkout_depth:
+      CHANGELOG_CHECKOUT_DEPTH:
         description: "The depth of the git history to fetch for changelog generation. Default is 100."
         type: number
         required: false
         default: 100
-      changelog_fallback_lookback:
+      CHANGELOG_FALLBACK_LOOKBACK:
         description: "The amount of time to look back for merge commits when no previous build commit is found. Default is 24 hours."
         type: string
         required: false
         default: "24 hours"
 
     secrets:
-      firebase_app_distribution_service_account:
+      FIREBASE_APP_DISTRIBUTION_SERVICE_ACCOUNT:
         required: true
         description: "JSON key of service account with permissions to upload build to Firebase App Distribution"
-      gradle_cache_encryption_key:
+      GRADLE_CACHE_ENCRYPTION_KEY:
         required: false
         description: "Configuration cache encryption key"
-      android_secret_properties:
+      ANDROID_SECRET_PROPERTIES:
         required: false
-        description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'android_secret_properties_file' input."
-      ios_secret_properties:
+        description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'ANDROID_SECRET_PROPERTIES_FILE' input."
+      IOS_SECRET_PROPERTIES:
         required: false
         description: "Secrets in the format KEY = VALUE (one per line)."
-      ios_match_password:
+      IOS_MATCH_PASSWORD:
         description: "Password for decrypting of certificates and provisioning profiles."
         required: true
-      ios_app_store_connect_api_key_key:
+      IOS_APP_STORE_CONNECT_API_KEY_KEY:
         description: "Private App Store Connect API key for submitting build to App Store."
         required: true
-      ios_app_store_connect_api_key_key_id:
+      IOS_APP_STORE_CONNECT_API_KEY_KEY_ID:
         required: true
         description: "Private App Store Connect API key for submitting build to App Store."
-      ios_app_store_connect_api_key_issuer_id:
+      IOS_APP_STORE_CONNECT_API_KEY_ISSUER_ID:
         required: true
         description: "Private App Store Connect API issuer key for submitting build to App Store."
 
@@ -141,77 +141,77 @@ jobs:
         id: detect_changes
         uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
         with:
-          checkout_depth: ${{ inputs.changelog_checkout_depth }}
-          debug: ${{ inputs.changelog_debug }}
-          fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
+          checkout_depth: ${{ inputs.CHANGELOG_CHECKOUT_DEPTH }}
+          debug: ${{ inputs.CHANGELOG_DEBUG }}
+          fallback_lookback: ${{ inputs.CHANGELOG_FALLBACK_LOOKBACK }}
   ios_build:
     name: iOS Build
     runs-on: self-hosted
     needs: changelog
     if: ${{ needs.changelog.outputs.skip_build != 'true' }}
-    timeout-minutes: ${{ inputs.timeout_minutes }}
+    timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
     env:
-      GRADLE_OPTS: ${{ inputs.gradle_opts }}
+      GRADLE_OPTS: ${{ inputs.GRADLE_OPTS }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          lfs: ${{ inputs.use_git_lfs }}
+          lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Set up environment
         uses: futuredapp/.github/.github/actions/android-setup-environment@main
         with:
-          java_version: ${{ inputs.java_version }}
-          java_distribution: ${{ inputs.java_distribution }}
-          gradle_cache_encryption_key: ${{ secrets.gradle_cache_encryption_key }}
+          java_version: ${{ inputs.JAVA_VERSION }}
+          java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
+          gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
           ruby: 'false'
       - name: Build and upload to TestFlight
         uses: futuredapp/.github/.github/actions/ios-kmp-build@main
         with:
-          match_password: ${{ secrets.ios_match_password }}
-          app_store_connect_api_key_key: ${{ secrets.ios_app_store_connect_api_key_key }}
-          app_store_connect_api_key_key_id: ${{ secrets.ios_app_store_connect_api_key_key_id }}
-          app_store_connect_api_key_issuer_id: ${{ secrets.ios_app_store_connect_api_key_issuer_id }}
-          secret_xcconfig_path: ${{ inputs.ios_secret_xcconfig_path }}
-          secret_properties: ${{ secrets.ios_secret_properties }}
-          secret_required_keys: ${{ inputs.ios_secret_required_keys }}
-          kmp_swift_package_integration: ${{ inputs.kmp_swift_package_integration }}
-          kmp_swift_package_path: ${{ inputs.kmp_swift_package_path }}
-          kmp_swift_package_flavor: ${{ inputs.kmp_flavor }}
-          custom_values: ${{ inputs.ios_custom_values }}
+          match_password: ${{ secrets.IOS_MATCH_PASSWORD }}
+          app_store_connect_api_key_key: ${{ secrets.IOS_APP_STORE_CONNECT_API_KEY_KEY }}
+          app_store_connect_api_key_key_id: ${{ secrets.IOS_APP_STORE_CONNECT_API_KEY_KEY_ID }}
+          app_store_connect_api_key_issuer_id: ${{ secrets.IOS_APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          secret_xcconfig_path: ${{ inputs.IOS_SECRET_XCCONFIG_PATH }}
+          secret_properties: ${{ secrets.IOS_SECRET_PROPERTIES }}
+          secret_required_keys: ${{ inputs.IOS_SECRET_REQUIRED_KEYS }}
+          kmp_swift_package_integration: ${{ inputs.KMP_SWIFT_PACKAGE_INTEGRATION }}
+          kmp_swift_package_path: ${{ inputs.KMP_SWIFT_PACKAGE_PATH }}
+          kmp_swift_package_flavor: ${{ inputs.KMP_FLAVOR }}
+          custom_values: ${{ inputs.IOS_CUSTOM_VALUES }}
           testflight_changelog: ${{ needs.changelog.outputs.changelog }}
   android_build:
     name: Android Build
     runs-on: ubuntu-latest
     needs: changelog
     if: ${{ needs.changelog.outputs.skip_build != 'true' }}
-    timeout-minutes: ${{ inputs.timeout_minutes }}
+    timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
     env:
-      GRADLE_OPTS: ${{ inputs.gradle_opts }}
+      GRADLE_OPTS: ${{ inputs.GRADLE_OPTS }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          lfs: ${{ inputs.use_git_lfs }}
+          lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Set up environment
         uses: futuredapp/.github/.github/actions/android-setup-environment@main
         with:
-          java_version: ${{ inputs.java_version }}
-          java_distribution: ${{ inputs.java_distribution }}
-          gradle_cache_encryption_key: ${{ secrets.gradle_cache_encryption_key }}
+          java_version: ${{ inputs.JAVA_VERSION }}
+          java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
+          gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
       - name: Build and upload to App Distribution
         uses: futuredapp/.github/.github/actions/android-build-firebase@main
         with:
-          test_gradle_task: ${{ inputs.android_test_gradle_task }}
-          package_gradle_task: ${{ inputs.android_package_gradle_task }}
-          upload_gradle_task: ${{ inputs.android_upload_gradle_task }}
-          app_distribution_groups: ${{ inputs.firebase_app_distribution_groups }}
-          app_distribution_service_account: ${{ secrets.firebase_app_distribution_service_account }}
-          version_name: ${{ inputs.android_version_name }}
-          build_number_offset: ${{ inputs.android_build_number_offset }}
+          test_gradle_task: ${{ inputs.ANDROID_TEST_GRADLE_TASK }}
+          package_gradle_task: ${{ inputs.ANDROID_PACKAGE_GRADLE_TASK }}
+          upload_gradle_task: ${{ inputs.ANDROID_UPLOAD_GRADLE_TASK }}
+          app_distribution_groups: ${{ inputs.FIREBASE_APP_DISTRIBUTION_GROUPS }}
+          app_distribution_service_account: ${{ secrets.FIREBASE_APP_DISTRIBUTION_SERVICE_ACCOUNT }}
+          version_name: ${{ inputs.ANDROID_VERSION_NAME }}
+          build_number_offset: ${{ inputs.ANDROID_BUILD_NUMBER_OFFSET }}
           release_notes: ${{ needs.changelog.outputs.changelog }}
-          kmp_flavor: ${{ inputs.kmp_flavor }}
-          secret_properties_file: ${{ inputs.android_secret_properties_file }}
-          secret_properties: ${{ secrets.android_secret_properties }}
+          kmp_flavor: ${{ inputs.KMP_FLAVOR }}
+          secret_properties_file: ${{ inputs.ANDROID_SECRET_PROPERTIES_FILE }}
+          secret_properties: ${{ secrets.ANDROID_SECRET_PROPERTIES }}
   save_cache:
     name: Cache last build commit SHA
     runs-on: ubuntu-latest
@@ -225,7 +225,7 @@ jobs:
         shell: bash
         run: |
           echo "${{ github.sha }}" > latest_builded_commit.txt
-          if [ "${{ inputs.changelog_debug }}" == 'true' ]; then
+          if [ "${{ inputs.CHANGELOG_DEBUG }}" == 'true' ]; then
               echo "[DEBUG] Saved commit SHA ${{ github.sha }} to latest_builded_commit.txt"
           fi
       - name: Store latest build commit SHA in cache
