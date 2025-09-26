@@ -27,6 +27,9 @@ outputs:
   merged_branches:
     description: "List of merged branch names"
     value: ${{ steps.generate_changelog.outputs.merged_branches }}
+  cache_key:
+    description: "Cache key to store latest built commit for this branch"
+    value: ${{ steps.cache_keys.outputs.cache_key_prefix }}-${{ github.sha }}
 
 runs:
   using: "composite"
@@ -40,7 +43,26 @@ runs:
       id: cache_keys
       shell: bash
       run: |
-        echo "prev_run=$(expr ${{ github.run_number }} - 1)" >> $GITHUB_OUTPUT
+        BRANCH_NAME="${{ github.head_ref }}"
+        if [ -z "$BRANCH_NAME" ]; then
+          BRANCH_NAME="${{ github.ref_name }}"
+        fi
+        BRANCH_SAFE=$(echo "$BRANCH_NAME" | sed 's#[^A-Za-z0-9._-]#_#g')
+        
+        # Include workflow name in cache key to avoid conflicts between workflows
+        WORKFLOW_NAME="${{ github.workflow }}"
+        WORKFLOW_SAFE=$(echo "$WORKFLOW_NAME" | sed 's#[^A-Za-z0-9._-]#_#g')
+        CACHE_KEY_PREFIX="latest_builded_commit-${WORKFLOW_SAFE}-${BRANCH_SAFE}"
+        
+        if [ "${{ inputs.debug }}" == "true" ]; then 
+          echo "[DEBUG] BRANCH_SAFE='$BRANCH_SAFE'"
+          echo "[DEBUG] WORKFLOW_NAME='$WORKFLOW_NAME'"
+          echo "[DEBUG] WORKFLOW_SAFE='$WORKFLOW_SAFE'"
+          echo "[DEBUG] CACHE_KEY_PREFIX='$CACHE_KEY_PREFIX'"
+          echo "[DEBUG] CALCULATED_CACHE_KEY='$CACHE_KEY_PREFIX-${{ github.sha }}'"
+        fi
+        echo "branch=$BRANCH_SAFE" >> $GITHUB_OUTPUT
+        echo "cache_key_prefix=$CACHE_KEY_PREFIX" >> $GITHUB_OUTPUT
 
     - name: Restore cache for previous build commit SHA
       id: restore_last_build_cache
@@ -48,9 +70,9 @@ runs:
       continue-on-error: true
       with:
         path: latest_builded_commit.txt
-        key: latest_builded_commit-${{ steps.cache_keys.outputs.prev_run }}
+        key: ${{ steps.cache_keys.outputs.cache_key_prefix }}-${{ github.sha }}
         restore-keys: |
-          latest_builded_commit-
+          ${{ steps.cache_keys.outputs.cache_key_prefix }}-
 
     - name: Determine commit range for changelog and skip build
       id: determine_range

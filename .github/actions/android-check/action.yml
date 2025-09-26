@@ -1,0 +1,30 @@
+name: Android Check
+description: Runs lint checks and unit tests.
+
+inputs:
+  # Required inputs
+  lint_gradle_task:
+    description: "A Gradle task(s) for executing lint check, for example `lintCheck lintRelease`"
+    required: true
+  test_gradle_task:
+    description: "A Gradle task(s) for executing unit tests, for example `testReleaseUnitTest` or `testDevEnterpriseUnitTest`"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run Lint Check
+      shell: bash
+      run: ./gradlew --continue ${{ inputs.lint_gradle_task }}
+    - name: Run Unit Tests
+      shell: bash
+      run: ./gradlew --continue ${{ inputs.test_gradle_task }}
+    - name: Danger action
+      uses: MeilCli/danger-action@v2
+      continue-on-error: true
+      with:
+        plugins_file: 'Gemfile'
+        danger_file: 'Dangerfile'
+        danger_id: 'danger-pr'
+      env:
+        DANGER_GITHUB_API_TOKEN: ${{ github.token }}
