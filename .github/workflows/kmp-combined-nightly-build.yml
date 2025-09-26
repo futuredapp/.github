@@ -20,7 +20,6 @@ on:
         description: "KMP Build flavor. This is optional and only required by KMP projects and can be ignored on pure Android projects"
         required: true
         type: string
-        default: 'test'
       firebase_app_distribution_groups:
         description: "Comma-separated list of app distribution group IDs"
         required: true
