@@ -27,12 +27,14 @@ runs:
   using: "composite"
   steps:
     - name: Enable KVM group perms
+      shell: bash
       run: |
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
         ls /dev/kvm
     - name: Prepare Environment
+      shell: bash
       run: |
         echo '${{ inputs.secret_properties }}' > ${{ inputs.secret_properties_file }}
     - name: Generate profiles
@@ -40,6 +42,7 @@ runs:
         ANDROID_KEYSTORE_PASSWORD: ${{ inputs.signing_keystore_password }}
         ANDROID_KEY_ALIAS: ${{ inputs.signing_key_alias }}
         ANDROID_KEY_PASSWORD: ${{ inputs.signing_key_password }}
+      shell: bash
       run: ./gradlew ${{ inputs.generate_gradle_task }}
         -Pandroid.experimental.testOptions.managedDevices.emulator.showKernelLogging=true
         -Pandroid.testoptions.manageddevices.emulator.gpu="swiftshader_indirect"
