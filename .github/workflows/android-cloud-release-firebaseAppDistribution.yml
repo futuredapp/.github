@@ -96,13 +96,13 @@ jobs:
         with:
           lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Set up environment
-        uses: futuredapp/.github/.github/actions/android-setup-environment@2.0.0-alpha01
+        uses: futuredapp/.github/.github/actions/android-setup-environment@2.0.0-prerelease
         with:
           java_version: ${{ inputs.JAVA_VERSION }}
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
       - name: Build and upload to App Distribution
-        uses: futuredapp/.github/.github/actions/android-build-firebase@2.0.0-alpha01
+        uses: futuredapp/.github/.github/actions/android-build-firebase@2.0.0-prerelease
         with:
           test_gradle_task: ${{ inputs.TEST_GRADLE_TASKS }}
           package_gradle_task: ${{ inputs.PACKAGE_GRADLE_TASK }}

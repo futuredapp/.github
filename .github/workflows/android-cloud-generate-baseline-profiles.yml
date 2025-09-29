@@ -75,13 +75,13 @@ jobs:
         with:
           lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Set up environment
-        uses: futuredapp/.github/.github/actions/android-setup-environment@2.0.0-alpha01
+        uses: futuredapp/.github/.github/actions/android-setup-environment@2.0.0-prerelease
         with:
           java_version: ${{ inputs.JAVA_VERSION }}
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
       - name: Generate baseline profiles
-        uses: futuredapp/.github/.github/actions/android-generate-baseline-profiles@2.0.0-alpha01
+        uses: futuredapp/.github/.github/actions/android-generate-baseline-profiles@2.0.0-prerelease
         with:
           generate_gradle_task: ${{ inputs.TASK_NAME }}
           signing_keystore_password: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}

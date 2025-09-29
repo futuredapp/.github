@@ -84,7 +84,7 @@ jobs:
 
     - name: Use Composite Action - Detect changes and get changelog
       id: detect_changes
-      uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@2.0.0-alpha01
+      uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@2.0.0-prerelease
       with:
         debug: ${{ inputs.changelog_debug }}
         fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
@@ -103,7 +103,7 @@ jobs:
 
     - name: Export secrets to .xcconfig file
       if: ${{ inputs.xcconfig_path != '' }}
-      uses: futuredapp/.github/.github/actions/ios-export-secrets@2.0.0-alpha01
+      uses: futuredapp/.github/.github/actions/ios-export-secrets@2.0.0-prerelease
       with:
         XCCONFIG_PATH: ${{ inputs.xcconfig_path }}
         SECRET_PROPERTIES: ${{ secrets.SECRET_PROPERTIES }}

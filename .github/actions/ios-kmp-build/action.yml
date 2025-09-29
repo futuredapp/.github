@@ -46,7 +46,7 @@ runs:
   steps:
     - name: Export secrets to .xcconfig file
       if: ${{ inputs.secret_xcconfig_path != '' }}
-      uses: futuredapp/.github/.github/actions/ios-export-secrets@2.0.0-alpha01
+      uses: futuredapp/.github/.github/actions/ios-export-secrets@2.0.0-prerelease
       with:
         XCCONFIG_PATH: ${{ inputs.secret_xcconfig_path }}
         SECRET_PROPERTIES: ${{ inputs.secret_properties }}
