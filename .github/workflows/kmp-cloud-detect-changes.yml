@@ -58,6 +58,6 @@ jobs:
     steps:
       - name: Detect Changes
         id: detect
-        uses: futuredapp/.github/.github/actions/kmp-detect-changes@main
+        uses: futuredapp/.github/.github/actions/kmp-detect-changes@2.0.0-alpha01
         with:
           USE_GIT_LFS: ${{ inputs.USE_GIT_LFS }}
