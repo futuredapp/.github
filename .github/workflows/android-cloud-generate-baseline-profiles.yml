@@ -42,15 +42,6 @@ on:
         default: ""
 
     secrets:
-      SIGNING_KEYSTORE_PASSWORD:
-        description: "Password to provided keystore"
-        required: true
-      SIGNING_KEY_ALIAS:
-        description: "Alias of the signing key in the provided keystore"
-        required: true
-      SIGNING_KEY_PASSWORD:
-        description: "Password to the key in the provided keystore"
-        required: true
       GRADLE_CACHE_ENCRYPTION_KEY:
         required: false
         description: "Configuration cache encryption key"
@@ -100,10 +91,6 @@ jobs:
         run: ./gradlew ${{ inputs.TASK_NAME }}
           -Pandroid.experimental.testOptions.managedDevices.emulator.showKernelLogging=true
           -Pandroid.testoptions.manageddevices.emulator.gpu="swiftshader_indirect"
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
