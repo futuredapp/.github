@@ -1,0 +1,99 @@
+name: Release build
+description: Builds and uploads app to Google Play.
+
+inputs:
+  ## Required Inputs
+  bundle_gradle_task:
+    description: "A Gradle task for assembling app bundle, for example `bundleRelease`"
+    required: true
+  version_name:
+    description: "Version name. Example: '1.0.0'"
+    required: true
+  signing_keystore_password:
+    description: "Password to provided keystore"
+    required: true
+  signing_key_alias:
+    description: "Alias of the signing key in the provided keystore"
+    required: true
+  signing_key_password:
+    description: "Password to the key in the provided keystore"
+    required: true
+  google_play_application_id:
+    description: "Google Play applicationId"
+    required: true
+  google_play_whatsnew_dir:
+    description: "Path to directory with changelog files according to documentation in https://github.com/r0adkll/upload-google-play"
+    required: true
+  google_play_publish_service_account:
+    required: true
+    description: "JSON key of service account with permissions to upload build to Google Play"
+
+  ## Optional Inputs
+  changes_not_sent_for_review:
+    description: 'A changesNotSentForReview Google Play flag. Enable when last google review failed, disable when last review was successful.'
+    required: false
+    default: false
+  build_number_offset:
+    description: "Build number offset. This number will be added to GITHUB_RUN_NUMBER and can be used to make corrections to build numbers."
+    required: false
+    default: 0
+  kmp_flavor:
+    description: "KMP Build flavor. This is optional and only required by KMP projects and can be ignored on pure Android projects"
+    required: false
+    default: 'prod'
+  secret_properties_file:
+    description: "A path to file that will be populated with contents of 'SECRET_PROPERTIES' secret. This file can be picked up by Secrets Gradle plugin to embed secrets into BuildConfig."
+    required: false
+    default: 'secrets.properties'
+  secret_properties:
+    required: false
+    description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input."
+
+runs:
+  using: "composite"
+  steps:
+    - name: Prepare Environment
+      shell: bash
+      run: |
+        {
+          echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.build_number_offset}} ))";
+          echo "ANDROID_VERSION_NAME=${{ inputs.version_name }}";
+          echo "KMP_FLAVOR=${{ inputs.kmp_flavor }}"
+          } >> "$GITHUB_ENV"
+
+        echo '${{ inputs.secret_properties }}' > ${{ inputs.secret_properties_file }}
+    - name: Generate Artifacts (AAB)
+      id: build_aab
+      shell: bash
+      env:
+        ANDROID_KEYSTORE_PASSWORD: ${{ inputs.signing_keystore_password }}
+        ANDROID_KEY_ALIAS: ${{ inputs.signing_key_alias }}
+        ANDROID_KEY_PASSWORD: ${{ inputs.signing_key_password }}
+      run: |
+        ./gradlew ${{ inputs.bundle_gradle_task }} -P buildkonfig.flavor="$KMP_FLAVOR"
+        BUNDLE_FILE=$(find . -name '*.aab' | grep -v -e '.*intermediate' -e '.*baseline')
+        MAPPING_FILE=$(find . -name mapping.txt)
+        
+        echo "bundle_file=$BUNDLE_FILE" >> "$GITHUB_OUTPUT"
+        echo "mapping_file=$MAPPING_FILE" >> "$GITHUB_OUTPUT"
+    - name: Upload AAB artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: release_bundle
+        path: ${{ steps.build_aab.outputs.bundle_file }}
+    - name: Upload Mapping file artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: mapping_file
+        path: ${{ steps.build_aab.outputs.mapping_file }}
+    - name: Upload to Google Play
+      uses: r0adkll/upload-google-play@v1.1.1
+      with:
+        serviceAccountJsonPlainText: ${{ inputs.google_play_publish_service_account }}
+        packageName: ${{ inputs.google_play_application_id }}
+        releaseFiles: ${{ steps.build_aab.outputs.bundle_file }}
+        track: internal
+        status: draft
+        whatsNewDirectory: ${{ inputs.google_play_whatsnew_dir }}
+        mappingFile: ${{ steps.build_aab.outputs.mapping_file }}
+        changesNotSentForReview: ${{ toJSON(inputs.changes_not_sent_for_review) }}

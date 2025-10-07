@@ -1,0 +1,237 @@
+name: KMP nightly build
+
+on:
+  workflow_call:
+    inputs:
+      ## Required Inputs
+      ANDROID_TEST_GRADLE_TASK:
+        description: "A Gradle task(s) for executing unit tests, for example `testReleaseUnitTest` or `testDevEnterpriseUnitTest`"
+        required: true
+        type: string
+      ANDROID_PACKAGE_GRADLE_TASK:
+        description: "A Gradle task for packaging universal APK, eg. 'packageEnterpriseUniversalApk'"
+        required: true
+        type: string
+      ANDROID_UPLOAD_GRADLE_TASK:
+        description: "A Gradle task for uploading APK, for example `appDistributionUploadEnterprise`"
+        required: true
+        type: string
+      KMP_FLAVOR:
+        description: "KMP Build flavor. This is optional and only required by KMP projects and can be ignored on pure Android projects"
+        required: true
+        type: string
+      FIREBASE_APP_DISTRIBUTION_GROUPS:
+        description: "Comma-separated list of app distribution group IDs"
+        required: true
+        type: string
+
+      ## Optional Inputs
+      TIMEOUT_MINUTES:
+        description: "Job timeout in minutes"
+        required: false
+        type: number
+        default: 30
+      USE_GIT_LFS:
+        description: "Whether to download Git-LFS files"
+        type: boolean
+        required: false
+        default: false
+      GRADLE_OPTS:
+        description: "Gradle options"
+        required: false
+        type: string
+        default: ""
+      JAVA_VERSION:
+        description: "Java version to use"
+        required: false
+        type: string
+        default: '17'
+      JAVA_DISTRIBUTION:
+        description: "Java distribution to use"
+        required: false
+        type: string
+        default: 'zulu'
+      ANDROID_VERSION_NAME:
+        description: "Version name. Example: '1.X.X-snapshot'"
+        required: false
+        type: string
+      ANDROID_BUILD_NUMBER_OFFSET:
+        description: "Build number offset. This number will be added to GITHUB_RUN_NUMBER and can be used to make corrections to build numbers."
+        required: false
+        type: number
+        default: 0
+      KMP_SWIFT_PACKAGE_INTEGRATION:
+        description: "Whether KMP is integrated in Xcode project as a Swift Package"
+        required: false
+        type: boolean
+        default: false
+      KMP_SWIFT_PACKAGE_PATH:
+        description: "If `KMP_SWIFT_PACKAGE_INTEGRATION` is 'true', then specifies a location of local Swift Package with Makefile. Example: 'iosApp/shared/KMP`"
+        required: false
+        type: string
+      ANDROID_SECRET_PROPERTIES_FILE:
+        description: "A path to file that will be populated with contents of 'android_secret_properties' secret. This file can be picked up by Secrets Gradle plugin to embed secrets into BuildConfig."
+        required: false
+        type: string
+        default: secrets.properties
+      IOS_SECRET_XCCONFIG_PATH:
+        description: "Path to the .xcconfig file. Selected secret properties will be appended to the end of this file."
+        type: string
+        required: false
+      IOS_SECRET_REQUIRED_KEYS:
+        description: "Comma-separated list of required secret keys."
+        type: string
+        required: false
+      IOS_CUSTOM_VALUES:
+        description: "Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: \"CUSTOM-1: 1; CUSTOM-2: 2\""
+        required: false
+        type: string
+      CHANGELOG_DEBUG:
+        description: "Enable debug mode for changelog generation. Default is false."
+        type: boolean
+        required: false
+        default: false
+      CHANGELOG_CHECKOUT_DEPTH:
+        description: "The depth of the git history to fetch for changelog generation. Default is 100."
+        type: number
+        required: false
+        default: 100
+      CHANGELOG_FALLBACK_LOOKBACK:
+        description: "The amount of time to look back for merge commits when no previous build commit is found. Default is 24 hours."
+        type: string
+        required: false
+        default: "24 hours"
+
+    secrets:
+      FIREBASE_APP_DISTRIBUTION_SERVICE_ACCOUNT:
+        required: true
+        description: "JSON key of service account with permissions to upload build to Firebase App Distribution"
+      GRADLE_CACHE_ENCRYPTION_KEY:
+        required: false
+        description: "Configuration cache encryption key"
+      ANDROID_SECRET_PROPERTIES:
+        required: false
+        description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'ANDROID_SECRET_PROPERTIES_FILE' input."
+      IOS_SECRET_PROPERTIES:
+        required: false
+        description: "Secrets in the format KEY = VALUE (one per line)."
+      IOS_MATCH_PASSWORD:
+        description: "Password for decrypting of certificates and provisioning profiles."
+        required: true
+      IOS_APP_STORE_CONNECT_API_KEY_KEY:
+        description: "Private App Store Connect API key for submitting build to App Store."
+        required: true
+      IOS_APP_STORE_CONNECT_API_KEY_KEY_ID:
+        required: true
+        description: "Private App Store Connect API key for submitting build to App Store."
+      IOS_APP_STORE_CONNECT_API_KEY_ISSUER_ID:
+        required: true
+        description: "Private App Store Connect API issuer key for submitting build to App Store."
+
+jobs:
+  changelog:
+    outputs:
+      skip_build: ${{ steps.detect_changes.outputs.skip_build }}
+      changelog: ${{ steps.detect_changes.outputs.changelog }}
+      cache_key: ${{ steps.detect_changes.outputs.cache_key }}
+    name: Detect changes and generate changelog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Detect changes and generate changelog
+        id: detect_changes
+        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
+        with:
+          checkout_depth: ${{ inputs.CHANGELOG_CHECKOUT_DEPTH }}
+          debug: ${{ inputs.CHANGELOG_DEBUG }}
+          fallback_lookback: ${{ inputs.CHANGELOG_FALLBACK_LOOKBACK }}
+  ios_build:
+    name: iOS Build
+    runs-on: self-hosted
+    needs: changelog
+    if: ${{ needs.changelog.outputs.skip_build != 'true' }}
+    timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
+    env:
+      GRADLE_OPTS: ${{ inputs.GRADLE_OPTS }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: ${{ inputs.USE_GIT_LFS }}
+      - name: Set up environment
+        uses: futuredapp/.github/.github/actions/android-setup-environment@main
+        with:
+          java_version: ${{ inputs.JAVA_VERSION }}
+          java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
+          gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
+          ruby: 'false'
+      - name: Build and upload to TestFlight
+        uses: futuredapp/.github/.github/actions/ios-kmp-build@main
+        with:
+          match_password: ${{ secrets.IOS_MATCH_PASSWORD }}
+          app_store_connect_api_key_key: ${{ secrets.IOS_APP_STORE_CONNECT_API_KEY_KEY }}
+          app_store_connect_api_key_key_id: ${{ secrets.IOS_APP_STORE_CONNECT_API_KEY_KEY_ID }}
+          app_store_connect_api_key_issuer_id: ${{ secrets.IOS_APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          secret_xcconfig_path: ${{ inputs.IOS_SECRET_XCCONFIG_PATH }}
+          secret_properties: ${{ secrets.IOS_SECRET_PROPERTIES }}
+          secret_required_keys: ${{ inputs.IOS_SECRET_REQUIRED_KEYS }}
+          kmp_swift_package_integration: ${{ inputs.KMP_SWIFT_PACKAGE_INTEGRATION }}
+          kmp_swift_package_path: ${{ inputs.KMP_SWIFT_PACKAGE_PATH }}
+          kmp_swift_package_flavor: ${{ inputs.KMP_FLAVOR }}
+          custom_values: ${{ inputs.IOS_CUSTOM_VALUES }}
+          testflight_changelog: ${{ needs.changelog.outputs.changelog }}
+  android_build:
+    name: Android Build
+    runs-on: ubuntu-latest
+    needs: changelog
+    if: ${{ needs.changelog.outputs.skip_build != 'true' }}
+    timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
+    env:
+      GRADLE_OPTS: ${{ inputs.GRADLE_OPTS }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: ${{ inputs.USE_GIT_LFS }}
+      - name: Set up environment
+        uses: futuredapp/.github/.github/actions/android-setup-environment@main
+        with:
+          java_version: ${{ inputs.JAVA_VERSION }}
+          java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
+          gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
+      - name: Build and upload to App Distribution
+        uses: futuredapp/.github/.github/actions/android-build-firebase@main
+        with:
+          test_gradle_task: ${{ inputs.ANDROID_TEST_GRADLE_TASK }}
+          package_gradle_task: ${{ inputs.ANDROID_PACKAGE_GRADLE_TASK }}
+          upload_gradle_task: ${{ inputs.ANDROID_UPLOAD_GRADLE_TASK }}
+          app_distribution_groups: ${{ inputs.FIREBASE_APP_DISTRIBUTION_GROUPS }}
+          app_distribution_service_account: ${{ secrets.FIREBASE_APP_DISTRIBUTION_SERVICE_ACCOUNT }}
+          version_name: ${{ inputs.ANDROID_VERSION_NAME }}
+          build_number_offset: ${{ inputs.ANDROID_BUILD_NUMBER_OFFSET }}
+          release_notes: ${{ needs.changelog.outputs.changelog }}
+          kmp_flavor: ${{ inputs.KMP_FLAVOR }}
+          secret_properties_file: ${{ inputs.ANDROID_SECRET_PROPERTIES_FILE }}
+          secret_properties: ${{ secrets.ANDROID_SECRET_PROPERTIES }}
+  save_cache:
+    name: Cache last build commit SHA
+    runs-on: ubuntu-latest
+    needs:
+      - ios_build
+      - android_build
+      - changelog
+    steps:
+      - name: Save latest build commit SHA to file
+        if: success() && needs.changelog.outputs.skip_build != 'true'
+        shell: bash
+        run: |
+          echo "${{ github.sha }}" > latest_builded_commit.txt
+          if [ "${{ inputs.CHANGELOG_DEBUG }}" == 'true' ]; then
+              echo "[DEBUG] Saved commit SHA ${{ github.sha }} to latest_builded_commit.txt"
+          fi
+      - name: Store latest build commit SHA in cache
+        if: success() && needs.changelog.outputs.skip_build != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: latest_builded_commit.txt
+          key: ${{ needs.changelog.outputs.cache_key }}
+

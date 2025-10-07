@@ -57,32 +57,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: ${{ inputs.USE_GIT_LFS }}
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
+      - name: Set up environment
+        uses: futuredapp/.github/.github/actions/android-setup-environment@main
         with:
-          ruby-version: '3.4'
-      - name: Setup Java
-        uses: actions/setup-java@v4
+          java_version: ${{ inputs.JAVA_VERSION }}
+          java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
+          gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
+      - name: Run checks
+        uses: futuredapp/.github/.github/actions/android-check@main
         with:
-          java-version: ${{ inputs.JAVA_VERSION }}
-          distribution: ${{ inputs.JAVA_DISTRIBUTION }}
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
-      - name: Run Lint Check
-        shell: bash
-        run: ./gradlew --continue ${{ inputs.LINT_GRADLE_TASKS }}
-      - name: Run Unit Tests
-        shell: bash
-        run: ./gradlew --continue ${{ inputs.TEST_GRADLE_TASKS }}
-      - name: Danger action
-        uses: MeilCli/danger-action@v2
-        continue-on-error: true
-        with:
-          plugins_file: 'Gemfile'
-          danger_file: 'Dangerfile'
-          danger_id: 'danger-pr'
-        env:
-          # The secrets.GITHUB_TOKEN is implicitly provided by trigger workflow
-          DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          lint_gradle_task: ${{ inputs.LINT_GRADLE_TASKS }}
+          test_gradle_task: ${{ inputs.TEST_GRADLE_TASKS }}

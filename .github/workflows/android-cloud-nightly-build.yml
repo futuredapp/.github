@@ -1,4 +1,4 @@
-name: Android Release to Firebase App Distribution
+name: Android nightly build
 
 on:
   workflow_call:
@@ -36,11 +36,6 @@ on:
         required: false
         type: number
         default: 0
-      RELEASE_NOTES:
-        description: "Release notes for this build"
-        required: false
-        type: string
-        default: ${{ github.event.head_commit.message }}
       KMP_FLAVOR:
         description: "KMP Build flavor. This is optional and only required by KMP projects and can be ignored on pure Android projects"
         required: false
@@ -66,6 +61,21 @@ on:
         required: false
         type: string
         default: ""
+      CHANGELOG_DEBUG:
+        description: "Enable debug mode for changelog generation. Default is false."
+        type: boolean
+        required: false
+        default: false
+      CHANGELOG_CHECKOUT_DEPTH:
+        description: "The depth of the git history to fetch for changelog generation. Default is 100."
+        type: number
+        required: false
+        default: 100
+      CHANGELOG_FALLBACK_LOOKBACK:
+        description: "The amount of time to look back for merge commits when no previous build commit is found. Default is 24 hours."
+        type: string
+        required: false
+        default: "24 hours"
       TIMEOUT_MINUTES:
         description: "Job timeout in minutes"
         required: false
@@ -84,9 +94,26 @@ on:
         description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input."
 
 jobs:
-  build:
-    name: Enterprise Build
+  changelog:
+    outputs:
+      skip_build: ${{ steps.detect_changes.outputs.skip_build }}
+      changelog: ${{ steps.detect_changes.outputs.changelog }}
+      cache_key: ${{ steps.detect_changes.outputs.cache_key }}
+    name: Detect changes and generate changelog
     runs-on: ubuntu-latest
+    steps:
+      - name: Detect changes and generate changelog
+        id: detect_changes
+        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
+        with:
+          checkout_depth: ${{ inputs.CHANGELOG_CHECKOUT_DEPTH }}
+          debug: ${{ inputs.CHANGELOG_DEBUG }}
+          fallback_lookback: ${{ inputs.CHANGELOG_FALLBACK_LOOKBACK }}
+  build:
+    name: Enterprise build
+    runs-on: ubuntu-latest
+    needs: changelog
+    if: ${{ needs.changelog.outputs.skip_build != 'true' }}
     timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
     env:
       GRADLE_OPTS: ${{ inputs.GRADLE_OPTS }}
@@ -111,7 +138,21 @@ jobs:
           app_distribution_service_account: ${{ secrets.APP_DISTRIBUTION_SERVICE_ACCOUNT }}
           version_name: ${{ inputs.VERSION_NAME }}
           build_number_offset: ${{ inputs.BUILD_NUMBER_OFFSET }}
-          release_notes: ${{ inputs.RELEASE_NOTES }}
+          release_notes: ${{ needs.changelog.outputs.changelog }}
           kmp_flavor: ${{ inputs.KMP_FLAVOR }}
           secret_properties_file: ${{ inputs.SECRET_PROPERTIES_FILE }}
           secret_properties: ${{ secrets.SECRET_PROPERTIES }}
+      - name: Save latest build commit SHA to file
+        if: success() && needs.changelog.outputs.skip_build != 'true'
+        shell: bash
+        run: |
+          echo "${{ github.sha }}" > latest_builded_commit.txt
+          if [ "${{ inputs.CHANGELOG_DEBUG }}" == 'true' ]; then
+              echo "[DEBUG] Saved commit SHA ${{ github.sha }} to latest_builded_commit.txt"
+          fi
+      - name: Store latest build commit SHA in cache
+        if: success() && needs.changelog.outputs.skip_build != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: latest_builded_commit.txt
+          key: ${{ needs.changelog.outputs.cache_key }}
