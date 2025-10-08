@@ -85,6 +85,6 @@ runs:
           --groups="${{ inputs.app_distribution_groups }}" \
           --artifactType="APK" \
           --artifactPath="${{ steps.build_apk.outputs.universal_apk_file }}" \
-          --releaseNotes='${{ inputs.release_notes }}'
+          --releaseNotes="${{ inputs.release_notes }}"
         
         rm firebase_credentials.json
