@@ -139,7 +139,7 @@ jobs:
     steps:
       - name: Detect changes and generate changelog
         id: detect_changes
-        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
+        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@fix/mysterious-bug
         with:
           checkout_depth: ${{ inputs.CHANGELOG_CHECKOUT_DEPTH }}
           debug: ${{ inputs.CHANGELOG_DEBUG }}
