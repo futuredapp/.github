@@ -115,7 +115,7 @@ runs:
           # Case 2: No last built commit or it was invalid.
           # Find the oldest merge commit in the specified time window.
           if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] No previous built commit or it was invalid, looking for oldest merge commit in last ${{ inputs.fallback_lookback }}."; fi
-          OLDEST_MERGE_COMMIT=$(git rev-list --merges --first-parent --reverse --after="${{ inputs.fallback_lookback }}" HEAD | head -n 1)
+          OLDEST_MERGE_COMMIT=$(git rev-list --merges --first-parent --reverse --after="${{ inputs.fallback_lookback }}" --max-count=1 HEAD | head -n 1)
 
           if [ -n "$OLDEST_MERGE_COMMIT" ]; then
             if [ "${{ inputs.debug }}" == "true" ]; then echo "[DEBUG] Oldest merge commit in last ${{ inputs.fallback_lookback }} found. Proceeding with build."; fi
