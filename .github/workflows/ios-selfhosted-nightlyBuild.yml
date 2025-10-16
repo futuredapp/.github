@@ -1,0 +1,124 @@
+name: iOS Self-hosted Nightly Build
+
+on:
+  workflow_call:
+    inputs:
+      use_git_lfs:
+        description: 'Whether to download Git-LFS files.'
+        type: boolean
+        default: false
+      custom_values:
+        description: 'Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: "CUSTOM-1: 1; CUSTOM-2: 2"'
+        type: string
+        required: false
+      runner_label:
+        description: 'The custom label for the self-hosted runner to use for the build job.'
+        type: string
+        default: 'self-hosted'
+      timeout_minutes:
+        description: 'Job timeout in minutes'
+        type: number
+        default: 30
+      xcconfig_path:
+        description: 'Path to the .xcconfig file. Selected secret properties will be appended to the end of this file.'
+        type: string
+        required: false
+      secret_properties:
+        description: 'Secrets in the format KEY = VALUE (one per line).'
+        type: string
+        required: false
+      required_keys:
+        description: 'Comma-separated list of required keys.'
+        type: string
+        required: false
+      changelog_fallback_lookback:
+        description: 'The amount of time to look back for merge commits when no previous build commit is found. Default is 24 hours.'
+        type: string
+        required: false
+        default: '24 hours'
+
+    secrets:
+      MATCH_PASSWORD:
+        required: true
+        description: 'Password for decrypting of certificates and provisioning profiles.'
+      APP_STORE_CONNECT_API_KEY_KEY:
+        required: true
+        description: 'Private App Store Connect API key for submitting build to App Store.'
+      APP_STORE_CONNECT_API_KEY_KEY_ID:
+        required: true
+        description: 'Private App Store Connect API key for submitting build to App Store.'
+      APP_STORE_CONNECT_API_KEY_ISSUER_ID:
+        required: true
+        description: 'Private App Store Connect API issuer key for submitting build to App Store.'
+      SECRET_PROPERTIES:
+        required: false
+        description: 'Secrets in the format KEY = VALUE (one per line).'
+
+jobs:
+  build:
+    runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', inputs.runner_label)) }}
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+
+    steps:
+      - name: Detect changes and generate changelog
+        id: detect_changes
+        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
+        with:
+          fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
+
+      - name: Checkout
+        if: ${{ inputs.use_git_lfs == 'true' }}
+        uses: actions/checkout@v4
+        with:
+          lfs: ${{ inputs.use_git_lfs }}
+  
+      - name: Set changelog
+        id: set_changelog
+        run: |
+          echo "changelog=${{ steps.detect_changes.outputs.changelog }}" >> $GITHUB_OUTPUT
+
+      - name: Export secrets
+        if: ${{ steps.detect_changes.outputs.skip_build == 'false' && inputs.xcconfig_path != '' }}
+        uses: futuredapp/.github/.github/actions/ios-export-secrets@main
+        with:
+          XCCONFIG_PATH: ${{ inputs.xcconfig_path }}
+          SECRET_PROPERTIES: ${{ secrets.SECRET_PROPERTIES }}
+          REQUIRED_KEYS: ${{ inputs.required_keys }}
+
+      - name: Fastlane Beta
+        if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
+        uses: ./.github/actions/ios-fastlane-beta
+        with:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          testflight_changelog: ${{ steps.set_changelog.outputs.changelog }}
+          APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
+          APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          custom_values: ${{ inputs.custom_values }}
+
+      - name: Upload IPA
+        if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build.ipa
+          path: build_output/*.ipa
+
+      - name: Upload dSYM
+        if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build.app.dSYM.zip
+          path: build_output/*.app.dSYM.zip
+
+      - name: Save latest build commit SHA to file
+        if: ${{ success() && steps.detect_changes.outputs.skip_build == 'false' }}
+        shell: bash
+        run: |
+          echo "${{ github.sha }}" > latest_builded_commit.txt
+      
+      - name: Store latest build commit SHA in cache
+        if: ${{ success() && steps.detect_changes.outputs.skip_build == 'false' }}
+        uses: actions/cache/save@v4
+        with:
+          path: latest_builded_commit.txt
+          key: ${{ steps.detect_changes.outputs.cache_key }}
