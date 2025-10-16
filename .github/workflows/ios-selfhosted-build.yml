@@ -114,10 +114,6 @@ jobs:
       run: |
         gem install bundler
         bundle install --jobs 4 --retry 3
-        CHANGELOG_FOR_FASTLANE="${{ steps.detect_changes.outputs.changelog || steps.changelog.outputs.changelog }}"
-        if [ "${{ inputs.changelog_debug }}" == 'true' ]; then
-          echo "[DEBUG] Running Fastlane with changelog: $CHANGELOG_FOR_FASTLANE"
-        fi
         bundle exec fastlane beta
       env:
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
