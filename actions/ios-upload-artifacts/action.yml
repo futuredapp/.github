@@ -1,0 +1,26 @@
+name: 'iOS Upload Artifacts'
+description: 'Uploads IPA and dSYM artifacts'
+inputs:
+  ipa_name:
+    description: 'IPA file name'
+    required: false
+    default: 'Build.ipa'
+  dsym_name:
+    description: 'dSYM file name'
+    required: false
+    default: 'Build.app.dSYM.zip'
+runs:
+  using: 'composite'
+  steps:
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.ipa_name }}
+        path: build_output/${{ inputs.ipa_name }}
+        if-no-files-found: ignore
+    - name: Upload dSYMs
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.dsym_name }}
+        path: build_output/${{ inputs.dsym_name }}
+        if-no-files-found: ignore
