@@ -1,0 +1,15 @@
+name: 'Fastlane Test'
+description: 'Runs Fastlane test'
+inputs:
+  github_token:
+    description: 'GitHub token'
+    required: true
+  custom_values:
+    description: 'Custom values'
+    required: false
+runs:
+  using: 'composite'
+  steps:
+    - name: Run test script
+      shell: bash
+      run: ${{ github.action_path }}/test.sh

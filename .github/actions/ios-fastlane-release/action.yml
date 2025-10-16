@@ -1,0 +1,27 @@
+name: 'Fastlane Release'
+description: 'Runs Fastlane release'
+inputs:
+  match_password:
+    description: 'Match password'
+    required: true
+  version_number:
+    description: 'Version number'
+    required: false
+  app_store_connect_api_key_key:
+    description: 'App Store Connect API Key'
+    required: true
+  app_store_connect_api_key_key_id:
+    description: 'App Store Connect API Key ID'
+    required: true
+  app_store_connect_api_key_issuer_id:
+    description: 'App Store Connect API Key Issuer ID'
+    required: true
+  custom_values:
+    description: 'Custom values'
+    required: false
+runs:
+  using: 'composite'
+  steps:
+    - name: Run release script
+      shell: bash
+      run: ${{ github.action_path }}/release.sh
