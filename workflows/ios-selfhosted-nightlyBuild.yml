@@ -1,0 +1,87 @@
+name: iOS Self-hosted Nightly Build
+
+on:
+  workflow_call:
+    inputs:
+      use_git_lfs:
+        type: boolean
+        default: false
+      custom_values:
+        type: string
+        required: false
+      runner_label:
+        type: string
+        default: 'self-hosted'
+      timeout_minutes:
+        type: number
+        default: 30
+      xcconfig_path:
+        type: string
+        required: false
+      required_keys:
+        type: string
+        required: false
+      kmp_swift_package_integration:
+        type: boolean
+        required: false
+        default: false
+      kmp_swift_package_path:
+        type: string
+        required: false
+      kmp_swift_package_flavor:
+        type: string
+        required: false
+    secrets:
+      SECRET_PROPERTIES:
+        required: false
+      MATCH_PASSWORD:
+        required: true
+      APP_STORE_CONNECT_API_KEY_KEY:
+        required: true
+      APP_STORE_CONNECT_API_KEY_KEY_ID:
+        required: true
+      APP_STORE_CONNECT_API_KEY_ISSUER_ID:
+        required: true
+
+jobs:
+  build:
+    runs-on: ${{ inputs.runner_label }}
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: ${{ inputs.use_git_lfs }}
+
+      - name: Setup environment
+        uses: ./.github/actions/ios-setup-environment
+
+      - name: Detect changes and generate changelog
+        id: detect_changes
+        uses: ./.github/actions/universal-detect-changes-and-generate-changelog
+
+      - name: Build KMP
+        if: ${{ steps.detect_changes.outputs.skip_build != 'true' }}
+        uses: ./.github/actions/ios-kmp-build
+        with:
+          secret_xcconfig_path: ${{ inputs.xcconfig_path }}
+          secret_properties: ${{ secrets.SECRET_PROPERTIES }}
+          secret_required_keys: ${{ inputs.required_keys }}
+          kmp_swift_package_integration: ${{ inputs.kmp_swift_package_integration }}
+          kmp_swift_package_path: ${{ inputs.kmp_swift_package_path }}
+          kmp_swift_package_flavor: ${{ inputs.kmp_swift_package_flavor }}
+
+      - name: Fastlane Beta
+        if: ${{ steps.detect_changes.outputs.skip_build != 'true' }}
+        uses: ./.github/actions/ios-fastlane-beta
+        with:
+          match_password: ${{ secrets.MATCH_PASSWORD }}
+          testflight_changelog: ${{ steps.detect_changes.outputs.changelog }}
+          app_store_connect_api_key_key: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
+          app_store_connect_api_key_key_id: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
+          app_store_connect_api_key_issuer_id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          custom_values: ${{ inputs.custom_values }}
+
+      - name: Upload artifacts
+        if: ${{ steps.detect_changes.outputs.skip_build != 'true' }}
+        uses: ./.github/actions/ios-upload-artifacts

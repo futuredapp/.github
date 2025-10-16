@@ -1,0 +1,39 @@
+name: iOS Self-hosted Test
+
+on:
+  workflow_call:
+    inputs:
+      use_git_lfs:
+        type: boolean
+        default: false
+      custom_values:
+        type: string
+        required: false
+      runner_label:
+        type: string
+        default: 'self-hosted'
+      timeout_minutes:
+        type: number
+        default: 30
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+
+jobs:
+  test:
+    runs-on: ${{ inputs.runner_label }}
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: ${{ inputs.use_git_lfs }}
+
+      - name: Setup environment
+        uses: ./.github/actions/ios-setup-environment
+
+      - name: Fastlane Test
+        uses: ./.github/actions/ios-fastlane-test
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          custom_values: ${{ inputs.custom_values }}
