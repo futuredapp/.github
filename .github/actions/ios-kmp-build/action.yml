@@ -62,18 +62,14 @@ runs:
         make build
     - name: Fastlane Beta
       working-directory: iosApp
-      shell: bash
-      run: |
-        gem install bundler
-        bundle install --jobs 4 --retry 3
-        bundle exec fastlane beta
-      env:
-        MATCH_PASSWORD: ${{ inputs.match_password }}
-        PR_TITLE: ${{ inputs.testflight_changelog }}
-        APP_STORE_CONNECT_API_KEY_KEY: ${{ inputs.app_store_connect_api_key_key }}
-        APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ inputs.app_store_connect_api_key_key_id }}
-        APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ inputs.app_store_connect_api_key_issuer_id }}
-        CUSTOM_VALUES: ${{ inputs.custom_values }}
+      uses: futuredapp/.github/.github/actions/ios-fastlane-beta@main
+      with:
+        match_password: ${{ inputs.match_password }}
+        testflight_changelog: ${{ inputs.testflight_changelog }}
+        app_store_connect_api_key_key: ${{ inputs.app_store_connect_api_key_key }}
+        app_store_connect_api_key_key_id: ${{ inputs.app_store_connect_api_key_key_id }}
+        app_store_connect_api_key_issuer_id: ${{ inputs.app_store_connect_api_key_issuer_id }}
+        custom_values: ${{ inputs.custom_values }}
     - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
