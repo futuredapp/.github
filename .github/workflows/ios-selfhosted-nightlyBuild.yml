@@ -67,12 +67,13 @@ jobs:
           fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
 
       - name: Checkout
-        if: ${{ inputs.use_git_lfs == 'true' }}
+        if: ${{ steps.detect_changes.outputs.skip_build == 'false' && inputs.use_git_lfs == 'true' }}
         uses: actions/checkout@v4
         with:
           lfs: ${{ inputs.use_git_lfs }}
   
       - name: Set changelog
+        if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
         id: set_changelog
         run: |
           echo "changelog=${{ steps.detect_changes.outputs.changelog }}" >> $GITHUB_OUTPUT
@@ -87,7 +88,7 @@ jobs:
 
       - name: Fastlane Beta
         if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
-        uses: ./.github/actions/ios-fastlane-beta
+        uses: futuredapp/.github/.github/actions/ios-fastlane-beta@main
         with:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           testflight_changelog: ${{ steps.set_changelog.outputs.changelog }}
@@ -111,13 +112,13 @@ jobs:
           path: build_output/*.app.dSYM.zip
 
       - name: Save latest build commit SHA to file
-        if: ${{ success() && steps.detect_changes.outputs.skip_build == 'false' }}
+        if: success() && steps.detect_changes.outputs.skip_build == 'false'
         shell: bash
         run: |
           echo "${{ github.sha }}" > latest_builded_commit.txt
       
       - name: Store latest build commit SHA in cache
-        if: ${{ success() && steps.detect_changes.outputs.skip_build == 'false' }}
+        if: success() && steps.detect_changes.outputs.skip_build == 'false'
         uses: actions/cache/save@v4
         with:
           path: latest_builded_commit.txt
