@@ -25,3 +25,10 @@ runs:
     - name: Run beta script
       shell: bash
       run: ${{ github.action_path }}/beta.sh
+      env:
+        INPUT_MATCH_PASSWORD: ${{ inputs.match_password }}
+        INPUT_TESTFLIGHT_CHANGELOG: ${{ inputs.testflight_changelog }}
+        INPUT_APP_STORE_CONNECT_API_KEY_KEY: ${{ inputs.app_store_connect_api_key_key }}
+        INPUT_APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ inputs.app_store_connect_api_key_key_id }}
+        INPUT_APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ inputs.app_store_connect_api_key_issuer_id }}
+        INPUT_CUSTOM_VALUES: ${{ inputs.custom_values }}

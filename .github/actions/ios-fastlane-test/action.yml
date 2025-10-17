@@ -13,3 +13,6 @@ runs:
     - name: Run test script
       shell: bash
       run: ${{ github.action_path }}/test.sh
+      env:
+        INPUT_GITHUB_TOKEN: ${{ inputs.github_token }}
+        INPUT_CUSTOM_VALUES: ${{ inputs.custom_values }}
