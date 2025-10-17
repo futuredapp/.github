@@ -41,7 +41,7 @@ jobs:
           lfs: ${{ inputs.use_git_lfs }}
 
       - name: Fastlane Test
-        uses: futuredapp/.github/.github/actions/ios-fastlane-test@main
+        uses: futuredapp/.github/.github/actions/ios-fastlane-test@feature/refactor-iOS-workflows
         with:
           github_token: ${{ secrets.GITHUB_TOKEN_DANGER }}
           custom_values: ${{ inputs.custom_values }}

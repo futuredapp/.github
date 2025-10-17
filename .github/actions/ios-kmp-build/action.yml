@@ -62,7 +62,7 @@ runs:
         make build
     - name: Fastlane Beta
       working-directory: iosApp
-      uses: futuredapp/.github/.github/actions/ios-fastlane-beta@main
+      uses: futuredapp/.github/.github/actions/ios-fastlane-beta@feature/refactor-iOS-workflows
       with:
         match_password: ${{ inputs.match_password }}
         testflight_changelog: ${{ inputs.testflight_changelog }}
