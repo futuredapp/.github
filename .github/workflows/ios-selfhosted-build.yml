@@ -55,6 +55,13 @@ on:
         description: 'Secrets in the format KEY = VALUE (one per line).'
 
 jobs:
+  deprecation-warning:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show deprecation warning
+        run: |
+          echo "::warning::This workflow ('ios-selfhosted-build.yml') is deprecated and will be removed in the future."
+          echo "::warning::Please use 'ios-selfhosted-nightly-build.yml' instead."
   build:
     uses: futuredapp/.github/.github/workflows/ios-selfhosted-nightly-build.yml@main
     with:
