@@ -95,7 +95,7 @@ jobs:
           REQUIRED_KEYS: ${{ inputs.required_keys }}
 
       - name: Fastlane Beta
-        uses: futuredapp/.github/.github/actions/ios-fastlane-beta@feature/refactor-iOS-workflows
+        uses: futuredapp/.github/.github/actions/ios-fastlane-beta@main
         with:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           testflight_changelog: ${{ steps.set_changelog.outputs.changelog }}

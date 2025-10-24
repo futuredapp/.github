@@ -88,7 +88,7 @@ jobs:
 
       - name: Fastlane Beta
         if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
-        uses: futuredapp/.github/.github/actions/ios-fastlane-beta@feature/refactor-iOS-workflows
+        uses: futuredapp/.github/.github/actions/ios-fastlane-beta@main
         with:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           testflight_changelog: ${{ steps.set_changelog.outputs.changelog }}

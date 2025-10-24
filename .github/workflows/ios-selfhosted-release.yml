@@ -69,7 +69,7 @@ jobs:
           REQUIRED_KEYS: ${{ inputs.required_keys }}
 
       - name: Fastlane Release
-        uses: futuredapp/.github/.github/actions/ios-fastlane-release@feature/refactor-iOS-workflows
+        uses: futuredapp/.github/.github/actions/ios-fastlane-release@main
         with:
           match_password: ${{ secrets.MATCH_PASSWORD }}
           version_number: ${{ github.ref_name }}
