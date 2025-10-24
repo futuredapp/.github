@@ -76,7 +76,7 @@ jobs:
         if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
         id: set_changelog
         run: |
-          echo "changelog=${{ steps.detect_changes.outputs.changelog }}" >> $GITHUB_OUTPUT
+          echo "changelog=${{ steps.detect_changes.outputs.changelog }}" >> "$GITHUB_OUTPUT"
 
       - name: Export secrets
         if: ${{ steps.detect_changes.outputs.skip_build == 'false' && inputs.xcconfig_path != '' }}

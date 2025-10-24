@@ -81,9 +81,9 @@ jobs:
         id: set_changelog
         run: |
           if [ -n "${{ inputs.changelog }}" ]; then
-            echo "changelog=${{ inputs.changelog }}" >> $GITHUB_OUTPUT
+            echo "changelog=${{ inputs.changelog }}" >> "$GITHUB_OUTPUT"
           else
-            echo "changelog=${{ steps.detect_changes.outputs.changelog }}" >> $GITHUB_OUTPUT
+            echo "changelog=${{ steps.detect_changes.outputs.changelog }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Export secrets
