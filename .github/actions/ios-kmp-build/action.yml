@@ -52,7 +52,7 @@ runs:
         SECRET_PROPERTIES: ${{ inputs.secret_properties }}
         REQUIRED_KEYS: ${{ inputs.secret_required_keys }}
     - name: Build KMP Package
-      if: ${{ inputs.kmp_swift_package_integration }}
+      if: ${{ inputs.kmp_swift_package_integration == 'true' }}
       env:
         KMP_BUILD_FLAVOR: ${{ inputs.kmp_swift_package_flavor }}
         KMP_FRAMEWORK_BUILD_TYPE: release
