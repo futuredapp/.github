@@ -4,34 +4,34 @@ description: Detects changes since the last built commit and generates a changel
 inputs:
   checkout_depth:
     required: false
-    description: The depth of the git history to fetch. Default is 100.
+    description: 'The depth of the git history to fetch. Default is 100.'
     type: number
     default: 100
   debug:
     required: false
-    description: Enable debug mode. Default is false.
+    description: 'Enable debug mode. Default is false.'
     type: boolean
     default: false
   fallback_lookback:
     required: false
-    description: The amount of time to look back for merge commits when no previous build commit is found (e.g., "24 hours", "7 days", "2 weeks"). Default is "24 hours".
+    description: 'The amount of time to look back for merge commits when no previous build commit is found (e.g., "24 hours", "7 days", "2 weeks"). Default is "24 hours".'
     default: "24 hours"
   cache_key_prefix:
     required: false
-    description: "Custom prefix for cache keys. If not provided, will use 'latest_builded_commit-'. If provided, format will be '{prefix}-latest_builded_commit-'"
+    description: 'Custom prefix for cache keys. If not provided, will use latest_builded_commit-. If provided, format will be {prefix}-latest_builded_commit-'
 
 outputs:
   skip_build:
-    description: "Indicates if the build should be skipped"
+    description: 'Indicates if the build should be skipped'
     value: ${{ steps.determine_skip.outputs.skip }}
   changelog:
-    description: "The generated changelog formatted as a string"
+    description: 'The generated changelog formatted as a string'
     value: ${{ steps.generate_changelog.outputs.changelog_string }}
   merged_branches:
-    description: "List of merged branch names"
+    description: 'List of merged branch names'
     value: ${{ steps.generate_changelog.outputs.merged_branches }}
   cache_key:
-    description: "Cache key to store latest built commit for this branch"
+    description: 'Cache key to store latest built commit for this branch'
     value: ${{ steps.cache_keys.outputs.cache_key_prefix }}-${{ github.sha }}
 
 runs:
