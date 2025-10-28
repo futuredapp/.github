@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+# set -e  # Disabled to handle git errors gracefully
 
 # Global variables
 FROM_COMMIT="$INPUT_FROM_COMMIT"
@@ -22,9 +22,11 @@ get_changelog() {
   if [ "$from_commit" == "$to_commit" ]; then
     debug_log "FROM_COMMIT is same as HEAD. Using range HEAD~1..HEAD"
     git log --merges --first-parent --pretty=format:"%b" HEAD~1..HEAD 2>&1
+    return $?
   else
     debug_log "Using range ${from_commit}..${to_commit}"
     git log --merges --first-parent --pretty=format:"%b" "${from_commit}..${to_commit}" 2>&1
+    return $?
   fi
 }
 
@@ -37,10 +39,12 @@ get_branch_names() {
     git log --merges --first-parent --pretty=format:"%s" HEAD~1..HEAD | \
       sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
       grep -v '^$' 2>&1
+    return $?
   else
     git log --merges --first-parent --pretty=format:"%s" "${from_commit}..${to_commit}" | \
       sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
       grep -v '^$' 2>&1
+    return $?
   fi
 }
 
@@ -124,19 +128,48 @@ debug_outputs() {
 main() {
   debug_log "Generating changelog from $FROM_COMMIT to $TO_COMMIT"
   
-  # Get raw data from git
-  local raw_changelog=$(get_changelog "$FROM_COMMIT" "$TO_COMMIT")
-  local raw_branch_names=$(get_branch_names "$FROM_COMMIT" "$TO_COMMIT")
+  # Get raw data from git directly (not through functions to preserve exit codes)
+  local raw_changelog
+  local raw_branch_names
+  local git_exit_code=0
   
-  # Capture exit code from the last git command
-  local git_exit_code=$?
+  if [ "$FROM_COMMIT" == "$TO_COMMIT" ]; then
+    debug_log "FROM_COMMIT is same as HEAD. Using range HEAD~1..HEAD"
+    raw_changelog=$(git log --merges --first-parent --pretty=format:"%b" HEAD~1..HEAD 2>&1)
+    git_exit_code=$?
+    
+    if [ $git_exit_code -eq 0 ]; then
+      raw_branch_names=$(git log --merges --first-parent --pretty=format:"%s" HEAD~1..HEAD 2>&1 | \
+        sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
+        grep -v '^$' 2>&1)
+      git_exit_code=$?
+    else
+      raw_branch_names=""
+    fi
+  else
+    debug_log "Using range ${FROM_COMMIT}..${TO_COMMIT}"
+    raw_changelog=$(git log --merges --first-parent --pretty=format:"%b" "${FROM_COMMIT}..${TO_COMMIT}" 2>&1)
+    git_exit_code=$?
+    
+    if [ $git_exit_code -eq 0 ]; then
+      raw_branch_names=$(git log --merges --first-parent --pretty=format:"%s" "${FROM_COMMIT}..${TO_COMMIT}" 2>&1 | \
+        sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
+        grep -v '^$' 2>&1)
+      git_exit_code=$?
+    else
+      raw_branch_names=""
+    fi
+  fi
   
   # Process results based on git command success
-  if [ $git_exit_code -ne 0 ]; then
+  if [ $git_exit_code -ne 0 ] && [ -n "$raw_changelog" ]; then
+    # Git error with actual error message
     handle_git_failure $git_exit_code "$raw_changelog"
   elif is_empty "$raw_changelog"; then
+    # Empty result (either no commits or git error with no output)
     handle_empty_changelog
   else
+    # Successful result
     process_successful_log "$raw_changelog" "$raw_branch_names"
   fi
   
