@@ -1,6 +1,6 @@
 # Universal Detect Changes and Generate Changelog Action
 
-This GitHub Action detects changes since the last built commit and generates a changelog. It has been refactored into modular bash scripts for better maintainability and testability.
+This GitHub Action detects changes since the last built commit and generates a changelog. It uses modular bash scripts to provide maintainability, testability, and flexibility.
 
 ## Features
 
@@ -99,47 +99,3 @@ Tests run automatically on pull requests when relevant files change. The CI work
 - ✅ Git command failure scenarios
 - ✅ Empty input handling
 - ✅ Special characters and edge cases
-
-## Usage Example
-
-```yaml
-- name: Detect changes and generate changelog
-  uses: ./.github/actions/universal-detect-changes-and-generate-changelog
-  with:
-    cache_key_prefix: "my-custom-prefix"
-    debug: true
-    fallback_lookback: "48 hours"
-```
-
-## Migration from Previous Version
-
-The refactored version maintains full backward compatibility. Key changes:
-
-1. **Removed branch sanitization**: GitHub now handles this automatically
-2. **Added cache key prefix input**: For better customization
-3. **Modular scripts**: Better maintainability and testability
-4. **Enhanced testing**: Comprehensive unit test coverage with CI automation
-
-## Development
-
-### Adding New Features
-
-1. Implement the feature in the appropriate script
-2. Add unit tests for the new functionality
-3. Update this README if needed
-4. Test thoroughly with different scenarios
-
-### Debugging
-
-Enable debug mode to see detailed logging:
-
-```yaml
-with:
-  debug: true
-```
-
-This will show:
-- Branch and workflow name detection
-- Cache key generation details
-- Commit range determination logic
-- Changelog generation process
