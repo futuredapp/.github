@@ -1,84 +1,114 @@
 #!/bin/bash
 set -e
 
-# Initialize variables
-LASTEST_BUILD_COMMIT=""
+# Global variables
 CURRENT_HEAD_SHA=$(git rev-parse HEAD)
 FROM_COMMIT=""
 TO_COMMIT="$CURRENT_HEAD_SHA"
 BUILD_SHOULD_SKIP="false"
 
-# Check if we have a previous build commit from cache
-if [ -f latest_builded_commit.txt ]; then
-  LASTEST_BUILD_COMMIT=$(< latest_builded_commit.txt)
-fi
-
-if [ "$INPUT_DEBUG" == "true" ]; then 
-  echo "[DEBUG] Previous built commit SHA from cache: '$LASTEST_BUILD_COMMIT'"
-fi
-
-# Validate previous build commit if it exists
-if [ -n "$LASTEST_BUILD_COMMIT" ]; then
-  # Check if the commit exists in history, otherwise it might have been rebased
-  if ! git cat-file -e $LASTEST_BUILD_COMMIT 2>/dev/null; then
-    echo "[WARNING] Last build commit '$LASTEST_BUILD_COMMIT' not found in history. Will look for oldest commit in last $INPUT_FALLBACK_LOOKBACK."
-    LASTEST_BUILD_COMMIT="" # Reset to fall through to the next block
+# Debug logging function
+debug_log() {
+  if [ "$INPUT_DEBUG" == "true" ]; then
+    echo "[DEBUG] $1"
   fi
-fi
+}
 
-if [ -n "$LASTEST_BUILD_COMMIT" ]; then
-  # Happy path: previous build commit exists and is valid
-  if [ "$INPUT_DEBUG" == "true" ]; then 
-    echo "[DEBUG] Using git range: '$LASTEST_BUILD_COMMIT..HEAD'"
-  fi
-  
-  MERGE_COMMITS_EXIST=$(git rev-list --merges --first-parent --count $LASTEST_BUILD_COMMIT..HEAD)
-
-  if [ "$MERGE_COMMITS_EXIST" -gt 0 ]; then
-    if [ "$INPUT_DEBUG" == "true" ]; then 
-      echo "[DEBUG] New merge commits found since last build. Proceeding with build."
-    fi
-    FROM_COMMIT="$LASTEST_BUILD_COMMIT"
+# Load previous build commit from cache
+load_previous_build_commit() {
+  if [ -f latest_builded_commit.txt ]; then
+    cat latest_builded_commit.txt
   else
-    if [ "$INPUT_DEBUG" == "true" ]; then 
-      echo "[DEBUG] No new merge commits found since last build. Skipping build."
-    fi
+    echo ""
+  fi
+}
+
+# Validate if commit exists in git history
+is_commit_valid() {
+  local commit_sha="$1"
+  git cat-file -e "$commit_sha" 2>/dev/null
+}
+
+# Check if there are merge commits since given commit
+has_merge_commits_since() {
+  local from_commit="$1"
+  local count=$(git rev-list --merges --first-parent --count "$from_commit..HEAD")
+  [ "$count" -gt 0 ]
+}
+
+# Find oldest merge commit in time window
+find_oldest_merge_commit() {
+  local time_window="$1"
+  git rev-list --merges --first-parent --reverse --after="$time_window" --max-count=1 HEAD | head -n 1
+}
+
+# Handle case when we have a valid previous build commit
+handle_valid_previous_commit() {
+  local last_commit="$1"
+  debug_log "Using git range: '$last_commit..HEAD'"
+  
+  if has_merge_commits_since "$last_commit"; then
+    debug_log "New merge commits found since last build. Proceeding with build."
+    FROM_COMMIT="$last_commit"
+  else
+    debug_log "No new merge commits found since last build. Skipping build."
     BUILD_SHOULD_SKIP="true"
   fi
-else
-  # Case 2: No last built commit or it was invalid
-  # Find the oldest merge commit in the specified time window
-  if [ "$INPUT_DEBUG" == "true" ]; then 
-    echo "[DEBUG] No previous built commit or it was invalid, looking for oldest merge commit in last $INPUT_FALLBACK_LOOKBACK."
-  fi
-  
-  OLDEST_MERGE_COMMIT=$(git rev-list --merges --first-parent --reverse --after="$INPUT_FALLBACK_LOOKBACK" --max-count=1 HEAD | head -n 1)
+}
 
-  if [ -n "$OLDEST_MERGE_COMMIT" ]; then
-    if [ "$INPUT_DEBUG" == "true" ]; then 
-      echo "[DEBUG] Oldest merge commit in last $INPUT_FALLBACK_LOOKBACK found. Proceeding with build."
-    fi
-    FROM_COMMIT="$OLDEST_MERGE_COMMIT^"
+# Handle case when we need to use fallback logic
+handle_fallback_commit() {
+  debug_log "No previous built commit or it was invalid, looking for oldest merge commit in last $INPUT_FALLBACK_LOOKBACK."
+  
+  local oldest_commit=$(find_oldest_merge_commit "$INPUT_FALLBACK_LOOKBACK")
+  
+  if [ -n "$oldest_commit" ]; then
+    debug_log "Oldest merge commit in last $INPUT_FALLBACK_LOOKBACK found. Proceeding with build."
+    FROM_COMMIT="${oldest_commit}^"
   else
-    if [ "$INPUT_DEBUG" == "true" ]; then 
-      echo "[DEBUG] No merge commits found in the last $INPUT_FALLBACK_LOOKBACK. Skipping build."
-    fi
+    debug_log "No merge commits found in the last $INPUT_FALLBACK_LOOKBACK. Skipping build."
     BUILD_SHOULD_SKIP="true"
   fi
-fi
+}
 
-# Set outputs
-if [ "$BUILD_SHOULD_SKIP" == "true" ]; then
-  echo "build_should_skip=true" >> $GITHUB_OUTPUT
-else
-  echo "build_should_skip=false" >> $GITHUB_OUTPUT
-  echo "from_commit=$FROM_COMMIT" >> $GITHUB_OUTPUT
-  echo "to_commit=$TO_COMMIT" >> $GITHUB_OUTPUT
-fi
+# Set GitHub outputs
+set_outputs() {
+  if [ "$BUILD_SHOULD_SKIP" == "true" ]; then
+    echo "build_should_skip=true" >> $GITHUB_OUTPUT
+  else
+    echo "build_should_skip=false" >> $GITHUB_OUTPUT
+    echo "from_commit=$FROM_COMMIT" >> $GITHUB_OUTPUT
+    echo "to_commit=$TO_COMMIT" >> $GITHUB_OUTPUT
+  fi
+}
 
-# Debug output
-if [ "$INPUT_DEBUG" == "true" ]; then
-  echo "[DEBUG] build_should_skip output: $(grep '^build_should_skip=' $GITHUB_OUTPUT | cut -d= -f2)"
-  echo "[DEBUG] from_commit output: $(grep '^from_commit=' $GITHUB_OUTPUT | cut -d= -f2)"
-  echo "[DEBUG] to_commit output: $(grep '^to_commit=' $GITHUB_OUTPUT | cut -d= -f2)"
-fi
+# Debug output function
+debug_outputs() {
+  if [ "$INPUT_DEBUG" == "true" ]; then
+    echo "[DEBUG] build_should_skip output: $(grep '^build_should_skip=' $GITHUB_OUTPUT | cut -d= -f2)"
+    echo "[DEBUG] from_commit output: $(grep '^from_commit=' $GITHUB_OUTPUT | cut -d= -f2)"
+    echo "[DEBUG] to_commit output: $(grep '^to_commit=' $GITHUB_OUTPUT | cut -d= -f2)"
+  fi
+}
+
+# Main execution
+main() {
+  local last_build_commit=$(load_previous_build_commit)
+  debug_log "Previous built commit SHA from cache: '$last_build_commit'"
+  
+  # Validate previous build commit if it exists
+  if [ -n "$last_build_commit" ] && is_commit_valid "$last_build_commit"; then
+    handle_valid_previous_commit "$last_build_commit"
+  else
+    if [ -n "$last_build_commit" ]; then
+      echo "[WARNING] Last build commit '$last_build_commit' not found in history. Will look for oldest commit in last $INPUT_FALLBACK_LOOKBACK."
+    fi
+    handle_fallback_commit
+  fi
+  
+  set_outputs
+  debug_outputs
+}
+
+# Run main function
+main
