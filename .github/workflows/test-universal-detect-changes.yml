@@ -1,0 +1,39 @@
+name: Test Universal Detect Changes Action
+
+on:
+  pull_request:
+    paths:
+      - '.github/actions/universal-detect-changes-and-generate-changelog/**'
+      - '.github/workflows/test-universal-detect-changes.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install BATS
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats
+
+      - name: Run all tests
+        run: |
+          cd .github/actions/universal-detect-changes-and-generate-changelog
+          ./test/run_tests.sh
+
+      - name: Test action.yml syntax
+        run: |
+          # Validate action.yml syntax
+          python3 -c "
+          import yaml
+          with open('.github/actions/universal-detect-changes-and-generate-changelog/action.yml', 'r') as f:
+              yaml.safe_load(f)
+          print('action.yml syntax is valid')
+          "
