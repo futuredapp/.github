@@ -4,11 +4,7 @@ set -e
 gem install bundler
 bundle install --jobs 4 --retry 3
 
-export MATCH_PASSWORD="$INPUT_MATCH_PASSWORD"
-export VERSION_NUMBER="$INPUT_VERSION_NUMBER"
-export APP_STORE_CONNECT_API_KEY_KEY="$INPUT_APP_STORE_CONNECT_API_KEY_KEY"
-export APP_STORE_CONNECT_API_KEY_KEY_ID="$INPUT_APP_STORE_CONNECT_API_KEY_KEY_ID"
-export APP_STORE_CONNECT_API_KEY_ISSUER_ID="$INPUT_APP_STORE_CONNECT_API_KEY_ISSUER_ID"
-export CUSTOM_VALUES="$INPUT_CUSTOM_VALUES"
+# Environment variables are already set by action.yml
+# No need to re-export them
 
 bundle exec fastlane release

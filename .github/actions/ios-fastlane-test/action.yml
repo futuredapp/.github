@@ -14,5 +14,5 @@ runs:
       shell: bash
       run: ${{ github.action_path }}/test.sh
       env:
-        INPUT_GITHUB_TOKEN: ${{ inputs.github_token }}
-        INPUT_CUSTOM_VALUES: ${{ inputs.custom_values }}
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        CUSTOM_VALUES: ${{ inputs.custom_values }}

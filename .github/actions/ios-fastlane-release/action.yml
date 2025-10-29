@@ -26,9 +26,9 @@ runs:
       shell: bash
       run: ${{ github.action_path }}/release.sh
       env:
-        INPUT_MATCH_PASSWORD: ${{ inputs.match_password }}
-        INPUT_VERSION_NUMBER: ${{ inputs.version_number }}
-        INPUT_APP_STORE_CONNECT_API_KEY_KEY: ${{ inputs.app_store_connect_api_key_key }}
-        INPUT_APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ inputs.app_store_connect_api_key_key_id }}
-        INPUT_APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ inputs.app_store_connect_api_key_issuer_id }}
-        INPUT_CUSTOM_VALUES: ${{ inputs.custom_values }}
+        MATCH_PASSWORD: ${{ inputs.match_password }}
+        VERSION_NUMBER: ${{ inputs.version_number }}
+        APP_STORE_CONNECT_API_KEY_KEY: ${{ inputs.app_store_connect_api_key_key }}
+        APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ inputs.app_store_connect_api_key_key_id }}
+        APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ inputs.app_store_connect_api_key_issuer_id }}
+        CUSTOM_VALUES: ${{ inputs.custom_values }}
