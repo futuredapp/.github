@@ -9,7 +9,7 @@ BUILD_SHOULD_SKIP="false"
 
 # Debug logging function
 debug_log() {
-  if [ "$INPUT_DEBUG" == "true" ]; then
+  if [ "$DEBUG" == "true" ]; then
     echo "[DEBUG] $1"
   fi
 }
@@ -58,15 +58,15 @@ handle_valid_previous_commit() {
 
 # Handle case when we need to use fallback logic
 handle_fallback_commit() {
-  debug_log "No previous built commit or it was invalid, looking for oldest merge commit in last $INPUT_FALLBACK_LOOKBACK."
+  debug_log "No previous built commit or it was invalid, looking for oldest merge commit in last $FALLBACK_LOOKBACK."
   
-  local oldest_commit=$(find_oldest_merge_commit "$INPUT_FALLBACK_LOOKBACK")
+  local oldest_commit=$(find_oldest_merge_commit "$FALLBACK_LOOKBACK")
   
   if [ -n "$oldest_commit" ]; then
-    debug_log "Oldest merge commit in last $INPUT_FALLBACK_LOOKBACK found. Proceeding with build."
+    debug_log "Oldest merge commit in last $FALLBACK_LOOKBACK found. Proceeding with build."
     FROM_COMMIT="${oldest_commit}^"
   else
-    debug_log "No merge commits found in the last $INPUT_FALLBACK_LOOKBACK. Skipping build."
+    debug_log "No merge commits found in the last $FALLBACK_LOOKBACK. Skipping build."
     BUILD_SHOULD_SKIP="true"
   fi
 }
@@ -84,7 +84,7 @@ set_outputs() {
 
 # Debug output function
 debug_outputs() {
-  if [ "$INPUT_DEBUG" == "true" ]; then
+  if [ "$DEBUG" == "true" ]; then
     echo "[DEBUG] build_should_skip output: $(grep '^build_should_skip=' $GITHUB_OUTPUT | cut -d= -f2)"
     echo "[DEBUG] from_commit output: $(grep '^from_commit=' $GITHUB_OUTPUT | cut -d= -f2)"
     echo "[DEBUG] to_commit output: $(grep '^to_commit=' $GITHUB_OUTPUT | cut -d= -f2)"
@@ -101,7 +101,7 @@ main() {
     handle_valid_previous_commit "$last_build_commit"
   else
     if [ -n "$last_build_commit" ]; then
-      echo "[WARNING] Last build commit '$last_build_commit' not found in history. Will look for oldest commit in last $INPUT_FALLBACK_LOOKBACK."
+      echo "[WARNING] Last build commit '$last_build_commit' not found in history. Will look for oldest commit in last $FALLBACK_LOOKBACK."
     fi
     handle_fallback_commit
   fi

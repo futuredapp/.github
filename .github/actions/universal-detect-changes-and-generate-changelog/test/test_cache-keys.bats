@@ -3,9 +3,9 @@
 load 'test_helper'
 
 @test "cache-keys: uses custom cache key prefix when provided" {
-  export INPUT_CACHE_KEY_PREFIX="custom-prefix"
+  export CACHE_KEY_PREFIX="custom-prefix"
   export GITHUB_SHA="abc123"
-  export INPUT_DEBUG="false"
+  export DEBUG="false"
   
   run ../cache-keys.sh
   
@@ -14,9 +14,9 @@ load 'test_helper'
 }
 
 @test "cache-keys: generates default cache key prefix when not provided" {
-  export INPUT_CACHE_KEY_PREFIX=""
+  export CACHE_KEY_PREFIX=""
   export GITHUB_SHA="def456"
-  export INPUT_DEBUG="false"
+  export DEBUG="false"
   
   run ../cache-keys.sh
   
@@ -26,9 +26,9 @@ load 'test_helper'
 
 
 @test "cache-keys: handles empty cache key prefix" {
-  export INPUT_CACHE_KEY_PREFIX=""
+  export CACHE_KEY_PREFIX=""
   export GITHUB_SHA="empty123"
-  export INPUT_DEBUG="false"
+  export DEBUG="false"
   
   run ../cache-keys.sh
   
@@ -37,9 +37,9 @@ load 'test_helper'
 }
 
 @test "cache-keys: handles whitespace-only cache key prefix" {
-  export INPUT_CACHE_KEY_PREFIX="   "
+  export CACHE_KEY_PREFIX="   "
   export GITHUB_SHA="whitespace123"
-  export INPUT_DEBUG="false"
+  export DEBUG="false"
   
   run ../cache-keys.sh
   
@@ -48,9 +48,9 @@ load 'test_helper'
 }
 
 @test "cache-keys: handles special characters in cache key prefix" {
-  export INPUT_CACHE_KEY_PREFIX="my-app@v1.0"
+  export CACHE_KEY_PREFIX="my-app@v1.0"
   export GITHUB_SHA="special123"
-  export INPUT_DEBUG="false"
+  export DEBUG="false"
   
   run ../cache-keys.sh
   
@@ -59,14 +59,14 @@ load 'test_helper'
 }
 
 @test "cache-keys: debug output when enabled" {
-  export INPUT_CACHE_KEY_PREFIX="debug-prefix"
+  export CACHE_KEY_PREFIX="debug-prefix"
   export GITHUB_SHA="mno345"
-  export INPUT_DEBUG="true"
+  export DEBUG="true"
   
   run ../cache-keys.sh
   
   [ "$status" -eq 0 ]
-  echo "$output" | grep -q "\[DEBUG\] INPUT_CACHE_KEY_PREFIX='debug-prefix'"
+  echo "$output" | grep -q "\[DEBUG\] CACHE_KEY_PREFIX='debug-prefix'"
   echo "$output" | grep -q "\[DEBUG\] CACHE_KEY_PREFIX='debug-prefix-latest_builded_commit-'"
   echo "$output" | grep -q "\[DEBUG\] CALCULATED_CACHE_KEY='debug-prefix-latest_builded_commit-mno345'"
 }

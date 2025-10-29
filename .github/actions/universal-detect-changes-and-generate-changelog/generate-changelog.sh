@@ -2,14 +2,14 @@
 # set -e  # Disabled to handle git errors gracefully
 
 # Global variables
-FROM_COMMIT="$INPUT_FROM_COMMIT"
-TO_COMMIT="$INPUT_TO_COMMIT"
+FROM_COMMIT="$FROM_COMMIT"
+TO_COMMIT="$TO_COMMIT"
 FORMATTED_CHANGELOG=""
 FORMATTED_BRANCH_NAMES=""
 
 # Debug logging function
 debug_log() {
-  if [ "$INPUT_DEBUG" == "true" ]; then
+  if [ "$DEBUG" == "true" ]; then
     echo "[DEBUG] $1"
   fi
 }
@@ -112,7 +112,7 @@ set_outputs() {
 
 # Debug output function
 debug_outputs() {
-  if [ "$INPUT_DEBUG" == "true" ]; then
+  if [ "$DEBUG" == "true" ]; then
     echo "[DEBUG] Generated raw changelog:"
     echo "$1"
     echo "[DEBUG] Generated raw branch names:"

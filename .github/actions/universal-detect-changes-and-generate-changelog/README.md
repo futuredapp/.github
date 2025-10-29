@@ -34,8 +34,8 @@ This GitHub Action detects changes since the last built commit and generates a c
 Handles cache key calculation.
 
 **Environment Variables:**
-- `INPUT_CACHE_KEY_PREFIX`: Custom cache key prefix
-- `INPUT_DEBUG`: Debug mode flag
+- `CACHE_KEY_PREFIX`: Custom cache key prefix
+- `DEBUG`: Debug mode flag
 
 **Outputs:**
 - `cache_key_prefix`: Generated cache key prefix (format: `latest_builded_commit-` or `{prefix}-latest_builded_commit-`)
@@ -44,8 +44,8 @@ Handles cache key calculation.
 Determines commit range and skip build logic.
 
 **Environment Variables:**
-- `INPUT_DEBUG`: Debug mode flag
-- `INPUT_FALLBACK_LOOKBACK`: Fallback time window
+- `DEBUG`: Debug mode flag
+- `FALLBACK_LOOKBACK`: Fallback time window
 
 **Outputs:**
 - `build_should_skip`: Whether to skip the build
@@ -56,9 +56,9 @@ Determines commit range and skip build logic.
 Generates formatted changelog and branch names.
 
 **Environment Variables:**
-- `INPUT_FROM_COMMIT`: Starting commit
-- `INPUT_TO_COMMIT`: Ending commit
-- `INPUT_DEBUG`: Debug mode flag
+- `FROM_COMMIT`: Starting commit
+- `TO_COMMIT`: Ending commit
+- `DEBUG`: Debug mode flag
 
 **Outputs:**
 - `changelog_string`: Formatted changelog

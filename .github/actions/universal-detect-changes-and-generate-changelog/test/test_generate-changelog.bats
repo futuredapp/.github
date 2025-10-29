@@ -3,9 +3,9 @@
 load 'test_helper'
 
 @test "generate-changelog: generates changelog for different commit range" {
-  export INPUT_FROM_COMMIT="commit1"
-  export INPUT_TO_COMMIT="commit2"
-  export INPUT_DEBUG="false"
+  export FROM_COMMIT="commit1"
+  export TO_COMMIT="commit2"
+  export DEBUG="false"
   
   # Mock git log to return changelog and branch names
   git() {
@@ -32,9 +32,9 @@ load 'test_helper'
 }
 
 @test "generate-changelog: handles same commit range using HEAD~1..HEAD" {
-  export INPUT_FROM_COMMIT="same-commit"
-  export INPUT_TO_COMMIT="same-commit"
-  export INPUT_DEBUG="false"
+  export FROM_COMMIT="same-commit"
+  export TO_COMMIT="same-commit"
+  export DEBUG="false"
   mock_git
   
   # Mock git log for same commit case
@@ -62,9 +62,9 @@ load 'test_helper'
 }
 
 @test "generate-changelog: handles empty changelog" {
-  export INPUT_FROM_COMMIT="commit1"
-  export INPUT_TO_COMMIT="commit2"
-  export INPUT_DEBUG="false"
+  export FROM_COMMIT="commit1"
+  export TO_COMMIT="commit2"
+  export DEBUG="false"
   mock_git
   
   # Mock git log to return empty output
@@ -86,9 +86,9 @@ load 'test_helper'
 }
 
 @test "generate-changelog: handles git log failure" {
-  export INPUT_FROM_COMMIT="commit1"
-  export INPUT_TO_COMMIT="commit2"
-  export INPUT_DEBUG="false"
+  export FROM_COMMIT="commit1"
+  export TO_COMMIT="commit2"
+  export DEBUG="false"
   mock_git
   
   # Mock git log to fail
@@ -110,9 +110,9 @@ load 'test_helper'
 }
 
 @test "generate-changelog: formats changelog with proper spacing" {
-  export INPUT_FROM_COMMIT="commit1"
-  export INPUT_TO_COMMIT="commit2"
-  export INPUT_DEBUG="false"
+  export FROM_COMMIT="commit1"
+  export TO_COMMIT="commit2"
+  export DEBUG="false"
   mock_git
   
   # Mock git log with multiple lines
@@ -141,9 +141,9 @@ load 'test_helper'
 }
 
 @test "generate-changelog: handles whitespace-only changelog" {
-  export INPUT_FROM_COMMIT="commit1"
-  export INPUT_TO_COMMIT="commit2"
-  export INPUT_DEBUG="false"
+  export FROM_COMMIT="commit1"
+  export TO_COMMIT="commit2"
+  export DEBUG="false"
   
   git() {
     case "$1" in
@@ -168,9 +168,9 @@ load 'test_helper'
 }
 
 @test "generate-changelog: handles newlines and special characters in changelog" {
-  export INPUT_FROM_COMMIT="commit1"
-  export INPUT_TO_COMMIT="commit2"
-  export INPUT_DEBUG="false"
+  export FROM_COMMIT="commit1"
+  export TO_COMMIT="commit2"
+  export DEBUG="false"
   
   git() {
     case "$1" in
@@ -195,9 +195,9 @@ load 'test_helper'
 }
 
 @test "generate-changelog: handles empty branch names" {
-  export INPUT_FROM_COMMIT="commit1"
-  export INPUT_TO_COMMIT="commit2"
-  export INPUT_DEBUG="false"
+  export FROM_COMMIT="commit1"
+  export TO_COMMIT="commit2"
+  export DEBUG="false"
   
   git() {
     case "$1" in
@@ -221,9 +221,9 @@ load 'test_helper'
 }
 
 @test "generate-changelog: handles duplicate branch names" {
-  export INPUT_FROM_COMMIT="commit1"
-  export INPUT_TO_COMMIT="commit2"
-  export INPUT_DEBUG="false"
+  export FROM_COMMIT="commit1"
+  export TO_COMMIT="commit2"
+  export DEBUG="false"
   
   git() {
     case "$1" in
@@ -249,9 +249,9 @@ load 'test_helper'
 }
 
 @test "generate-changelog: handles git log with different exit codes" {
-  export INPUT_FROM_COMMIT="commit1"
-  export INPUT_TO_COMMIT="commit2"
-  export INPUT_DEBUG="false"
+  export FROM_COMMIT="commit1"
+  export TO_COMMIT="commit2"
+  export DEBUG="false"
   
   git() {
     case "$1" in
@@ -271,9 +271,9 @@ load 'test_helper'
 }
 
 @test "generate-changelog: handles very long changelog messages" {
-  export INPUT_FROM_COMMIT="commit1"
-  export INPUT_TO_COMMIT="commit2"
-  export INPUT_DEBUG="false"
+  export FROM_COMMIT="commit1"
+  export TO_COMMIT="commit2"
+  export DEBUG="false"
   
   git() {
     case "$1" in
@@ -299,9 +299,9 @@ load 'test_helper'
 }
 
 @test "generate-changelog: debug output when enabled" {
-  export INPUT_FROM_COMMIT="debug-commit1"
-  export INPUT_TO_COMMIT="debug-commit2"
-  export INPUT_DEBUG="true"
+  export FROM_COMMIT="debug-commit1"
+  export TO_COMMIT="debug-commit2"
+  export DEBUG="true"
   mock_git
   
   git() {

@@ -47,8 +47,8 @@ runs:
       shell: bash
       run: ${{ github.action_path }}/cache-keys.sh
       env:
-        INPUT_CACHE_KEY_PREFIX: ${{ inputs.cache_key_prefix }}
-        INPUT_DEBUG: ${{ inputs.debug }}
+        CACHE_KEY_PREFIX: ${{ inputs.cache_key_prefix }}
+        DEBUG: ${{ inputs.debug }}
 
     - name: Restore cache for previous build commit SHA
       id: restore_last_build_cache
@@ -65,8 +65,8 @@ runs:
       shell: bash
       run: ${{ github.action_path }}/determine-range.sh
       env:
-        INPUT_DEBUG: ${{ inputs.debug }}
-        INPUT_FALLBACK_LOOKBACK: ${{ inputs.fallback_lookback }}
+        DEBUG: ${{ inputs.debug }}
+        FALLBACK_LOOKBACK: ${{ inputs.fallback_lookback }}
 
     - name: Set skip_build output
       id: determine_skip
@@ -82,6 +82,6 @@ runs:
       if: steps.determine_skip.outputs.skip == 'false' && steps.determine_range.outputs.from_commit != ''
       run: ${{ github.action_path }}/generate-changelog.sh
       env:
-        INPUT_FROM_COMMIT: ${{ steps.determine_range.outputs.from_commit }}
-        INPUT_TO_COMMIT: ${{ steps.determine_range.outputs.to_commit }}
-        INPUT_DEBUG: ${{ inputs.debug }}
+        FROM_COMMIT: ${{ steps.determine_range.outputs.from_commit }}
+        TO_COMMIT: ${{ steps.determine_range.outputs.to_commit }}
+        DEBUG: ${{ inputs.debug }}

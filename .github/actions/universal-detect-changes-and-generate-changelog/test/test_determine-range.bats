@@ -3,8 +3,8 @@
 load 'test_helper'
 
 @test "determine-range: skips build when no merge commits since last build" {
-  export INPUT_DEBUG="false"
-  export INPUT_FALLBACK_LOOKBACK="24 hours"
+  export DEBUG="false"
+  export FALLBACK_LOOKBACK="24 hours"
   create_mock_cache_file "valid-commit"
   
   # Mock git functions
@@ -32,8 +32,8 @@ load 'test_helper'
 }
 
 @test "determine-range: proceeds with build when merge commits exist since last build" {
-  export INPUT_DEBUG="false"
-  export INPUT_FALLBACK_LOOKBACK="24 hours"
+  export DEBUG="false"
+  export FALLBACK_LOOKBACK="24 hours"
   create_mock_cache_file "valid-commit"
   mock_git
   
@@ -64,8 +64,8 @@ load 'test_helper'
 }
 
 @test "determine-range: handles invalid previous commit by using fallback" {
-  export INPUT_DEBUG="false"
-  export INPUT_FALLBACK_LOOKBACK="24 hours"
+  export DEBUG="false"
+  export FALLBACK_LOOKBACK="24 hours"
   create_mock_cache_file "invalid-commit"
   mock_git
   
@@ -99,8 +99,8 @@ load 'test_helper'
 }
 
 @test "determine-range: skips build when no previous commit and no fallback commits" {
-  export INPUT_DEBUG="false"
-  export INPUT_FALLBACK_LOOKBACK="24 hours"
+  export DEBUG="false"
+  export FALLBACK_LOOKBACK="24 hours"
   mock_git
   
   # Mock git to find no fallback commits
@@ -125,8 +125,8 @@ load 'test_helper'
 }
 
 @test "determine-range: handles empty cache file" {
-  export INPUT_DEBUG="false"
-  export INPUT_FALLBACK_LOOKBACK="24 hours"
+  export DEBUG="false"
+  export FALLBACK_LOOKBACK="24 hours"
   create_mock_cache_file ""  # Empty file
   
   git() {
@@ -151,8 +151,8 @@ load 'test_helper'
 }
 
 @test "determine-range: handles missing cache file" {
-  export INPUT_DEBUG="false"
-  export INPUT_FALLBACK_LOOKBACK="24 hours"
+  export DEBUG="false"
+  export FALLBACK_LOOKBACK="24 hours"
   # No cache file created
   
   git() {
@@ -177,8 +177,8 @@ load 'test_helper'
 }
 
 @test "determine-range: handles git rev-parse failure" {
-  export INPUT_DEBUG="false"
-  export INPUT_FALLBACK_LOOKBACK="24 hours"
+  export DEBUG="false"
+  export FALLBACK_LOOKBACK="24 hours"
   create_mock_cache_file "valid-commit"
   
   git() {
@@ -197,8 +197,8 @@ load 'test_helper'
 }
 
 @test "determine-range: handles different fallback time windows" {
-  export INPUT_DEBUG="false"
-  export INPUT_FALLBACK_LOOKBACK="1 hour"
+  export DEBUG="false"
+  export FALLBACK_LOOKBACK="1 hour"
   create_mock_cache_file "invalid-commit"
   
   git() {
@@ -230,8 +230,8 @@ load 'test_helper'
 }
 
 @test "determine-range: debug output when enabled" {
-  export INPUT_DEBUG="true"
-  export INPUT_FALLBACK_LOOKBACK="7 days"
+  export DEBUG="true"
+  export FALLBACK_LOOKBACK="7 days"
   create_mock_cache_file "debug-commit"
   mock_git
   
