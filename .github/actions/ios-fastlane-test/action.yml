@@ -3,7 +3,7 @@ description: 'Runs Fastlane test'
 inputs:
   github_token:
     description: 'GitHub token'
-    required: true
+    required: false
   custom_values:
     description: 'Custom values'
     required: false

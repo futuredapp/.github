@@ -22,7 +22,7 @@ on:
 
     secrets:
       GITHUB_TOKEN_DANGER:
-        required: true
+        required: false
         description: 'GitHub token for Danger. Must have permissions to read and write issues and pull requests.'
 
 concurrency:
