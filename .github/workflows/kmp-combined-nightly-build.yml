@@ -169,7 +169,7 @@ jobs:
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
           ruby: 'false'
       - name: Build and upload to TestFlight
-        uses: futuredapp/.github/.github/actions/ios-kmp-build@main
+        uses: futuredapp/.github/.github/actions/ios-kmp-build@286d4f7d12b04f94564ebd1ec0616b04ddf63332
         with:
           match_password: ${{ secrets.IOS_MATCH_PASSWORD }}
           app_store_connect_api_key_key: ${{ secrets.IOS_APP_STORE_CONNECT_API_KEY_KEY }}
