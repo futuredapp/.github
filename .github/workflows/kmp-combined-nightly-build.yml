@@ -83,7 +83,7 @@ on:
         type: string
         required: false
       IOS_CUSTOM_BUILD_PATH: 
-        description: "Path to a folder where the iOS code is locaded and where bundle exec fastlane is executed"  
+        description: "Path to a folder where the iOS code is locaded and where bundle exec fastlane is executed. This should be relative to iosApp folder"  
         type: string
         required: false
       IOS_CUSTOM_VALUES:
