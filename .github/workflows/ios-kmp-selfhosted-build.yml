@@ -57,6 +57,10 @@ on:
         type: string
         required: false
         default: ${{ github.event.pull_request.title }}
+      custom_build_path: 
+        description: "Path to a folder where the iOS code is locaded and where bundle exec fastlane is executed"  
+        type: string
+        required: false
 
     secrets:
       MATCH_PASSWORD:
@@ -114,3 +118,4 @@ jobs:
           kmp_swift_package_path: ${{ inputs.kmp_swift_package_path }}
           kmp_swift_package_flavor: ${{ inputs.kmp_swift_package_flavor }}
           custom_values: ${{ inputs.custom_values }}
+          ios_custom_build_path: ${{ inputs.custom_build_path }}
