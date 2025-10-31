@@ -41,7 +41,7 @@ inputs:
     required: false
     description: "Will be used as TestFlight changelog"
   ios_custom_build_path:
-    description: "Path to a folder where the iOS code is locaded and where bundle exec fastlane is executed. This should be relative to iosApp folder"  
+    description: "Path to a folder where the iOS code is located and where bundle exec fastlane is executed. This should be relative to iosApp folder"  
     required: false
 runs:
   using: "composite"

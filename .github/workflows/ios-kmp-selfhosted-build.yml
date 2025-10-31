@@ -58,7 +58,7 @@ on:
         required: false
         default: ${{ github.event.pull_request.title }}
       custom_build_path: 
-        description: "Path to a folder where the iOS code is locaded and where bundle exec fastlane is executed. This should be relative to iosApp folder"  
+        description: "Path to a folder where the iOS code is located and where bundle exec fastlane is executed. This should be relative to iosApp folder"  
         type: string
         required: false
 
