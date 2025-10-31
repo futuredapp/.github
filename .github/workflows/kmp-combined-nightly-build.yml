@@ -82,6 +82,10 @@ on:
         description: "Comma-separated list of required secret keys."
         type: string
         required: false
+      IOS_CUSTOM_BUILD_PATH: 
+        description: "Path to a folder where the iOS code is located and where bundle exec fastlane is executed. This should be relative to iosApp folder"  
+        type: string
+        required: false
       IOS_CUSTOM_VALUES:
         description: "Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: \"CUSTOM-1: 1; CUSTOM-2: 2\""
         required: false
@@ -179,6 +183,8 @@ jobs:
           kmp_swift_package_flavor: ${{ inputs.KMP_FLAVOR }}
           custom_values: ${{ inputs.IOS_CUSTOM_VALUES }}
           testflight_changelog: ${{ needs.changelog.outputs.changelog }}
+          ios_custom_build_path: ${{ inputs.ios_custom_build_path }}
+
   android_build:
     name: Android Build
     runs-on: ubuntu-latest
