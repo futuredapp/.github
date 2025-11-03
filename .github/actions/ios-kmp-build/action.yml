@@ -40,7 +40,9 @@ inputs:
   testflight_changelog:
     required: false
     description: "Will be used as TestFlight changelog"
-
+  ios_custom_build_path:
+    description: "Path to a folder where the iOS code is located and where bundle exec fastlane is executed. This should be relative to iosApp folder"  
+    required: false
 runs:
   using: "composite"
   steps:
@@ -52,7 +54,7 @@ runs:
         SECRET_PROPERTIES: ${{ inputs.secret_properties }}
         REQUIRED_KEYS: ${{ inputs.secret_required_keys }}
     - name: Build KMP Package
-      if: ${{ inputs.kmp_swift_package_integration }}
+      if: ${{ inputs.kmp_swift_package_integration == 'true' }}
       env:
         KMP_BUILD_FLAVOR: ${{ inputs.kmp_swift_package_flavor }}
         KMP_FRAMEWORK_BUILD_TYPE: release
@@ -70,13 +72,15 @@ runs:
         app_store_connect_api_key_key_id: ${{ inputs.app_store_connect_api_key_key_id }}
         app_store_connect_api_key_issuer_id: ${{ inputs.app_store_connect_api_key_issuer_id }}
         custom_values: ${{ inputs.custom_values }}
+        custom_build_path: ${{ inputs.ios_custom_build_path }}
     - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
         name: Build.ipa
-        path: build_output/*.ipa
+        path: ./**/build_output/*.ipa
+        if-no-files-found: error
     - name: Upload dSYM
       uses: actions/upload-artifact@v4
       with:
         name: Build.app.dSYM.zip
-        path: build_output/*.app.dSYM.zip
+        path: ./**/build_output/*.app.dSYM.zip

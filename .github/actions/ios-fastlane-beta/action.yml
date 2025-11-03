@@ -19,6 +19,9 @@ inputs:
   custom_values:
     description: 'Custom values'
     required: false
+  custom_build_path:
+    description: 'Custom build path'
+    required: false
 runs:
   using: 'composite'
   steps:
@@ -32,3 +35,4 @@ runs:
         APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ inputs.app_store_connect_api_key_key_id }}
         APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ inputs.app_store_connect_api_key_issuer_id }}
         CUSTOM_VALUES: ${{ inputs.custom_values }}
+        CUSTOM_BUILD_PATH: ${{ inputs.custom_build_path }}
