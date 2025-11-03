@@ -327,3 +327,66 @@ load 'test_helper'
   echo "$output" | grep -q "\[DEBUG\] Formatted changelog for output:"
   echo "$output" | grep -q "\[DEBUG\] Formatted branch names for output:"
 }
+
+@test "generate-changelog: handles quotes in merge commits without breaking outputs" {
+  export FROM_COMMIT="commit1"
+  export TO_COMMIT="commit2"
+  export DEBUG="false"
+
+  # Mock git to return messages and subjects containing both single and double quotes
+  git() {
+    case "$1" in
+      "log")
+        if [[ "$*" == *"--pretty=format:%b"* ]]; then
+          echo "Fix: handle \"quoted\" values in output"
+          echo "Ensure it's safe when there's a 'single quote' too"
+        elif [[ "$*" == *"--pretty=format:%s"* ]]; then
+          echo "Merge branch 'feature-quoted-\"name\"' into main"
+          echo "Merge pull request #45 from feature-another'quoted'branch"
+        fi
+        return 0
+        ;;
+    esac
+  }
+  export -f git
+
+  run ../generate-changelog.sh
+
+  [ "$status" -eq 0 ]
+  # Quotes should be preserved and outputs remain a single line key=value (no YAML/shell breakage)
+  [ "$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "Fix: handle \"quoted\" values in output, Ensure it's safe when there's a 'single quote' too" ]
+  [ "$(grep '^merged_branches=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "feature-quoted-\"name\", feature-another'quoted'branch" ]
+}
+
+@test "generate-changelog: handles raw double quotes via here-doc (no escaping in source)" {
+  export FROM_COMMIT="commitA"
+  export TO_COMMIT="commitB"
+  export DEBUG="false"
+
+  git() {
+    case "$1" in
+      "log")
+        if [[ "$*" == *"--pretty=format:%b"* ]]; then
+          # Emit exact raw content including unescaped double quotes and single quotes
+          cat <<'EOF'
+Message with "double quotes" inside
+Another line with it's fine
+EOF
+        elif [[ "$*" == *"--pretty=format:%s"* ]]; then
+          cat <<'EOF'
+Merge branch 'feat-"quoted"-branch' into main
+Merge branch 'feat-plain' into main
+EOF
+        fi
+        return 0
+        ;;
+    esac
+  }
+  export -f git
+
+  run ../generate-changelog.sh
+
+  [ "$status" -eq 0 ]
+  [ "$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "Message with \"double quotes\" inside, Another line with it's fine" ]
+  [ "$(grep '^merged_branches=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "feat-\"quoted\"-branch, feat-plain" ]
+}
