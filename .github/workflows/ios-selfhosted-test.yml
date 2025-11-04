@@ -1,23 +1,29 @@
-name: Self-hosted Test
+name: iOS Self-hosted Test
 
 on:
   workflow_call:
     inputs:
       use_git_lfs:
-        description: Whether to download Git-LFS files.
+        description: 'Whether to download Git-LFS files.'
         type: boolean
-        required: false
         default: false
       custom_values:
-        description: "Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: \"CUSTOM-1: 1; CUSTOM-2: 2\""
+        description: 'Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: "CUSTOM-1: 1; CUSTOM-2: 2"'
         type: string
         required: false
       runner_label:
         description: 'The custom label for the self-hosted runner to use for the build job.'
         type: string
-        required: false
-        default: 'self-hosted' # Default if you don't specify a particular runner
+        default: 'self-hosted'
+      timeout_minutes:
+        description: 'Job timeout in minutes'
+        type: number
+        default: 30
 
+    secrets:
+      GITHUB_TOKEN_DANGER:
+        required: false
+        description: 'GitHub token for Danger. Must have permissions to read and write issues and pull requests.'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref }}
@@ -26,18 +32,16 @@ concurrency:
 jobs:
   test:
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', inputs.runner_label)) }}
-    timeout-minutes: 30
+    timeout-minutes: ${{ inputs.timeout_minutes }}
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        lfs: ${{ inputs.use_git_lfs }}
-    - name: Fastlane Test
-      run: |
-        gem install bundler
-        bundle install --jobs 4 --retry 3
-        bundle exec fastlane test
-      env:
-        DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        CUSTOM_VALUES: ${{ inputs.custom_values }}
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: ${{ inputs.use_git_lfs }}
+
+      - name: Fastlane Test
+        uses: futuredapp/.github/.github/actions/ios-fastlane-test@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN_DANGER }}
+          custom_values: ${{ inputs.custom_values }}
