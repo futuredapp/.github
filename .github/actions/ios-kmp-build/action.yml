@@ -63,7 +63,6 @@ runs:
         cd ${{ inputs.kmp_swift_package_path }}
         make build
     - name: Fastlane Beta
-      working-directory: iosApp
       uses: futuredapp/.github/.github/actions/ios-fastlane-beta@main
       with:
         match_password: ${{ inputs.match_password }}
@@ -72,7 +71,7 @@ runs:
         app_store_connect_api_key_key_id: ${{ inputs.app_store_connect_api_key_key_id }}
         app_store_connect_api_key_issuer_id: ${{ inputs.app_store_connect_api_key_issuer_id }}
         custom_values: ${{ inputs.custom_values }}
-        custom_build_path: ${{ inputs.ios_custom_build_path }}
+        custom_build_path: ${{ inputs.ios_custom_build_path && format('iosApp/{0}', inputs.ios_custom_build_path) || 'iosApp' }}
     - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
