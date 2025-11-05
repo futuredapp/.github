@@ -19,8 +19,11 @@ inputs:
   custom_values:
     description: 'Custom values'
     required: false
+  ios_root_path:
+    description: 'Path to iOS project root directory containing Gemfile. If not specified, uses current directory.'
+    required: false
   custom_build_path:
-    description: 'Custom build path'
+    description: 'Path to directory containing Fastfile. If not specified, uses ios_root_path or current directory.'
     required: false
 runs:
   using: 'composite'
@@ -35,4 +38,5 @@ runs:
         APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ inputs.app_store_connect_api_key_key_id }}
         APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ inputs.app_store_connect_api_key_issuer_id }}
         CUSTOM_VALUES: ${{ inputs.custom_values }}
+        IOS_ROOT_PATH: ${{ inputs.ios_root_path }}
         CUSTOM_BUILD_PATH: ${{ inputs.custom_build_path }}

@@ -41,7 +41,7 @@ inputs:
     required: false
     description: "Will be used as TestFlight changelog"
   ios_custom_build_path:
-    description: "Path to a folder where the iOS code is located and where bundle exec fastlane is executed. This should be relative to iosApp folder"  
+    description: "Path to the directory containing Fastfile. If not specified, uses iosApp. Example: iosApp/appA"
     required: false
 runs:
   using: "composite"
@@ -71,7 +71,8 @@ runs:
         app_store_connect_api_key_key_id: ${{ inputs.app_store_connect_api_key_key_id }}
         app_store_connect_api_key_issuer_id: ${{ inputs.app_store_connect_api_key_issuer_id }}
         custom_values: ${{ inputs.custom_values }}
-        custom_build_path: ${{ inputs.ios_custom_build_path && format('iosApp/{0}', inputs.ios_custom_build_path) || 'iosApp' }}
+        ios_root_path: iosApp
+        custom_build_path: ${{ inputs.ios_custom_build_path }}
     - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
