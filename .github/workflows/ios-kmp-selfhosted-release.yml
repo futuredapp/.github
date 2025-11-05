@@ -47,6 +47,10 @@ on:
         type: string
         required: false
         default: ""
+      custom_build_path:
+        description: "Path to directory containing Fastfile. If not specified, uses iosApp. Example: iosApp/appA"
+        type: string
+        required: false
 
     secrets:
       MATCH_PASSWORD:
@@ -105,18 +109,16 @@ jobs:
         cd ${{ inputs.kmp_swift_package_path }}
         make build
     - name: Fastlane Release
-      working-directory: iosApp
-      run: |
-        gem install bundler
-        bundle install --jobs 4 --retry 3
-        bundle exec fastlane release
-      env:
-        MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-        VERSION_NUMBER: ${{ github.ref_name }}
-        APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
-        APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
-        APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
-        CUSTOM_VALUES: ${{ inputs.custom_values }}
+      uses: futuredapp/.github/.github/actions/ios-fastlane-release@main
+      with:
+        match_password: ${{ secrets.MATCH_PASSWORD }}
+        version_number: ${{ github.ref_name }}
+        app_store_connect_api_key_key: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
+        app_store_connect_api_key_key_id: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
+        app_store_connect_api_key_issuer_id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+        custom_values: ${{ inputs.custom_values }}
+        ios_root_path: iosApp
+        custom_build_path: ${{ inputs.custom_build_path }}
     - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:

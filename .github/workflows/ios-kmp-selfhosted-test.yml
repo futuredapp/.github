@@ -42,6 +42,10 @@ on:
         required: false
         type: string
         default: 'zulu'
+      custom_build_path:
+        description: "Path to directory containing Fastfile. If not specified, uses iosApp. Example: iosApp/appA"
+        type: string
+        required: false
 
     secrets:
       GRADLE_CACHE_ENCRYPTION_KEY:
@@ -76,11 +80,9 @@ jobs:
           cd ${{ inputs.kmp_swift_package_path }}
           make build
       - name: Fastlane Test
-        working-directory: iosApp
-        run: |
-          gem install bundler
-          bundle install --jobs 4 --retry 3
-          bundle exec fastlane test
-        env:
-          DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CUSTOM_VALUES: ${{ inputs.custom_values }}
+        uses: futuredapp/.github/.github/actions/ios-fastlane-test@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          custom_values: ${{ inputs.custom_values }}
+          ios_root_path: iosApp
+          custom_build_path: ${{ inputs.custom_build_path }}
