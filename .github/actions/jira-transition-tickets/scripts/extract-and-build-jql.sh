@@ -2,7 +2,6 @@
 set -e
 
 MERGED_BRANCHES="$1"
-COMPONENTS="$2"
 
 # Extract JIRA keys from branches
 JIRA_KEYS=()
@@ -22,21 +21,11 @@ fi
 UNIQUE_JIRA_KEYS_STR=$(echo "${JIRA_KEYS[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
 # Build JQL query
-JQL_PARTS=()
+JQL=""
 if [[ -n "$UNIQUE_JIRA_KEYS_STR" ]]; then
   # Convert space-separated keys to a comma-separated list for JQL
-  KEYS_JQL="issueKey in ($(echo "$UNIQUE_JIRA_KEYS_STR" | sed 's/ /, /g'))"
-  JQL_PARTS+=("$KEYS_JQL")
+  JQL="issueKey in ($(echo "$UNIQUE_JIRA_KEYS_STR" | sed 's/ /, /g'))"
 fi
-
-if [[ -n "$COMPONENTS" ]]; then
-  # Convert comma-separated components to a comma-and-space-separated list for JQL
-  COMPONENTS_JQL="component in ($(echo "$COMPONENTS" | sed 's/,/, /g'))"
-  JQL_PARTS+=("$COMPONENTS_JQL")
-fi
-
-# Join the JQL parts with " OR "
-JQL=$(IFS=" OR "; echo "${JQL_PARTS[*]}")
 
 # Set the output for the GitHub Action step
 echo "jql=$JQL" >> "$GITHUB_OUTPUT"

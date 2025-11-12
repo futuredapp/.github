@@ -1,12 +1,11 @@
 # JIRA Transition Tickets
 
-A GitHub Action that automatically transitions JIRA tickets to a specified status based on merged branch names or JIRA components.
+A GitHub Action that automatically transitions JIRA tickets to a specified status based on merged branch names.
 
 ## Overview
 
 This action helps automate JIRA ticket workflows by:
 - Extracting JIRA ticket keys from branch names (e.g., `feature/ABC-123-add-feature`)
-- Finding tickets by JIRA components
 - Transitioning matched tickets to a target status (e.g., "Done", "In QA", "Ready for Testing")
 
 ## Inputs
@@ -38,7 +37,7 @@ The name of the JIRA status to transition tickets to. This must match the exact 
 
 **Examples:** `"Done"`, `"In QA"`, `"Ready for Testing"`, `"Closed"`
 
-### `merged_branches` (optional)
+### `merged_branches` (required)
 
 A comma-separated string of branch names from which to extract JIRA ticket keys.
 
@@ -46,25 +45,12 @@ The action extracts keys matching the pattern `[A-Z]+-[0-9]+` from each branch n
 
 **Example:** `"feature/ABC-123-login,bugfix/XYZ-456-fix-crash"`
 
-### `components` (optional)
-
-A comma-separated string of JIRA component names. All tickets belonging to these components will be transitioned.
-
-**Example:** `"Android,iOS,Backend"`
-
-**Note:** At least one of `merged_branches` or `components` must be provided.
-
 ## How It Works
 
 1. **Extract JIRA Keys:** Parses branch names to extract ticket keys (e.g., `ABC-123`)
-2. **Build JQL Query:** Creates a JQL query using extracted keys and/or components
+2. **Build JQL Query:** Creates a JQL query using extracted keys: `issueKey in (ABC-123, XYZ-456)`
 3. **Search Issues:** Uses JIRA REST API to find matching issues
 4. **Transition Issues:** Transitions each found issue to the target status
-
-**JQL Query Logic:**
-- If both `merged_branches` and `components` are provided: `issueKey in (ABC-123, XYZ-456) OR component in (Android, iOS)`
-- If only branches: `issueKey in (ABC-123, XYZ-456)`
-- If only components: `component in (Android, iOS)`
 
 ## Usage Examples
 
@@ -79,18 +65,7 @@ A comma-separated string of JIRA component names. All tickets belonging to these
     merged_branches: "feature/PROJ-123-new-feature,bugfix/PROJ-456-bug-fix"
 ```
 
-### Example 2: Transition all tickets in specific components
-
-```yaml
-- name: Move Android tickets to In QA
-  uses: ./.github/actions/jira-transition-tickets
-  with:
-    jira_context: ${{ secrets.JIRA_CONTEXT }}
-    target_status: "In QA"
-    components: "Android,Mobile"
-```
-
-### Example 3: Combined branches and components
+### Example 2: Transition tickets from dynamic branch list
 
 ```yaml
 - name: Transition tickets
@@ -99,10 +74,9 @@ A comma-separated string of JIRA component names. All tickets belonging to these
     jira_context: ${{ secrets.JIRA_CONTEXT }}
     target_status: "Ready for Testing"
     merged_branches: ${{ steps.get_branches.outputs.branches }}
-    components: "Backend"
 ```
 
-### Example 4: In a reusable workflow
+### Example 3: In a reusable workflow
 
 ```yaml
 jobs:

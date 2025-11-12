@@ -1,5 +1,5 @@
 name: 'JIRA Transition Tickets'
-description: 'Finds and transitions JIRA tickets based on branch names or components.'
+description: 'Finds and transitions JIRA tickets based on branch names.'
 
 inputs:
   jira_context:
@@ -10,10 +10,7 @@ inputs:
     required: true
   merged_branches:
     description: 'A comma-separated string of merged branch names.'
-    required: false
-  components:
-    description: 'A comma-separated string of JIRA components.'
-    required: false
+    required: true
 
 runs:
   using: "composite"
@@ -31,8 +28,7 @@ runs:
       working-directory: ${{ github.action_path }}
       run: |
         ./scripts/extract-and-build-jql.sh \
-          "${{ inputs.merged_branches }}" \
-          "${{ inputs.components }}"
+          "${{ inputs.merged_branches }}"
 
     - name: Transition JIRA Tickets
       shell: bash
