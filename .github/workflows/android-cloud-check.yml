@@ -44,6 +44,9 @@ on:
       GRADLE_CACHE_ENCRYPTION_KEY:
         required: false
         description: "Configuration cache encryption key"
+      GITHUB_TOKEN_DANGER:
+        required: false
+        description: "GitHub token for Danger. Must have permissions to read and write issues and pull requests."
 
 jobs:
   test:
@@ -68,3 +71,4 @@ jobs:
         with:
           lint_gradle_task: ${{ inputs.LINT_GRADLE_TASKS }}
           test_gradle_task: ${{ inputs.TEST_GRADLE_TASKS }}
+          github_token_danger: ${{ secrets.GITHUB_TOKEN_DANGER }}
