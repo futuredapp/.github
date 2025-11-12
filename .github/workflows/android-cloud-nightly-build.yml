@@ -176,11 +176,11 @@ jobs:
           JIRA_CONTEXT: ${{ secrets.JIRA_CONTEXT }}
         run: |
           if [ -z "$JIRA_CONTEXT" ]; then
-            echo "enabled=false" >> $GITHUB_OUTPUT
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
             echo "ℹ️ JIRA ticket transition skipped - no JIRA context provided."
             echo "💡 Tip: You can automatically transition JIRA tickets by passing the 'JIRA_CONTEXT' secret."
           else
-            echo "enabled=true" >> $GITHUB_OUTPUT
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Transition JIRA tickets
         if: steps.check.outputs.enabled == 'true'
