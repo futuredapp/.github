@@ -23,7 +23,7 @@ UNIQUE_JIRA_KEYS_STR=$(echo "${JIRA_KEYS[@]}" | tr ' ' '\n' | sort -u | tr '\n' 
 # Build JQL query
 ISSUE_KEYS=""
 if [[ -n "$UNIQUE_JIRA_KEYS_STR" ]]; then
-  ISSUE_KEYS=$(echo "$UNIQUE_JIRA_KEYS_STR" | sed 's/ /,/g')
+  ISSUE_KEYS="${UNIQUE_JIRA_KEYS_STR// /,}"
 fi
 
 # Set the output for the GitHub Action step
