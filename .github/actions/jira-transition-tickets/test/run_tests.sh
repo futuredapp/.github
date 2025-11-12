@@ -21,4 +21,8 @@ echo "Running extract-issue-keys tests..."
 bats -v test_extract-issue-keys.bats
 
 echo ""
+echo "Running transition-issues tests..."
+bats -v test_transition-issues.bats
+
+echo ""
 echo "✅ All tests completed!"

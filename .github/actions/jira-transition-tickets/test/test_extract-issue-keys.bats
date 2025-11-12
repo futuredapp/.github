@@ -2,6 +2,16 @@
 
 load 'test_helper'
 
+# Setup for each test
+setup() {
+  setup_github_output
+}
+
+# Teardown for each test
+teardown() {
+  teardown_github_output
+}
+
 @test "extract-issue-keys: handles empty input" {
   run ../scripts/extract-issue-keys.sh ""
 
