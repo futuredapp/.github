@@ -9,7 +9,7 @@ JQL="$3"
 JIRA_CONTEXT_JSON=$(echo "$JIRA_CONTEXT" | base64 --decode)
 JIRA_BASE_URL=$(echo "$JIRA_CONTEXT_JSON" | jq -r '.base_url')
 JIRA_USER_EMAIL=$(echo "$JIRA_CONTEXT_JSON" | jq -r '.user_email')
-JIRA_API_TOKEN=$(echo "$JIRA_CONTEXT_JSON" | jq -r '.api_key')
+JIRA_API_TOKEN=$(echo "$JIRA_CONTEXT_JSON" | jq -r '.api_token')
 
 if [[ -z "$JQL" ]]; then
   echo "No JQL query provided. Skipping transition."

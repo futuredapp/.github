@@ -19,13 +19,13 @@ A base64-encoded JSON string containing JIRA authentication credentials and conf
 {
   "base_url": "https://your-domain.atlassian.net",
   "user_email": "your-bot@serviceaccount.atlassian.com",
-  "api_key": "YourJiraApiToken"
+  "api_token": "YourJiraApiToken"
 }
 ```
 
 **How to encode:**
 ```bash
-echo -n '{"base_url":"https://your-domain.atlassian.net","user_email":"bot@example.com","api_key":"token"}' | base64
+echo -n '{"base_url":"https://your-domain.atlassian.net","user_email":"bot@example.com","api_token":"token"}' | base64
 ```
 
 **GitHub Secrets:**
