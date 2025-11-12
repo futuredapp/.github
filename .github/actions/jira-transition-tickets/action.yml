@@ -19,7 +19,7 @@ runs:
       shell: bash
       working-directory: ${{ github.action_path }}
       run: |
-        chmod +x ./scripts/extract-and-build-jql.sh
+        chmod +x ./scripts/extract-issue-keys.sh
         chmod +x ./scripts/transition-issues.sh
 
     - name: Extract Issue Keys
