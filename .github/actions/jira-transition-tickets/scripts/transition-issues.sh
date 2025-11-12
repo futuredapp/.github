@@ -2,8 +2,8 @@
 set -e
 
 JIRA_CONTEXT="$1"
-TARGET_STATUS="$2"
-JQL="$3"
+TRANSITION_NAME="$2"
+ISSUE_KEYS="$3"
 
 # Decode and parse JIRA_CONTEXT
 JIRA_CONTEXT_JSON=$(echo "$JIRA_CONTEXT" | base64 --decode)
@@ -11,12 +11,16 @@ JIRA_BASE_URL=$(echo "$JIRA_CONTEXT_JSON" | jq -r '.base_url')
 JIRA_USER_EMAIL=$(echo "$JIRA_CONTEXT_JSON" | jq -r '.user_email')
 JIRA_API_TOKEN=$(echo "$JIRA_CONTEXT_JSON" | jq -r '.api_token')
 
-if [[ -z "$JQL" ]]; then
-  echo "No JQL query provided. Skipping transition."
+if [[ -z "$ISSUE_KEYS" ]]; then
+  echo "No issue keys provided. Skipping transition."
   exit 0
 fi
 
-echo "Searching for issues with JQL: $JQL"
+# TODO implement this 👇
+# For each issue key, call GET /rest/api/3/issue/{issueIdOrKey}/transitions (https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issues/#api-rest-api-3-issue-issueidorkey-transitions-get)
+# and find a transition id by matching its name $TRANSITION_NAME.
+# Then call POST /rest/api/3/issue/{issueIdOrKey}/transitions (https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issues/#api-rest-api-3-issue-issueidorkey-transitions-post)
+# with request body "{ "transition": { "id": $TRANSITION_ID } }"
 
 # URL encode the JQL query to handle special characters
 ENCODED_JQL=$(perl -MURI::Escape -e 'print uri_escape($ARGV[0]);' "$JQL")
@@ -52,7 +56,7 @@ for issue_id in $(echo "$API_RESPONSE" | jq -r '.issues[].id'); do
   echo "Found transition ID '$TRANSITION_ID' for issue $issue_id. Attempting to transition to '$TARGET_STATUS'."
 
   TRANSITION_URL="${JIRA_BASE_URL}/rest/api/3/issue/${issue_id}/transitions"
-  
+
   # Perform the transition
   curl -s -u "${JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \
     -X POST \

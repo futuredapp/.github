@@ -5,8 +5,8 @@ inputs:
   jira_context:
     description: 'A base64-encoded string of Jira context object. See README for required structure.'
     required: true
-  target_status:
-    description: 'The name of the status to transition the JIRA tickets to.'
+  transition:
+    description: 'The name of the transition to transition the JIRA tickets.'
     required: true
   merged_branches:
     description: 'A comma-separated string of merged branch names.'
@@ -22,12 +22,12 @@ runs:
         chmod +x ./scripts/extract-and-build-jql.sh
         chmod +x ./scripts/transition-issues.sh
 
-    - name: Extract Keys and Build JQL
-      id: jql
+    - name: Extract Issue Keys
+      id: extract
       shell: bash
       working-directory: ${{ github.action_path }}
       run: |
-        ./scripts/extract-and-build-jql.sh \
+        ./scripts/extract-issue-keys.sh \
           "${{ inputs.merged_branches }}"
 
     - name: Transition JIRA Tickets
@@ -36,5 +36,5 @@ runs:
       run: |
         ./scripts/transition-issues.sh \
           "${{ inputs.jira_context }}" \
-          "${{ inputs.target_status }}" \
-          "${{ steps.jql.outputs.jql }}"
+          "${{ inputs.transition }}" \
+          "${{ steps.extract.outputs.issue_keys }}"

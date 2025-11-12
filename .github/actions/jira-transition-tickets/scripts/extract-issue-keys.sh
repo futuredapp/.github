@@ -21,11 +21,10 @@ fi
 UNIQUE_JIRA_KEYS_STR=$(echo "${JIRA_KEYS[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
 # Build JQL query
-JQL=""
+ISSUE_KEYS=""
 if [[ -n "$UNIQUE_JIRA_KEYS_STR" ]]; then
-  # Convert space-separated keys to a comma-separated list for JQL
-  JQL="issueKey in ($(echo "$UNIQUE_JIRA_KEYS_STR" | sed 's/ /, /g'))"
+  ISSUE_KEYS=$(echo "$UNIQUE_JIRA_KEYS_STR" | sed 's/ /,/g')
 fi
 
 # Set the output for the GitHub Action step
-echo "jql=$JQL" >> "$GITHUB_OUTPUT"
+echo "issue_keys=$ISSUE_KEYS" >> "$GITHUB_OUTPUT"
