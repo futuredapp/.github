@@ -69,23 +69,77 @@ teardown() {
   [[ "$output" == *"Skipping"* ]]
 }
 
-@test "transition-issues: handles API error when getting transitions" {
-  set_mock_get_transitions_response '{"errorMessages":["Issue does not exist"]}'
+@test "transition-issues: handles 404 error when getting transitions" {
+  set_mock_get_transitions_response '{"errorMessages":["Issue does not exist"]}' "404"
 
   run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "Done" "PROJ-999"
 
   [ "$status" -eq 0 ]
   [[ "$output" == *"Error getting transitions for issue PROJ-999"* ]]
+  [[ "$output" == *"HTTP 404"* ]]
 }
 
-@test "transition-issues: handles API error when performing transition" {
+@test "transition-issues: handles 401 unauthorized error when getting transitions" {
+  set_mock_get_transitions_response '{"errorMessages":["Unauthorized"]}' "401"
+
+  run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "Done" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Error getting transitions for issue PROJ-123"* ]]
+  [[ "$output" == *"HTTP 401"* ]]
+}
+
+@test "transition-issues: handles 403 forbidden error when getting transitions" {
+  set_mock_get_transitions_response '{"errorMessages":["Forbidden"]}' "403"
+
+  run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "Done" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Error getting transitions for issue PROJ-123"* ]]
+  [[ "$output" == *"HTTP 403"* ]]
+}
+
+@test "transition-issues: handles 500 server error when getting transitions" {
+  set_mock_get_transitions_response '{"errorMessages":["Internal server error"]}' "500"
+
+  run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "Done" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Error getting transitions for issue PROJ-123"* ]]
+  [[ "$output" == *"HTTP 500"* ]]
+}
+
+@test "transition-issues: handles 400 bad request when performing transition" {
   set_mock_get_transitions_response '{"transitions":[{"id":"31","name":"Done"}]}'
-  set_mock_post_transition_response '{"errorMessages":["Transition is not valid"]}'
+  set_mock_post_transition_response '{"errorMessages":["Transition is not valid"]}' "400"
 
   run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "Done" "PROJ-123"
 
   [ "$status" -eq 0 ]
   [[ "$output" == *"Error transitioning issue PROJ-123"* ]]
+  [[ "$output" == *"HTTP 400"* ]]
+}
+
+@test "transition-issues: handles 401 unauthorized when performing transition" {
+  set_mock_get_transitions_response '{"transitions":[{"id":"31","name":"Done"}]}'
+  set_mock_post_transition_response '{"errorMessages":["Unauthorized"]}' "401"
+
+  run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "Done" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Error transitioning issue PROJ-123"* ]]
+  [[ "$output" == *"HTTP 401"* ]]
+}
+
+@test "transition-issues: handles 500 server error when performing transition" {
+  set_mock_get_transitions_response '{"transitions":[{"id":"31","name":"Done"}]}'
+  set_mock_post_transition_response '{"errorMessages":["Internal server error"]}' "500"
+
+  run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "Done" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Error transitioning issue PROJ-123"* ]]
+  [[ "$output" == *"HTTP 500"* ]]
 }
 
 @test "transition-issues: continues processing after individual failures" {

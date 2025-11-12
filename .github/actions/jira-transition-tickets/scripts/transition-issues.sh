@@ -35,14 +35,21 @@ for issue_key in "${KEYS[@]}"; do
   # Get available transitions for this issue
   TRANSITIONS_URL="${JIRA_BASE_URL}/rest/api/3/issue/${issue_key}/transitions"
 
-  TRANSITIONS_RESPONSE=$(curl -s -u "${JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \
+  TRANSITIONS_FULL_RESPONSE=$(curl -s -u "${JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \
     -X GET -H "Content-Type: application/json" \
+    -w '\n%{http_code}' \
     "$TRANSITIONS_URL")
 
-  # Check if the API returned any errors
-  if echo "$TRANSITIONS_RESPONSE" | jq -e '.errorMessages' > /dev/null; then
-    echo "Error getting transitions for issue $issue_key:"
-    echo "$TRANSITIONS_RESPONSE" | jq .
+  # Extract HTTP status code (last line) and response body (everything else)
+  TRANSITIONS_HTTP_CODE=$(echo "$TRANSITIONS_FULL_RESPONSE" | tail -n1)
+  TRANSITIONS_RESPONSE=$(echo "$TRANSITIONS_FULL_RESPONSE" | sed '$d')
+
+  # Check if the HTTP status code indicates success (2xx)
+  if [[ ! "$TRANSITIONS_HTTP_CODE" =~ ^2[0-9]{2}$ ]]; then
+    echo "Error getting transitions for issue $issue_key: HTTP $TRANSITIONS_HTTP_CODE"
+    if [[ -n "$TRANSITIONS_RESPONSE" ]]; then
+      echo "$TRANSITIONS_RESPONSE" | jq . 2>/dev/null || echo "$TRANSITIONS_RESPONSE"
+    fi
     continue
   fi
 
@@ -61,16 +68,23 @@ for issue_key in "${KEYS[@]}"; do
   # Perform the transition
   TRANSITION_URL="${JIRA_BASE_URL}/rest/api/3/issue/${issue_key}/transitions"
 
-  TRANSITION_RESULT=$(curl -s -u "${JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \
+  TRANSITION_FULL_RESULT=$(curl -s -u "${JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \
     -X POST \
     -H "Content-Type: application/json" \
+    -w '\n%{http_code}' \
     --data "{\"transition\": {\"id\": \"$TRANSITION_ID\"}}" \
     "$TRANSITION_URL")
 
-  # Check if transition was successful
-  if echo "$TRANSITION_RESULT" | jq -e '.errorMessages' > /dev/null 2>&1; then
-    echo "Error transitioning issue $issue_key:"
-    echo "$TRANSITION_RESULT" | jq .
+  # Extract HTTP status code (last line) and response body (everything else)
+  TRANSITION_HTTP_CODE=$(echo "$TRANSITION_FULL_RESULT" | tail -n1)
+  TRANSITION_RESULT=$(echo "$TRANSITION_FULL_RESULT" | sed '$d')
+
+  # Check if the HTTP status code indicates success (2xx)
+  if [[ ! "$TRANSITION_HTTP_CODE" =~ ^2[0-9]{2}$ ]]; then
+    echo "Error transitioning issue $issue_key: HTTP $TRANSITION_HTTP_CODE"
+    if [[ -n "$TRANSITION_RESULT" ]]; then
+      echo "$TRANSITION_RESULT" | jq . 2>/dev/null || echo "$TRANSITION_RESULT"
+    fi
   else
     echo "Successfully transitioned issue $issue_key to '$TRANSITION_NAME'."
   fi

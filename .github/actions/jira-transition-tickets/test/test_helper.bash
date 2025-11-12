@@ -25,9 +25,10 @@ setup_curl_mock() {
 #!/usr/bin/env bash
 # Mock curl for testing
 
-# Extract the URL from arguments
+# Extract the URL and method from arguments
 URL=""
 METHOD="GET"
+WRITE_OUT=""
 for arg in "$@"; do
   if [[ "$arg" == http* ]]; then
     URL="$arg"
@@ -35,12 +36,21 @@ for arg in "$@"; do
   if [[ "$prev_arg" == "-X" ]]; then
     METHOD="$arg"
   fi
+  if [[ "$prev_arg" == "-w" ]]; then
+    WRITE_OUT="$arg"
+  fi
   prev_arg="$arg"
 done
 
-# Determine response based on URL and method
+# Determine response and status code based on URL and method
 if [[ "$URL" == *"/transitions"* ]] && [[ "$METHOD" == "GET" ]]; then
   # Return transitions list
+  if [[ -f "$CURL_MOCK_RESPONSES_DIR/get_transitions_status_code.txt" ]]; then
+    STATUS_CODE=$(cat "$CURL_MOCK_RESPONSES_DIR/get_transitions_status_code.txt")
+  else
+    STATUS_CODE="200"
+  fi
+
   if [[ -f "$CURL_MOCK_RESPONSES_DIR/get_transitions_response.json" ]]; then
     cat "$CURL_MOCK_RESPONSES_DIR/get_transitions_response.json"
   else
@@ -48,13 +58,25 @@ if [[ "$URL" == *"/transitions"* ]] && [[ "$METHOD" == "GET" ]]; then
   fi
 elif [[ "$URL" == *"/transitions"* ]] && [[ "$METHOD" == "POST" ]]; then
   # Return transition result
+  if [[ -f "$CURL_MOCK_RESPONSES_DIR/post_transition_status_code.txt" ]]; then
+    STATUS_CODE=$(cat "$CURL_MOCK_RESPONSES_DIR/post_transition_status_code.txt")
+  else
+    STATUS_CODE="204"
+  fi
+
   if [[ -f "$CURL_MOCK_RESPONSES_DIR/post_transition_response.json" ]]; then
     cat "$CURL_MOCK_RESPONSES_DIR/post_transition_response.json"
   else
     echo ''
   fi
 else
+  STATUS_CODE="404"
   echo '{"errorMessages":["Unknown endpoint"]}'
+fi
+
+# Output status code if -w flag was provided
+if [[ -n "$WRITE_OUT" ]]; then
+  echo -n "$STATUS_CODE"
 fi
 EOF
   chmod +x "$BATS_TEST_DIRNAME/mocks/curl"
@@ -68,15 +90,25 @@ teardown_curl_mock() {
 }
 
 # Set a specific mock response for GET transitions
-# Usage: set_mock_transitions_response '{"transitions":[...]}'
+# Usage: set_mock_get_transitions_response '{"transitions":[...]}' [status_code]
 set_mock_get_transitions_response() {
   echo "$1" > "$CURL_MOCK_RESPONSES_DIR/get_transitions_response.json"
+  if [[ -n "$2" ]]; then
+    echo "$2" > "$CURL_MOCK_RESPONSES_DIR/get_transitions_status_code.txt"
+  else
+    echo "200" > "$CURL_MOCK_RESPONSES_DIR/get_transitions_status_code.txt"
+  fi
 }
 
 # Set a specific mock response for POST transition
-# Usage: set_mock_transition_result '{"errorMessages":[...]}'
+# Usage: set_mock_post_transition_response '' [status_code]
 set_mock_post_transition_response() {
   echo "$1" > "$CURL_MOCK_RESPONSES_DIR/post_transition_response.json"
+  if [[ -n "$2" ]]; then
+    echo "$2" > "$CURL_MOCK_RESPONSES_DIR/post_transition_status_code.txt"
+  else
+    echo "204" > "$CURL_MOCK_RESPONSES_DIR/post_transition_status_code.txt"
+  fi
 }
 
 # Create base64 encoded JIRA context for testing
