@@ -1,11 +1,15 @@
 #!/bin/bash
 set -e
 
-JIRA_USER_EMAIL="$1"
-JIRA_API_TOKEN="$2"
-JIRA_BASE_URL="$3"
-TARGET_STATUS="$4"
-JQL="$5"
+JIRA_CONTEXT="$1"
+TARGET_STATUS="$2"
+JQL="$3"
+
+# Decode and parse JIRA_CONTEXT
+JIRA_CONTEXT_JSON=$(echo "$JIRA_CONTEXT" | base64 --decode)
+JIRA_BASE_URL=$(echo "$JIRA_CONTEXT_JSON" | jq -r '.base_url')
+JIRA_USER_EMAIL=$(echo "$JIRA_CONTEXT_JSON" | jq -r '.user_email')
+JIRA_API_TOKEN=$(echo "$JIRA_CONTEXT_JSON" | jq -r '.api_key')
 
 if [[ -z "$JQL" ]]; then
   echo "No JQL query provided. Skipping transition."
