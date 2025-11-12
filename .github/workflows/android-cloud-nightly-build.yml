@@ -169,4 +169,6 @@ jobs:
         uses: ./.github/actions/jira-transition-tickets
         with:
           jira_context: ${{ inputs.JIRA_CONTEXT }}
+          target_status: 'Ready for testing'
+          merged_branches: ${{ needs.changelog.outputs.merged_branches }}
 
