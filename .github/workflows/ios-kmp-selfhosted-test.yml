@@ -51,6 +51,9 @@ on:
       GRADLE_CACHE_ENCRYPTION_KEY:
         required: false
         description: "Configuration cache encryption key"
+      GITHUB_TOKEN_DANGER:
+        required: false
+        description: "GitHub token for Danger. Must have permissions to read and write issues and pull requests."
 
 jobs:
   test:
@@ -82,7 +85,7 @@ jobs:
       - name: Fastlane Test
         uses: futuredapp/.github/.github/actions/ios-fastlane-test@main
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN_DANGER }}
           custom_values: ${{ inputs.custom_values }}
           ios_root_path: iosApp
           custom_build_path: ${{ inputs.custom_build_path }}

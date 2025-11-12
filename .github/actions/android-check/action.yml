@@ -9,6 +9,9 @@ inputs:
   test_gradle_task:
     description: "A Gradle task(s) for executing unit tests, for example `testReleaseUnitTest` or `testDevEnterpriseUnitTest`"
     required: true
+  github_token_danger:
+    description: "GitHub token for Danger. Must have permissions to read and write issues and pull requests."
+    required: false
 
 runs:
   using: "composite"
@@ -27,4 +30,4 @@ runs:
         danger_file: 'Dangerfile'
         danger_id: 'danger-pr'
       env:
-        DANGER_GITHUB_API_TOKEN: ${{ github.token }}
+        DANGER_GITHUB_API_TOKEN: ${{ inputs.github_token_danger }}
