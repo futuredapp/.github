@@ -170,7 +170,20 @@ jobs:
     needs: [changelog, build]
     if: success() && needs.changelog.outputs.skip_build != 'true'
     steps:
+      - name: Check JIRA context
+        id: check
+        env:
+          JIRA_CONTEXT: ${{ secrets.JIRA_CONTEXT }}
+        run: |
+          if [ -z "$JIRA_CONTEXT" ]; then
+            echo "enabled=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ JIRA ticket transition skipped - no JIRA context provided."
+            echo "💡 Tip: You can automatically transition JIRA tickets by passing the 'JIRA_CONTEXT' secret."
+          else
+            echo "enabled=true" >> $GITHUB_OUTPUT
+          fi
       - name: Transition JIRA tickets
+        if: steps.check.outputs.enabled == 'true'
         uses: ./.github/actions/jira-transition-tickets
         with:
           jira_context: ${{ secrets.JIRA_CONTEXT }}
