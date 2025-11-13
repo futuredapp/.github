@@ -24,7 +24,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../generate-changelog.sh
+  run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "Merge commit message 1, Merge commit message 2" ]
@@ -54,7 +54,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../generate-changelog.sh
+  run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "Single merge commit message" ]
@@ -78,7 +78,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../generate-changelog.sh
+  run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "No changelog provided." ]
@@ -102,7 +102,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../generate-changelog.sh
+  run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "Error generating changelog: command failed." ]
@@ -133,7 +133,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../generate-changelog.sh
+  run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "Message 1, Message 2" ]
@@ -161,7 +161,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../generate-changelog.sh
+  run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "No changelog provided." ]
@@ -188,7 +188,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../generate-changelog.sh
+  run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "Message with newlines, and special chars: @#$%, and quotes: \"test\"" ]
@@ -213,7 +213,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../generate-changelog.sh
+  run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "Some changelog message" ]
@@ -242,7 +242,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../generate-changelog.sh
+  run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^merged_branches=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "feature-1, feature-2" ]
@@ -263,7 +263,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../generate-changelog.sh
+  run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "Error generating changelog: command failed." ]
@@ -290,7 +290,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../generate-changelog.sh
+  run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
   
   [ "$status" -eq 0 ]
   local changelog=$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)
@@ -318,7 +318,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../generate-changelog.sh
+  run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
   
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "\[DEBUG\] Generating changelog from debug-commit1 to debug-commit2"
@@ -350,7 +350,7 @@ load 'test_helper'
   }
   export -f git
 
-  run ../generate-changelog.sh
+  run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
 
   [ "$status" -eq 0 ]
   # Quotes should be preserved and outputs remain a single line key=value (no YAML/shell breakage)
@@ -384,7 +384,7 @@ EOF
   }
   export -f git
 
-  run ../generate-changelog.sh
+  run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
 
   [ "$status" -eq 0 ]
   [ "$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "Message with \"double quotes\" inside, Another line with it's fine" ]
