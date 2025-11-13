@@ -7,9 +7,10 @@ ISSUE_KEYS="$3"
 
 # Decode and parse JIRA_CONTEXT
 JIRA_CONTEXT_JSON=$(echo "$JIRA_CONTEXT" | base64 --decode)
-JIRA_BASE_URL=$(echo "$JIRA_CONTEXT_JSON" | jq -r '.base_url')
+JIRA_CLOUD_ID=$(echo "$JIRA_CONTEXT_JSON" | jq -r '.cloud_id')
 JIRA_USER_EMAIL=$(echo "$JIRA_CONTEXT_JSON" | jq -r '.user_email')
 JIRA_API_TOKEN=$(echo "$JIRA_CONTEXT_JSON" | jq -r '.api_token')
+JIRA_BASE_URL="https://api.atlassian.com/ex/jira/${JIRA_CLOUD_ID}"
 
 if [[ -z "$ISSUE_KEYS" ]]; then
   echo "No issue keys provided. Skipping transition."

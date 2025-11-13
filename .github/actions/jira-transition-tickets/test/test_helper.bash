@@ -114,6 +114,6 @@ set_mock_post_transition_response() {
 # Create base64 encoded JIRA context for testing
 # Usage: create_test_jira_context
 create_test_jira_context() {
-  local jira_context_json='{"base_url":"https://test.atlassian.net","user_email":"test@example.com","api_token":"test-token-123"}'
+  local jira_context_json='{"cloud_id":"test-cloud-id-123","user_email":"test@example.com","api_token":"test-token-123"}'
   echo "$jira_context_json" | base64
 }

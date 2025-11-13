@@ -17,15 +17,19 @@ A base64-encoded JSON string containing JIRA authentication credentials and conf
 **Structure:**
 ```json
 {
-  "base_url": "https://your-domain.atlassian.net",
+  "cloud_id": "your-cloud-id",
   "user_email": "your-bot@serviceaccount.atlassian.com",
   "api_token": "YourJiraApiToken"
 }
 ```
 
+**How to obtain Cloud ID:**
+
+Navigate to [https://<cloudname>.atlassian.net/_edge/tenant_info](https://<cloudname>.atlassian.net/_edge/tenant_info)
+
 **How to encode:**
 ```bash
-echo -n '{"base_url":"https://your-domain.atlassian.net","user_email":"bot@example.com","api_token":"token"}' | base64
+echo -n '{"cloud_id":"your-cloud-id","user_email":"bot@example.com","api_token":"token"}' | base64
 ```
 
 **GitHub Secrets:**
