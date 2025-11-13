@@ -30,9 +30,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Bats
+        id: install_bats
         uses: bats-core/bats-action@3.0.1
       - name: Run tests
         shell: bash
+        env:
+          BATS_LIB_PATH: ${{ steps.install_bats.outputs.lib-path }}
+          TERM: xterm
         run: |
           # Find and run all .bats test files
           BATS_FILES=$(find .github/actions -name "*.bats" -type f | sort)
