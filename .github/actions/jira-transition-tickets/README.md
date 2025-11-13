@@ -35,9 +35,9 @@ echo -n '{"cloud_id":"your-cloud-id","user_email":"bot@example.com","api_token":
 **GitHub Secrets:**
 Store the base64-encoded string in a GitHub secret (e.g., `JIRA_CONTEXT`) for secure usage.
 
-### `target_status` (required)
+### `transition` (required)
 
-The name of the JIRA status to transition tickets to. This must match the exact status name in your JIRA workflow.
+The name of the JIRA transition to execute. This must match the exact transition name in your JIRA workflow.
 
 **Examples:** `"Done"`, `"In QA"`, `"Ready for Testing"`, `"Closed"`
 
@@ -52,20 +52,20 @@ The action extracts keys matching the pattern `[A-Z]+-[0-9]+` from each branch n
 ## How It Works
 
 1. **Extract JIRA Keys:** Parses branch names to extract ticket keys (e.g., `ABC-123`)
-2. **Build JQL Query:** Creates a JQL query using extracted keys: `issueKey in (ABC-123, XYZ-456)`
-3. **Search Issues:** Uses JIRA REST API to find matching issues
-4. **Transition Issues:** Transitions each found issue to the target status
+2. **Get Available Transitions:** For each issue key, fetches available transitions from JIRA API
+3. **Find Target Transition:** Matches the target status name to find the corresponding transition ID
+4. **Perform Transition:** Executes the transition for each issue to move it to the target status
 
 ## Usage Examples
 
 ### Example 1: Transition tickets from merged branches
 
 ```yaml
-- name: Transition JIRA tickets to Done
+- name: Transition JIRA tickets
   uses: ./.github/actions/jira-transition-tickets
   with:
     jira_context: ${{ secrets.JIRA_CONTEXT }}
-    target_status: "Done"
+    transition: "Ready for Testing"
     merged_branches: "feature/PROJ-123-new-feature,bugfix/PROJ-456-bug-fix"
 ```
 
@@ -76,7 +76,7 @@ The action extracts keys matching the pattern `[A-Z]+-[0-9]+` from each branch n
   uses: ./.github/actions/jira-transition-tickets
   with:
     jira_context: ${{ secrets.JIRA_CONTEXT }}
-    target_status: "Ready for Testing"
+    transition: "Ready for Testing"
     merged_branches: ${{ steps.get_branches.outputs.branches }}
 ```
 
@@ -98,6 +98,6 @@ jobs:
         uses: ./.github/actions/jira-transition-tickets
         with:
           jira_context: ${{ secrets.JIRA_CONTEXT }}
-          target_status: "In QA"
+          transition: "Ready for Testing"
           merged_branches: ${{ github.head_ref }}
 ```
