@@ -38,20 +38,20 @@ get_branch_names() {
   if [ "$from_commit" == "$to_commit" ]; then
     git log --merges --first-parent --pretty=format:"%s" HEAD~1..HEAD | \
       sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
-      grep -v '^$' 2>&1
-    return $?
+      grep -v '^$' 2>&1 || true
+    return 0
   else
     git log --merges --first-parent --pretty=format:"%s" "${from_commit}..${to_commit}" | \
       sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
-      grep -v '^$' 2>&1
-    return $?
+      grep -v '^$' 2>&1 || true
+    return 0
   fi
 }
 
 # Check if string is empty (after removing whitespace)
 is_empty() {
   local text="$1"
-  [ -z "$(echo "$text" | tr -d '\n\r')" ]
+  [ -z "$(echo "$text" | tr -d '\n\r \t')" ]
 }
 
 # Format changelog text
@@ -141,8 +141,8 @@ main() {
     if [ $git_exit_code -eq 0 ]; then
       raw_branch_names=$(git log --merges --first-parent --pretty=format:"%s" HEAD~1..HEAD 2>&1 | \
         sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
-        grep -v '^$' 2>&1)
-      git_exit_code=$?
+        grep -v '^$' 2>&1 || true)
+      git_exit_code=0
     else
       raw_branch_names=""
     fi
@@ -154,8 +154,8 @@ main() {
     if [ $git_exit_code -eq 0 ]; then
       raw_branch_names=$(git log --merges --first-parent --pretty=format:"%s" "${FROM_COMMIT}..${TO_COMMIT}" 2>&1 | \
         sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
-        grep -v '^$' 2>&1)
-      git_exit_code=$?
+        grep -v '^$' 2>&1 || true)
+      git_exit_code=0
     else
       raw_branch_names=""
     fi
