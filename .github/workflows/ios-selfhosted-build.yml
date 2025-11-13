@@ -70,7 +70,6 @@ jobs:
       runner_label: ${{ inputs.runner_label }}
       timeout_minutes: ${{ inputs.timeout_minutes }}
       xcconfig_path: ${{ inputs.xcconfig_path }}
-      secret_properties: ${{ inputs.secret_properties }}
       required_keys: ${{ inputs.required_keys }}
       changelog_fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
     secrets:
