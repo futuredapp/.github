@@ -54,10 +54,10 @@ for issue_key in "${KEYS[@]}"; do
     continue
   fi
 
-  # Find the transition ID by matching the transition name
+  # Find the transition ID by matching the transition name (case-insensitive)
   TRANSITION_ID=$(echo "$TRANSITIONS_RESPONSE" | \
     jq -r --arg name "$TRANSITION_NAME" \
-    '.transitions[] | select(.name == $name) | .id')
+    '.transitions[] | select(.name | ascii_downcase == ($name | ascii_downcase)) | .id')
 
   if [[ -z "$TRANSITION_ID" || "$TRANSITION_ID" == "null" ]]; then
     echo "Warning: Could not find transition '$TRANSITION_NAME' for issue $issue_key. It might already be in the target status or the transition is not available. Skipping."

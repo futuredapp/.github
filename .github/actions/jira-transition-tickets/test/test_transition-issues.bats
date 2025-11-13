@@ -219,3 +219,112 @@ teardown() {
   [[ "$output" == *"Processing issue: DEF-1"* ]]
   [[ "$output" == *"Processing issue: LONG-PROJECT-NAME-12345"* ]]
 }
+
+@test "transition-issues: matches transition name case-insensitively (lowercase input)" {
+  set_mock_get_transitions_response '{"transitions":[{"id":"31","name":"Done"},{"id":"21","name":"In Progress"}]}'
+  set_mock_post_transition_response ''
+
+  run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "done" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Found transition ID '31'"* ]]
+  [[ "$output" == *"Successfully transitioned issue PROJ-123 to 'done'"* ]]
+}
+
+@test "transition-issues: matches transition name case-insensitively (uppercase input)" {
+  set_mock_get_transitions_response '{"transitions":[{"id":"21","name":"In Progress"}]}'
+  set_mock_post_transition_response ''
+
+  run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "IN PROGRESS" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Found transition ID '21'"* ]]
+  [[ "$output" == *"Successfully transitioned issue PROJ-123 to 'IN PROGRESS'"* ]]
+}
+
+@test "transition-issues: matches transition name case-insensitively (mixed case)" {
+  set_mock_get_transitions_response '{"transitions":[{"id":"31","name":"Done"}]}'
+  set_mock_post_transition_response ''
+
+  run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "DoNe" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Found transition ID '31'"* ]]
+  [[ "$output" == *"Successfully transitioned issue PROJ-123 to 'DoNe'"* ]]
+}
+
+@test "transition-issues: case-insensitive matching with multi-word transitions" {
+  set_mock_get_transitions_response '{"transitions":[{"id":"11","name":"To Do"},{"id":"21","name":"In Progress"},{"id":"31","name":"Done"}]}'
+  set_mock_post_transition_response ''
+
+  run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "to do" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Found transition ID '11'"* ]]
+  [[ "$output" == *"Successfully transitioned issue PROJ-123 to 'to do'"* ]]
+}
+
+@test "transition-issues: case-insensitive matching when transition not found" {
+  set_mock_get_transitions_response '{"transitions":[{"id":"21","name":"In Progress"}]}'
+
+  run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "done" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Warning: Could not find transition 'done'"* ]]
+  [[ "$output" == *"Skipping"* ]]
+}
+
+@test "transition-issues: exact case matching still works (backwards compatibility)" {
+  set_mock_get_transitions_response '{"transitions":[{"id":"31","name":"Done"},{"id":"21","name":"In Progress"}]}'
+  set_mock_post_transition_response ''
+
+  run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "Done" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Found transition ID '31'"* ]]
+  [[ "$output" == *"Successfully transitioned issue PROJ-123 to 'Done'"* ]]
+}
+
+@test "transition-issues: case-insensitive with uppercase API response" {
+  set_mock_get_transitions_response '{"transitions":[{"id":"31","name":"DONE"}]}'
+  set_mock_post_transition_response ''
+
+  run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "done" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Found transition ID '31'"* ]]
+  [[ "$output" == *"Successfully transitioned issue PROJ-123 to 'done'"* ]]
+}
+
+@test "transition-issues: case-insensitive with hyphens in transition name" {
+  set_mock_get_transitions_response '{"transitions":[{"id":"51","name":"Ready-for-Review"}]}'
+  set_mock_post_transition_response ''
+
+  run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "ready-for-review" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Found transition ID '51'"* ]]
+  [[ "$output" == *"Successfully transitioned issue PROJ-123 to 'ready-for-review'"* ]]
+}
+
+@test "transition-issues: case-insensitive matching with numbers in transition name" {
+  set_mock_get_transitions_response '{"transitions":[{"id":"99","name":"Phase 1 Complete"}]}'
+  set_mock_post_transition_response ''
+
+  run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "PHASE 1 COMPLETE" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Found transition ID '99'"* ]]
+  [[ "$output" == *"Successfully transitioned issue PROJ-123 to 'PHASE 1 COMPLETE'"* ]]
+}
+
+@test "transition-issues: case-insensitive across multiple issues with different case inputs" {
+  set_mock_get_transitions_response '{"transitions":[{"id":"31","name":"Done"}]}'
+  set_mock_post_transition_response ''
+
+  run ../scripts/transition-issues.sh "$JIRA_CONTEXT" "DONE" "PROJ-123,PROJ-456"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Successfully transitioned issue PROJ-123 to 'DONE'"* ]]
+  [[ "$output" == *"Successfully transitioned issue PROJ-456 to 'DONE'"* ]]
+}
