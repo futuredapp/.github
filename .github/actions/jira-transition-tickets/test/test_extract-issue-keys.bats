@@ -26,6 +26,13 @@ teardown() {
   [ "$(grep '^issue_keys=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "PROJ-123" ]
 }
 
+@test "extract-issue-keys: extracts single JIRA key from branch with just issue key" {
+  run ../scripts/extract-issue-keys.sh "feature/PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [ "$(grep '^issue_keys=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "PROJ-123" ]
+}
+
 @test "extract-issue-keys: extracts multiple JIRA keys from single branch" {
   run ../scripts/extract-issue-keys.sh "feature/PROJ-123-PROJ-456-combine"
 
