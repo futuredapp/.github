@@ -23,10 +23,6 @@ on:
         description: 'Path to the .xcconfig file. Selected secret properties will be appended to the end of this file.'
         type: string
         required: false
-      secret_properties:
-        description: 'Secrets in the format KEY = VALUE (one per line).'
-        type: string
-        required: false
       required_keys:
         description: 'Comma-separated list of required keys.'
         type: string
