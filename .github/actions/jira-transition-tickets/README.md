@@ -8,6 +8,8 @@ This action helps automate JIRA ticket workflows by:
 - Extracting JIRA ticket keys from branch names (e.g., `feature/ABC-123-add-feature`)
 - Transitioning matched tickets to a target status (e.g., "Done", "In QA", "Ready for Testing")
 
+This action was designed to work with `merged_branches` output of [universal-detect-changes-and-generate-changelog](../universal-detect-changes-and-generate-changelog) action.
+
 ## Inputs
 
 ### `jira_context` (required)
