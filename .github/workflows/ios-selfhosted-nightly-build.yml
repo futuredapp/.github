@@ -72,12 +72,7 @@ jobs:
         with:
           checkout_depth: ${{ inputs.checkout_depth }}
           fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
-
-      - name: Checkout
-        if: ${{ steps.detect_changes.outputs.skip_build == 'false' && inputs.use_git_lfs }}
-        uses: actions/checkout@v4
-        with:
-          lfs: ${{ inputs.use_git_lfs }}
+          use_git_lfs: ${{ inputs.use_git_lfs }}
   
       - name: Set changelog
         if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
