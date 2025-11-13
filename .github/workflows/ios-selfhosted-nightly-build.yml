@@ -19,6 +19,11 @@ on:
         description: 'Job timeout in minutes'
         type: number
         default: 30
+      checkout_depth:
+        description: 'The depth of the git history to fetch for changelog generation.'
+        type: number
+        required: false
+        default: 100
       xcconfig_path:
         description: 'Path to the .xcconfig file. Selected secret properties will be appended to the end of this file.'
         type: string
@@ -60,6 +65,7 @@ jobs:
         id: detect_changes
         uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
         with:
+          checkout_depth: ${{ inputs.checkout_depth }}
           fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
 
       - name: Checkout
