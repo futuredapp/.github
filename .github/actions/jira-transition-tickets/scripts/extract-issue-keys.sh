@@ -13,7 +13,7 @@ if [[ -n "$MERGED_BRANCHES" ]]; then
     branch=$(echo "$branch" | xargs)
     while IFS= read -r key; do
         JIRA_KEYS+=("$key")
-    done < <(echo "$branch" | grep -oE '[A-Z]+-[0-9]+')
+    done < <(echo "$branch" | grep -oE '[A-Z0-9]+-[0-9]+')
   done
 fi
 

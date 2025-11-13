@@ -161,3 +161,18 @@ teardown() {
   [ "$status" -eq 0 ]
   [ "$(grep '^issue_keys=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "PROJ-123" ]
 }
+
+@test "extract-issue-keys: handles number in project identifier" {
+  run ../scripts/extract-issue-keys.sh "feature/team/PROJ25-123-description"
+
+  [ "$status" -eq 0 ]
+  [ "$(grep '^issue_keys=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "PROJ25-123" ]
+}
+
+
+@test "extract-issue-keys: handles multiple issue keys with number in project identifier" {
+  run ../scripts/extract-issue-keys.sh "feature/team/PROJ25-123-description,feature/PROJ25-456-description"
+
+  [ "$status" -eq 0 ]
+  [ "$(grep '^issue_keys=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "PROJ25-123,PROJ25-456" ]
+}
