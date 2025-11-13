@@ -3,6 +3,7 @@ name: iOS Self-hosted On-Demand Build
 on:
   workflow_call:
     inputs:
+      # General
       runner_label:
         description: 'The custom label for the self-hosted runner to use for the build job.'
         type: string
@@ -11,6 +12,7 @@ on:
         description: 'Job timeout in minutes'
         type: number
         default: 30
+      # Changelog
       changelog:
         description: 'Will be used as TestFlight changelog'
         type: string
@@ -25,10 +27,12 @@ on:
         type: string
         required: false
         default: '24 hours'
+      # Git LFS
       use_git_lfs:
         description: 'Whether to download Git-LFS files.'
         type: boolean
         default: false
+      # Export secrets
       xcconfig_path:
         description: 'Path to the .xcconfig file. Selected secret properties will be appended to the end of this file.'
         type: string
@@ -37,6 +41,7 @@ on:
         description: 'Comma-separated list of required keys.'
         type: string
         required: false
+      # Custom values
       custom_values:
         description: 'Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: "CUSTOM-1: 1; CUSTOM-2: 2"'
         type: string
