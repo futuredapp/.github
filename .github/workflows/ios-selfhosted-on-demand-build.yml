@@ -3,14 +3,7 @@ name: iOS Self-hosted On-Demand Build
 on:
   workflow_call:
     inputs:
-      use_git_lfs:
-        description: 'Whether to download Git-LFS files.'
-        type: boolean
-        default: false
-      custom_values:
-        description: 'Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: "CUSTOM-1: 1; CUSTOM-2: 2"'
-        type: string
-        required: false
+      # General
       runner_label:
         description: 'The custom label for the self-hosted runner to use for the build job.'
         type: string
@@ -19,27 +12,40 @@ on:
         description: 'Job timeout in minutes'
         type: number
         default: 30
-      xcconfig_path:
-        description: 'Path to the .xcconfig file. Selected secret properties will be appended to the end of this file.'
+      # Changelog
+      changelog:
+        description: 'Will be used as TestFlight changelog'
         type: string
         required: false
-      secret_properties:
-        description: 'Secrets in the format KEY = VALUE (one per line).'
+      checkout_depth:
+        description: 'The depth of the git history to fetch for changelog generation.'
+        type: number
+        required: false
+        default: 100
+      changelog_fallback_lookback:
+        description: 'The amount of time to look back for merge commits when no previous build commit is found. Default is 24 hours.'
+        type: string
+        required: false
+        default: '24 hours'
+      # Git LFS
+      use_git_lfs:
+        description: 'Whether to download Git-LFS files.'
+        type: boolean
+        default: false
+      # Export secrets
+      xcconfig_path:
+        description: 'Path to the .xcconfig file. Selected secret properties will be appended to the end of this file.'
         type: string
         required: false
       required_keys:
         description: 'Comma-separated list of required keys.'
         type: string
         required: false
-      changelog:
-        description: 'Will be used as TestFlight changelog'
+      # Custom values
+      custom_values:
+        description: 'Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: "CUSTOM-1: 1; CUSTOM-2: 2"'
         type: string
         required: false
-      changelog_fallback_lookback:
-        description: 'The amount of time to look back for merge commits when no previous build commit is found. Default is 24 hours.'
-        type: string
-        required: false
-        default: '24 hours'
 
     secrets:
       MATCH_PASSWORD:
@@ -69,10 +75,12 @@ jobs:
         id: detect_changes
         uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
         with:
+          checkout_depth: ${{ inputs.checkout_depth }}
           fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
+          use_git_lfs: ${{ inputs.use_git_lfs }}
       
       - name: Checkout
-        if: ${{ inputs.use_git_lfs == 'true' || inputs.changelog != '' }}
+        if: ${{ inputs.changelog != '' }}
         uses: actions/checkout@v4
         with:
           lfs: ${{ inputs.use_git_lfs }}
