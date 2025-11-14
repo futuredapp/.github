@@ -64,7 +64,7 @@ The action extracts keys matching the pattern `[A-Z]+-[0-9]+` from each branch n
 
 ```yaml
 - name: Transition JIRA tickets
-  uses: ./.github/actions/jira-transition-tickets
+  uses: futuredapp/.github/.github/actions/jira-transition-tickets@main
   with:
     jira_context: ${{ secrets.JIRA_CONTEXT }}
     transition: "Ready for Testing"
@@ -75,7 +75,7 @@ The action extracts keys matching the pattern `[A-Z]+-[0-9]+` from each branch n
 
 ```yaml
 - name: Transition tickets
-  uses: ./.github/actions/jira-transition-tickets
+  uses: futuredapp/.github/.github/actions/jira-transition-tickets@main
   with:
     jira_context: ${{ secrets.JIRA_CONTEXT }}
     transition: "Ready for Testing"
@@ -97,7 +97,7 @@ jobs:
 
       - name: Transition JIRA tickets on success
         if: success()
-        uses: ./.github/actions/jira-transition-tickets
+        uses: futuredapp/.github/.github/actions/jira-transition-tickets@main
         with:
           jira_context: ${{ secrets.JIRA_CONTEXT }}
           transition: "Ready for Testing"

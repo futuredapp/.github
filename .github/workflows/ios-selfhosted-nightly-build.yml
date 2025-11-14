@@ -139,6 +139,7 @@ jobs:
           key: ${{ steps.detect_changes.outputs.cache_key }}
 
   transition_jira_tickets:
+    name: Transition JIRA tickets
     runs-on: ubuntu-latest
     needs: build
     if: success() && needs.build.outputs.skip_build != 'true'
@@ -157,7 +158,7 @@ jobs:
           fi
       - name: Transition JIRA tickets
         if: steps.check.outputs.enabled == 'true'
-        uses: ./.github/actions/jira-transition-tickets
+        uses: futuredapp/.github/.github/actions/jira-transition-tickets@main
         with:
           jira_context: ${{ secrets.JIRA_CONTEXT }}
           transition: ${{ inputs.jira_transition }}
