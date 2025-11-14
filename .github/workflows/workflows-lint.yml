@@ -1,9 +1,10 @@
-name: Lint GitHub Actions workflows
+name: Check Pull Request
 
 on: [pull_request]
 
 jobs:
   actionlint:
+    name: Lint GitHub Actions workflows
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -19,3 +20,18 @@ jobs:
       - name: Check workflow files
         run: ${{ steps.get_actionlint.outputs.executable }} -color
         shell: bash
+
+  tests:
+    name: Test Actions
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Bats
+        id: install_bats
+        uses: bats-core/bats-action@3.0.1
+      - name: Run tests
+        shell: bash
+        run: bats -r .

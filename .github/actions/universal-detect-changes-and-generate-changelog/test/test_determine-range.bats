@@ -23,7 +23,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../determine-range.sh
+  run "$BATS_TEST_DIRNAME/../determine-range.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^build_should_skip=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "true" ]
@@ -53,7 +53,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../determine-range.sh
+  run "$BATS_TEST_DIRNAME/../determine-range.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^build_should_skip=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "false" ]
@@ -89,7 +89,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../determine-range.sh
+  run "$BATS_TEST_DIRNAME/../determine-range.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^build_should_skip=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "false" ]
@@ -116,7 +116,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../determine-range.sh
+  run "$BATS_TEST_DIRNAME/../determine-range.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^build_should_skip=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "true" ]
@@ -141,7 +141,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../determine-range.sh
+  run "$BATS_TEST_DIRNAME/../determine-range.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^build_should_skip=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "false" ]
@@ -167,7 +167,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../determine-range.sh
+  run "$BATS_TEST_DIRNAME/../determine-range.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^build_should_skip=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "false" ]
@@ -190,7 +190,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../determine-range.sh
+  run "$BATS_TEST_DIRNAME/../determine-range.sh"
   
   [ "$status" -ne 0 ]  # Should fail due to git rev-parse error
   cleanup_mock_files
@@ -220,7 +220,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../determine-range.sh
+  run "$BATS_TEST_DIRNAME/../determine-range.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^build_should_skip=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "false" ]
@@ -250,7 +250,7 @@ load 'test_helper'
   }
   export -f git
   
-  run ../determine-range.sh
+  run "$BATS_TEST_DIRNAME/../determine-range.sh"
   
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "\[DEBUG\] Previous built commit SHA from cache: 'debug-commit'"

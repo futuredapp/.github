@@ -1,0 +1,40 @@
+name: 'JIRA Transition Tickets'
+description: 'Finds and transitions JIRA tickets based on branch names.'
+
+inputs:
+  jira_context:
+    description: 'A base64-encoded string of Jira context object. See README for required structure.'
+    required: true
+  transition:
+    description: 'The name of the transition to transition the JIRA tickets.'
+    required: true
+  merged_branches:
+    description: 'A comma-separated string of merged branch names.'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Make scripts executable
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        chmod +x ./scripts/extract-issue-keys.sh
+        chmod +x ./scripts/transition-issues.sh
+
+    - name: Extract Issue Keys
+      id: extract
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        ./scripts/extract-issue-keys.sh \
+          "${{ inputs.merged_branches }}"
+
+    - name: Transition JIRA Tickets
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        ./scripts/transition-issues.sh \
+          "${{ inputs.jira_context }}" \
+          "${{ inputs.transition }}" \
+          "${{ steps.extract.outputs.issue_keys }}"

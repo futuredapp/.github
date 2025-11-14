@@ -7,7 +7,7 @@ load 'test_helper'
   export GITHUB_SHA="abc123"
   export DEBUG="false"
   
-  run ../cache-keys.sh
+  run "$BATS_TEST_DIRNAME/../cache-keys.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^cache_key_prefix=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "custom-prefix-latest_builded_commit-" ]
@@ -18,7 +18,7 @@ load 'test_helper'
   export GITHUB_SHA="def456"
   export DEBUG="false"
   
-  run ../cache-keys.sh
+  run "$BATS_TEST_DIRNAME/../cache-keys.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^cache_key_prefix=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "latest_builded_commit-" ]
@@ -30,7 +30,7 @@ load 'test_helper'
   export GITHUB_SHA="empty123"
   export DEBUG="false"
   
-  run ../cache-keys.sh
+  run "$BATS_TEST_DIRNAME/../cache-keys.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^cache_key_prefix=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "latest_builded_commit-" ]
@@ -41,7 +41,7 @@ load 'test_helper'
   export GITHUB_SHA="whitespace123"
   export DEBUG="false"
   
-  run ../cache-keys.sh
+  run "$BATS_TEST_DIRNAME/../cache-keys.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^cache_key_prefix=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "   -latest_builded_commit-" ]
@@ -52,7 +52,7 @@ load 'test_helper'
   export GITHUB_SHA="special123"
   export DEBUG="false"
   
-  run ../cache-keys.sh
+  run "$BATS_TEST_DIRNAME/../cache-keys.sh"
   
   [ "$status" -eq 0 ]
   [ "$(grep '^cache_key_prefix=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "my-app@v1.0-latest_builded_commit-" ]
@@ -63,7 +63,7 @@ load 'test_helper'
   export GITHUB_SHA="mno345"
   export DEBUG="true"
   
-  run ../cache-keys.sh
+  run "$BATS_TEST_DIRNAME/../cache-keys.sh"
   
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "\[DEBUG\] CACHE_KEY_PREFIX='debug-prefix'"

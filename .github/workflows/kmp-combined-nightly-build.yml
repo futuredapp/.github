@@ -105,6 +105,11 @@ on:
         type: string
         required: false
         default: "24 hours"
+      JIRA_TRANSITION:
+        description: "The name of the JIRA transition to apply to tickets found in merged branches."
+        type: string
+        required: false
+        default: "Testing"
 
     secrets:
       FIREBASE_APP_DISTRIBUTION_SERVICE_ACCOUNT:
@@ -131,6 +136,9 @@ on:
       IOS_APP_STORE_CONNECT_API_KEY_ISSUER_ID:
         required: true
         description: "Private App Store Connect API issuer key for submitting build to App Store."
+      JIRA_CONTEXT:
+        required: false
+        description: "JIRA context for transitioning tickets."
 
 jobs:
   changelog:
@@ -138,6 +146,7 @@ jobs:
       skip_build: ${{ steps.detect_changes.outputs.skip_build }}
       changelog: ${{ steps.detect_changes.outputs.changelog }}
       cache_key: ${{ steps.detect_changes.outputs.cache_key }}
+      merged_branches: ${{ steps.detect_changes.outputs.merged_branches }}
     name: Detect changes and generate changelog
     runs-on: ubuntu-latest
     steps:
@@ -183,7 +192,7 @@ jobs:
           kmp_swift_package_flavor: ${{ inputs.KMP_FLAVOR }}
           custom_values: ${{ inputs.IOS_CUSTOM_VALUES }}
           testflight_changelog: ${{ needs.changelog.outputs.changelog }}
-          ios_custom_build_path: ${{ inputs.ios_custom_build_path }}
+          ios_custom_build_path: ${{ inputs.IOS_CUSTOM_BUILD_PATH }}
 
   android_build:
     name: Android Build
@@ -241,3 +250,28 @@ jobs:
           path: latest_builded_commit.txt
           key: ${{ needs.changelog.outputs.cache_key }}
 
+  transition_jira_tickets:
+    name: Transition JIRA tickets
+    runs-on: ubuntu-latest
+    needs: [ changelog, ios_build, android_build ]
+    if: success() && needs.changelog.outputs.skip_build != 'true'
+    steps:
+      - name: Check JIRA context
+        id: check
+        env:
+          JIRA_CONTEXT: ${{ secrets.JIRA_CONTEXT }}
+        run: |
+          if [ -z "$JIRA_CONTEXT" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ JIRA ticket transition skipped - no JIRA context provided."
+            echo "💡 Tip: You can automatically transition JIRA tickets by passing the 'JIRA_CONTEXT' secret."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Transition JIRA tickets
+        if: steps.check.outputs.enabled == 'true'
+        uses: futuredapp/.github/.github/actions/jira-transition-tickets@main
+        with:
+          jira_context: ${{ secrets.JIRA_CONTEXT }}
+          transition: ${{ inputs.JIRA_TRANSITION }}
+          merged_branches: ${{ needs.changelog.outputs.merged_branches }}
