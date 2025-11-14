@@ -36,6 +36,11 @@ on:
         type: string
         required: false
         default: '24 hours'
+      jira_transition:
+        description: 'The name of the JIRA transition to apply to tickets found in merged branches.'
+        type: string
+        required: false
+        default: 'Testing'
 
     secrets:
       MATCH_PASSWORD:
@@ -53,11 +58,17 @@ on:
       SECRET_PROPERTIES:
         required: false
         description: 'Secrets in the format KEY = VALUE (one per line).'
+      JIRA_CONTEXT:
+        required: false
+        description: 'JIRA context for transitioning tickets.'
 
 jobs:
   build:
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', inputs.runner_label)) }}
     timeout-minutes: ${{ inputs.timeout_minutes }}
+    outputs:
+      skip_build: ${{ steps.detect_changes.outputs.skip_build }}
+      merged_branches: ${{ steps.detect_changes.outputs.merged_branches }}
 
     steps:
       - name: Detect changes and generate changelog
@@ -90,11 +101,11 @@ jobs:
         if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
         uses: futuredapp/.github/.github/actions/ios-fastlane-beta@main
         with:
-          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          match_password: ${{ secrets.MATCH_PASSWORD }}
           testflight_changelog: ${{ steps.set_changelog.outputs.changelog }}
-          APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
-          APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
-          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          app_store_connect_api_key_key: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
+          app_store_connect_api_key_key_id: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
+          app_store_connect_api_key_issuer_id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
           custom_values: ${{ inputs.custom_values }}
 
       - name: Upload IPA
@@ -123,3 +134,28 @@ jobs:
         with:
           path: latest_builded_commit.txt
           key: ${{ steps.detect_changes.outputs.cache_key }}
+
+  transition_jira_tickets:
+    runs-on: ubuntu-latest
+    needs: build
+    if: success() && needs.build.outputs.skip_build != 'true'
+    steps:
+      - name: Check JIRA context
+        id: check
+        env:
+          JIRA_CONTEXT: ${{ secrets.JIRA_CONTEXT }}
+        run: |
+          if [ -z "$JIRA_CONTEXT" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ JIRA ticket transition skipped - no JIRA context provided."
+            echo "💡 Tip: You can automatically transition JIRA tickets by passing the 'JIRA_CONTEXT' secret."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Transition JIRA tickets
+        if: steps.check.outputs.enabled == 'true'
+        uses: ./.github/actions/jira-transition-tickets
+        with:
+          jira_context: ${{ secrets.JIRA_CONTEXT }}
+          transition: ${{ inputs.jira_transition }}
+          merged_branches: ${{ needs.build.outputs.merged_branches }}

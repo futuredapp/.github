@@ -85,7 +85,7 @@ on:
         description: "Jira transition to use for transitioning related issues after build"
         required: false
         type: string
-        default: "Ready for testing"
+        default: 'Testing'
 
     secrets:
       APP_DISTRIBUTION_SERVICE_ACCOUNT:
@@ -99,7 +99,7 @@ on:
         description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input."
       JIRA_CONTEXT:
         required: false
-        description: "Jira context JSON for jira-transition-tickets action"
+        description: "JIRA context for transitioning tickets."
 
 jobs:
   changelog:
