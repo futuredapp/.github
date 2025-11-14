@@ -20,7 +20,7 @@ fi
 # Remove duplicate keys and create a space-separated string
 UNIQUE_JIRA_KEYS_STR=$(echo "${JIRA_KEYS[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
-# Build JQL query
+# Build issue keys list
 ISSUE_KEYS=""
 if [[ -n "$UNIQUE_JIRA_KEYS_STR" ]]; then
   ISSUE_KEYS="${UNIQUE_JIRA_KEYS_STR// /,}"
