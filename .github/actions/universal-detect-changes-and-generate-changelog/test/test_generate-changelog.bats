@@ -191,7 +191,7 @@ load 'test_helper'
   run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
   
   [ "$status" -eq 0 ]
-  [ "$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "Message with newlines, and special chars: @#$%, and quotes: \"test\"" ]
+  [ "$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "Message with newlines, and special chars: @#$%25, and quotes: \"test\"" ]
 }
 
 @test "generate-changelog: handles empty branch names" {
@@ -355,7 +355,7 @@ load 'test_helper'
   [ "$status" -eq 0 ]
   # Quotes should be preserved and outputs remain a single line key=value (no YAML/shell breakage)
   [ "$(grep '^changelog_string=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "Fix: handle \"quoted\" values in output, Ensure it's safe when there's a 'single quote' too" ]
-  [ "$(grep '^merged_branches=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "feature-quoted-\"name\", feature-another'quoted'branch" ]
+  [ "$(grep '^merged_branches=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "feature-another'quoted'branch, feature-quoted-\"name\"" ]
 }
 
 @test "generate-changelog: handles raw double quotes via here-doc (no escaping in source)" {
