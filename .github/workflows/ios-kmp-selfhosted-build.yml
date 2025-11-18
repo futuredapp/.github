@@ -57,6 +57,21 @@ on:
         type: string
         required: false
         default: ${{ github.event.pull_request.title }}
+      checkout_depth:
+        description: 'The depth of the git history to fetch for changelog generation.'
+        type: number
+        required: false
+        default: 100
+      changelog_fallback_lookback:
+        description: 'The amount of time to look back for merge commits when no previous build commit is found. Default is 24 hours.'
+        type: string
+        required: false
+        default: '24 hours'
+      changelog_debug:
+        description: "Enable debug mode for changelog generation. Default is false."
+        type: boolean
+        required: false
+        default: false
       custom_build_path:
         description: "Path to directory containing Fastfile. If not specified, uses iosApp. Example: iosApp/appA"
         type: string
@@ -88,9 +103,42 @@ on:
          Secrets in the format KEY = VALUE (one per line).
 
 jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    outputs:
+      skip_build: ${{ steps.set_outputs.outputs.skip_build }}
+      changelog: ${{ steps.set_outputs.outputs.changelog }}
+      cache_key: ${{ steps.detect_changes.outputs.cache_key }}
+      merged_branches: ${{ steps.detect_changes.outputs.merged_branches }}
+    steps:
+      - name: Checkout
+        if: ${{ inputs.changelog == '' || inputs.changelog == github.event.pull_request.title }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ inputs.checkout_depth }}
+      - name: Detect changes and generate changelog
+        if: ${{ inputs.changelog == '' || inputs.changelog == github.event.pull_request.title }}
+        id: detect_changes
+        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
+        with:
+          debug: ${{ inputs.changelog_debug }}
+          fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
+      - name: Set outputs
+        id: set_outputs
+        run: |
+          if [ -n "${{ inputs.changelog }}" ] && [ "${{ inputs.changelog }}" != "${{ github.event.pull_request.title }}" ]; then
+            echo "changelog=${{ inputs.changelog }}" >> "$GITHUB_OUTPUT"
+            echo "skip_build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changelog=${{ steps.detect_changes.outputs.changelog }}" >> "$GITHUB_OUTPUT"
+            echo "skip_build=${{ steps.detect_changes.outputs.skip_build }}" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
     runs-on: self-hosted
     timeout-minutes: ${{ inputs.timeout_minutes }}
+    needs: changelog
+    if: ${{ needs.changelog.outputs.skip_build != 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -110,7 +158,7 @@ jobs:
           app_store_connect_api_key_key: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
           app_store_connect_api_key_key_id: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
           app_store_connect_api_key_issuer_id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
-          testflight_changelog: ${{ inputs.changelog }}
+          testflight_changelog: ${{ needs.changelog.outputs.changelog }}
           secret_xcconfig_path: ${{ inputs.xcconfig_path }}
           secret_properties: ${{ secrets.SECRET_PROPERTIES }}
           secret_required_keys: ${{ inputs.required_keys }}
@@ -119,3 +167,15 @@ jobs:
           kmp_swift_package_flavor: ${{ inputs.kmp_swift_package_flavor }}
           custom_values: ${{ inputs.custom_values }}
           ios_custom_build_path: ${{ inputs.custom_build_path }}
+      - name: Save latest build commit SHA to file
+        if: success()
+        shell: bash
+        run: |
+          echo "${{ github.sha }}" > latest_builded_commit.txt
+      
+      - name: Store latest build commit SHA in cache
+        if: success() && (inputs.changelog == '' || inputs.changelog == github.event.pull_request.title)
+        uses: actions/cache/save@v4
+        with:
+          path: latest_builded_commit.txt
+          key: ${{ needs.changelog.outputs.cache_key }}

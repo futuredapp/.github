@@ -2,11 +2,6 @@ name: Detect changes and generate changelog
 description: Detects changes since the last built commit and generates a changelog.
 
 inputs:
-  checkout_depth:
-    required: false
-    description: 'The depth of the git history to fetch. Default is 100.'
-    type: number
-    default: 100
   debug:
     required: false
     description: 'Enable debug mode. Default is false.'
@@ -19,11 +14,6 @@ inputs:
   cache_key_prefix:
     required: false
     description: 'Custom prefix for cache keys. If not provided, will use latest_builded_commit-. If provided, format will be {prefix}-latest_builded_commit-'
-  use_git_lfs:
-    required: false
-    description: 'Whether to download Git-LFS files during checkout. Default is false.'
-    type: boolean
-    default: false
 
 outputs:
   skip_build:
@@ -42,12 +32,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: ${{ inputs.checkout_depth }}
-        lfs: ${{ inputs.use_git_lfs }}
-
     - name: Calculate cache keys
       id: cache_keys
       shell: bash

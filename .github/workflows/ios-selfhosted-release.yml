@@ -12,6 +12,22 @@ on:
         description: 'Job timeout in minutes'
         type: number
         default: 30
+      # Changelog
+      checkout_depth:
+        description: 'The depth of the git history to fetch for changelog generation.'
+        type: number
+        required: false
+        default: 100
+      changelog_fallback_lookback:
+        description: 'The amount of time to look back for merge commits when no previous build commit is found. Default is 24 hours.'
+        type: string
+        required: false
+        default: '24 hours'
+      changelog_debug:
+        description: "Enable debug mode for changelog generation. Default is false."
+        type: boolean
+        required: false
+        default: false
       # Git LFS
       use_git_lfs:
         description: 'Whether to download Git-LFS files.'
@@ -31,6 +47,11 @@ on:
         description: 'Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: "CUSTOM-1: 1; CUSTOM-2: 2"'
         type: string
         required: false
+      jira_transition:
+        description: 'The name of the JIRA transition to apply to tickets found in merged branches.'
+        type: string
+        required: false
+        default: 'Released'
 
     secrets:
       MATCH_PASSWORD:
@@ -48,12 +69,38 @@ on:
       SECRET_PROPERTIES:
         required: false
         description: 'Secrets in the format KEY = VALUE (one per line).'
+      JIRA_CONTEXT:
+        required: false
+        description: 'JIRA context for transitioning tickets.'
 
 jobs:
-  release:
+  changelog:
+    outputs:
+      skip_build: ${{ steps.detect_changes.outputs.skip_build }}
+      changelog: ${{ steps.detect_changes.outputs.changelog }}
+      cache_key: ${{ steps.detect_changes.outputs.cache_key }}
+      merged_branches: ${{ steps.detect_changes.outputs.merged_branches }}
+    name: Detect changes and generate changelog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ inputs.checkout_depth }}
+      - name: Detect changes and generate changelog
+        id: detect_changes
+        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
+        with:
+          debug: ${{ inputs.changelog_debug }}
+          fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
+          cache_key_prefix: "release"
+
+  build:
+    name: Release build
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', inputs.runner_label)) }}
     timeout-minutes: ${{ inputs.timeout_minutes }}
-
+    needs: changelog
+    if: ${{ needs.changelog.outputs.skip_build != 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -89,3 +136,42 @@ jobs:
         with:
           name: Build.app.dSYM.zip
           path: build_output/*.app.dSYM.zip
+      
+      - name: Save latest build commit SHA to file
+        if: success()
+        shell: bash
+        run: |
+          echo "${{ github.sha }}" > latest_builded_commit.txt
+      
+      - name: Store latest build commit SHA in cache
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: latest_builded_commit.txt
+          key: ${{ needs.changelog.outputs.cache_key }}
+
+  transition_jira_tickets:
+    name: Transition JIRA tickets
+    runs-on: ubuntu-latest
+    needs: [build, changelog]
+    if: success() && needs.changelog.outputs.skip_build != 'true'
+    steps:
+      - name: Check JIRA context
+        id: check
+        env:
+          JIRA_CONTEXT: ${{ secrets.JIRA_CONTEXT }}
+        run: |
+          if [ -z "$JIRA_CONTEXT" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ JIRA ticket transition skipped - no JIRA context provided."
+            echo "💡 Tip: You can automatically transition JIRA tickets by passing the 'JIRA_CONTEXT' secret."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Transition JIRA tickets
+        if: steps.check.outputs.enabled == 'true'
+        uses: futuredapp/.github/.github/actions/jira-transition-tickets@main
+        with:
+          jira_context: ${{ secrets.JIRA_CONTEXT }}
+          transition: ${{ inputs.jira_transition }}
+          merged_branches: ${{ needs.changelog.outputs.merged_branches }}

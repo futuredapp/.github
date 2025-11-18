@@ -23,6 +23,11 @@ on:
         type: string
         required: false
         default: '24 hours'
+      changelog_debug:
+        description: "Enable debug mode for changelog generation. Default is false."
+        type: boolean
+        required: false
+        default: false
       # Git LFS
       use_git_lfs:
         description: 'Whether to download Git-LFS files.'
@@ -42,7 +47,6 @@ on:
         description: 'Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: "CUSTOM-1: 1; CUSTOM-2: 2"'
         type: string
         required: false
-        default: '24 hours'
       jira_transition:
         description: 'The name of the JIRA transition to apply to tickets found in merged branches.'
         type: string
@@ -70,30 +74,39 @@ on:
         description: 'JIRA context for transitioning tickets.'
 
 jobs:
-  build:
-    runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', inputs.runner_label)) }}
-    timeout-minutes: ${{ inputs.timeout_minutes }}
+  changelog:
     outputs:
       skip_build: ${{ steps.detect_changes.outputs.skip_build }}
+      changelog: ${{ steps.detect_changes.outputs.changelog }}
+      cache_key: ${{ steps.detect_changes.outputs.cache_key }}
       merged_branches: ${{ steps.detect_changes.outputs.merged_branches }}
-
+    name: Detect changes and generate changelog
+    runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ inputs.checkout_depth }}
       - name: Detect changes and generate changelog
         id: detect_changes
         uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@main
         with:
-          checkout_depth: ${{ inputs.checkout_depth }}
+          debug: ${{ inputs.changelog_debug }}
           fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
-          use_git_lfs: ${{ inputs.use_git_lfs }}
-  
-      - name: Set changelog
-        if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
-        id: set_changelog
-        run: |
-          echo "changelog=${{ steps.detect_changes.outputs.changelog }}" >> "$GITHUB_OUTPUT"
+
+  build:
+    runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', inputs.runner_label)) }}
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    needs: changelog
+    if: ${{ needs.changelog.outputs.skip_build != 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: ${{ inputs.use_git_lfs }}
 
       - name: Export secrets
-        if: ${{ steps.detect_changes.outputs.skip_build == 'false' && inputs.xcconfig_path != '' }}
+        if: ${{ inputs.xcconfig_path != '' }}
         uses: futuredapp/.github/.github/actions/ios-export-secrets@main
         with:
           XCCONFIG_PATH: ${{ inputs.xcconfig_path }}
@@ -101,48 +114,45 @@ jobs:
           REQUIRED_KEYS: ${{ inputs.required_keys }}
 
       - name: Fastlane Beta
-        if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
         uses: futuredapp/.github/.github/actions/ios-fastlane-beta@main
         with:
           match_password: ${{ secrets.MATCH_PASSWORD }}
-          testflight_changelog: ${{ steps.set_changelog.outputs.changelog }}
+          testflight_changelog: ${{ needs.changelog.outputs.changelog }}
           app_store_connect_api_key_key: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
           app_store_connect_api_key_key_id: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
           app_store_connect_api_key_issuer_id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
           custom_values: ${{ inputs.custom_values }}
 
       - name: Upload IPA
-        if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
         uses: actions/upload-artifact@v4
         with:
           name: Build.ipa
           path: build_output/*.ipa
 
       - name: Upload dSYM
-        if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
         uses: actions/upload-artifact@v4
         with:
           name: Build.app.dSYM.zip
           path: build_output/*.app.dSYM.zip
 
       - name: Save latest build commit SHA to file
-        if: success() && steps.detect_changes.outputs.skip_build == 'false'
+        if: success()
         shell: bash
         run: |
           echo "${{ github.sha }}" > latest_builded_commit.txt
       
       - name: Store latest build commit SHA in cache
-        if: success() && steps.detect_changes.outputs.skip_build == 'false'
+        if: success()
         uses: actions/cache/save@v4
         with:
           path: latest_builded_commit.txt
-          key: ${{ steps.detect_changes.outputs.cache_key }}
+          key: ${{ needs.changelog.outputs.cache_key }}
 
   transition_jira_tickets:
     name: Transition JIRA tickets
     runs-on: ubuntu-latest
-    needs: build
-    if: success() && needs.build.outputs.skip_build != 'true'
+    needs: [build, changelog]
+    if: success() && needs.changelog.outputs.skip_build != 'true'
     steps:
       - name: Check JIRA context
         id: check
@@ -162,4 +172,4 @@ jobs:
         with:
           jira_context: ${{ secrets.JIRA_CONTEXT }}
           transition: ${{ inputs.jira_transition }}
-          merged_branches: ${{ needs.build.outputs.merged_branches }}
+          merged_branches: ${{ needs.changelog.outputs.merged_branches }}
