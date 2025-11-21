@@ -4,6 +4,7 @@
 # Global variables
 FROM_COMMIT="$FROM_COMMIT"
 TO_COMMIT="$TO_COMMIT"
+EXCLUDE_SOURCE_BRANCHES="${EXCLUDE_SOURCE_BRANCHES:-(main|develop|master)}"
 FORMATTED_CHANGELOG=""
 FORMATTED_BRANCH_NAMES=""
 
@@ -15,10 +16,14 @@ debug_log() {
 }
 
 # Get git log for changelog (commit messages)
+# NOTE: This intentionally uses --first-parent to follow the main branch history.
+# We only want changelog messages from direct merges to the main branch, not from
+# nested feature branch merges. Branch name detection (get_branch_names) does NOT
+# use --first-parent so it can detect nested branches.
 get_changelog() {
   local from_commit="$1"
   local to_commit="$2"
-  
+
   if [ "$from_commit" == "$to_commit" ]; then
     debug_log "FROM_COMMIT is same as HEAD. Using range HEAD~1..HEAD"
     git log --merges --first-parent --pretty=format:"%b" HEAD~1..HEAD 2>&1
@@ -34,14 +39,16 @@ get_changelog() {
 get_branch_names() {
   local from_commit="$1"
   local to_commit="$2"
-  
+
   if [ "$from_commit" == "$to_commit" ]; then
-    git log --merges --first-parent --pretty=format:"%s" HEAD~1..HEAD | \
+    git log --merges --pretty=format:"%s" HEAD~1..HEAD | \
+      grep -v -E "Merge branch '(${EXCLUDE_SOURCE_BRANCHES})' into" | \
       sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
       grep -v '^$' 2>&1 || true
     return 0
   else
-    git log --merges --first-parent --pretty=format:"%s" "${from_commit}..${to_commit}" | \
+    git log --merges --pretty=format:"%s" "${from_commit}..${to_commit}" | \
+      grep -v -E "Merge branch '(${EXCLUDE_SOURCE_BRANCHES})' into" | \
       sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
       grep -v '^$' 2>&1 || true
     return 0
@@ -135,11 +142,14 @@ main() {
   
   if [ "$FROM_COMMIT" == "$TO_COMMIT" ]; then
     debug_log "FROM_COMMIT is same as HEAD. Using range HEAD~1..HEAD"
+    # Changelog uses --first-parent to follow main branch history only
     raw_changelog=$(git log --merges --first-parent --pretty=format:"%b" HEAD~1..HEAD 2>&1)
     git_exit_code=$?
-    
+
     if [ $git_exit_code -eq 0 ]; then
-      raw_branch_names=$(git log --merges --first-parent --pretty=format:"%s" HEAD~1..HEAD 2>&1 | \
+      # Branch names do NOT use --first-parent to detect nested merges
+      raw_branch_names=$(git log --merges --pretty=format:"%s" HEAD~1..HEAD 2>&1 | \
+        grep -v -E "Merge branch '(${EXCLUDE_SOURCE_BRANCHES})' into" | \
         sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
         grep -v '^$' 2>&1 || true)
       git_exit_code=0
@@ -148,11 +158,14 @@ main() {
     fi
   else
     debug_log "Using range ${FROM_COMMIT}..${TO_COMMIT}"
+    # Changelog uses --first-parent to follow main branch history only
     raw_changelog=$(git log --merges --first-parent --pretty=format:"%b" "${FROM_COMMIT}..${TO_COMMIT}" 2>&1)
     git_exit_code=$?
-    
+
     if [ $git_exit_code -eq 0 ]; then
-      raw_branch_names=$(git log --merges --first-parent --pretty=format:"%s" "${FROM_COMMIT}..${TO_COMMIT}" 2>&1 | \
+      # Branch names do NOT use --first-parent to detect nested merges
+      raw_branch_names=$(git log --merges --pretty=format:"%s" "${FROM_COMMIT}..${TO_COMMIT}" 2>&1 | \
+        grep -v -E "Merge branch '(${EXCLUDE_SOURCE_BRANCHES})' into" | \
         sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
         grep -v '^$' 2>&1 || true)
       git_exit_code=0
