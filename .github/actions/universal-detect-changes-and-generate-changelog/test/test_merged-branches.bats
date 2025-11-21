@@ -48,14 +48,13 @@ load 'test_helper'
 
   [ "$status" -eq 0 ]
 
-  # With positive filtering, only feature-A is detected
-  # This is correct: B's commits are part of A, but B never merged to a main branch
+  # Only feature-A is detected (B was squashed, no separate merge commit)
+  # This is correct: B's commits are part of A, but B never had its own merge commit
   [ "$(grep '^merged_branches=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "feature-A" ]
 
-  # LIMITATION: If feature-B was a separate branch that merged into feature-A
-  # with its own merge commit, and then feature-A merged to develop, we would
-  # want to see both A and B IF both merge commits are present in the history.
-  # This test shows the case where B was squashed (no separate merge commit).
+  # NOTE: If feature-B had a separate merge commit into feature-A, and then
+  # feature-A merged to develop, BOTH A and B would be detected (see next test).
+  # This test shows the squash-merge case where B has no separate merge commit.
 }
 
 @test "merged-branches: detects true nested merge B→A→develop with separate merge commits (FIXED)" {
@@ -396,6 +395,43 @@ load 'test_helper'
 
   # Should preserve quotes in branch names
   [ "$(grep '^merged_branches=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "another-'single'-quoted, feature-\"quoted\"-name" ]
+}
+
+@test "merged-branches: uses default target branches when not specified" {
+  export FROM_COMMIT="base-commit"
+  export TO_COMMIT="HEAD"
+  export DEBUG="false"
+  # Explicitly unset TARGET_BRANCH to test default fallback
+  unset TARGET_BRANCH
+
+  # Test that default (main|develop|master) is used
+  git() {
+    case "$1" in
+      "log")
+        if [[ "$*" == *"--pretty=format:%b"* ]]; then
+          echo "Feature work"
+        elif [[ "$*" == *"--pretty=format:%s"* ]]; then
+          echo "Merge branch 'develop' into feature-A"  # Should be filtered (matches default)
+          echo "Merge branch 'feature-A' into main"  # Should be included
+          echo "Merge branch 'feature-B' into develop"  # Should be included
+        fi
+        return 0
+        ;;
+    esac
+  }
+  export -f git
+
+  run "$BATS_TEST_DIRNAME/../generate-changelog.sh"
+
+  [ "$status" -eq 0 ]
+
+  # Default pattern (main|develop|master) filters out reverse merges
+  # - "Merge branch 'develop' into feature-A" is FILTERED OUT (develop matches default)
+  # - "Merge branch 'feature-A' into main" is INCLUDED
+  # - "Merge branch 'feature-B' into develop" is INCLUDED
+  [ "$(grep '^merged_branches=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "feature-A, feature-B" ]
+
+  # This verifies the default fallback works correctly
 }
 
 @test "merged-branches: supports custom target branch pattern" {

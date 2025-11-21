@@ -4,6 +4,8 @@ This GitHub Action detects changes since the last built commit and generates a c
 
 ## Features
 
+- ✅ **Nested Merge Detection**: Detects ALL merged branches including nested merges (e.g., B→A→develop reports both A and B)
+- ✅ **Smart Filtering**: Automatically filters out reverse merges (main→feature) used for conflict resolution
 - ✅ **Modular Design**: Split into separate bash scripts for better maintainability
 - ✅ **Customizable Cache Keys**: Support for custom cache key prefixes (format: `latest_builded_commit-` or `{prefix}-latest_builded_commit-`)
 - ✅ **GitHub-Native**: Leverages GitHub's built-in branch handling (no manual sanitization)
@@ -18,6 +20,8 @@ This GitHub Action detects changes since the last built commit and generates a c
 | `debug` | No | `false` | Enable debug mode for detailed logging |
 | `fallback_lookback` | No | `"24 hours"` | Time to look back for merge commits when no previous build commit is found |
 | `cache_key_prefix` | No | - | Custom prefix for cache keys. If not provided, will use `latest_builded_commit-`. If provided, format will be `{prefix}-latest_builded_commit-` |
+| `use_git_lfs` | No | `false` | Whether to download Git-LFS files during checkout |
+| `target_branch` | No | `"(main\|develop\|master)"` | Regex pattern to filter reverse merges. Matches branch names that should be excluded when merged INTO feature branches (e.g., `main→feature`). Supports ERE syntax like `"(release.*\|hotfix.*)"` |
 
 ## Outputs
 
@@ -27,6 +31,31 @@ This GitHub Action detects changes since the last built commit and generates a c
 | `changelog` | The generated changelog formatted as a string |
 | `merged_branches` | List of merged branch names |
 | `cache_key` | Cache key to store latest built commit for this branch |
+
+## Nested Merge Detection
+
+The action detects **all merged branches** including nested merges where one feature branch merges into another before merging to main.
+
+### How It Works
+
+**Example:** Branch B merges into branch A, then A merges into develop
+- **Output:** Both `feature-A` and `feature-B` are detected
+- **Filtering:** Reverse merges (e.g., `develop→feature-A` for conflict resolution) are automatically excluded
+
+### Implementation Details
+
+- **Branch Names**: Uses `git log --merges` (without `--first-parent`) to see all merge commits
+- **Changelog Messages**: Uses `git log --merges --first-parent` to follow only main branch history
+- **Filtering**: Negative filtering via `grep -v "Merge branch '(main|develop|master)' into"` excludes reverse merges
+
+### Performance Considerations
+
+Removing `--first-parent` for branch detection means git traverses more of the commit graph:
+- **Impact**: Minimal for typical workflows (10-100 commits between builds)
+- **Large histories**: May add 1-2 seconds for repos with 1000+ commits in the range
+- **Recommendation**: Use `checkout_depth` to limit git history fetch depth if needed
+
+The performance tradeoff is generally acceptable given the improved accuracy in branch detection.
 
 ## Scripts
 
@@ -53,16 +82,17 @@ Determines commit range and skip build logic.
 - `to_commit`: Ending commit for changelog
 
 ### `generate-changelog.sh`
-Generates formatted changelog and branch names.
+Generates formatted changelog and branch names with nested merge detection.
 
 **Environment Variables:**
 - `FROM_COMMIT`: Starting commit
 - `TO_COMMIT`: Ending commit
+- `TARGET_BRANCH`: Regex pattern for filtering reverse merges (default: `(main|develop|master)`)
 - `DEBUG`: Debug mode flag
 
 **Outputs:**
-- `changelog_string`: Formatted changelog
-- `merged_branches`: List of merged branches
+- `changelog_string`: Formatted changelog (from main branch history only)
+- `merged_branches`: List of all merged branches (includes nested merges)
 
 ## Testing
 
@@ -78,6 +108,7 @@ The action includes comprehensive unit tests using BATS (Bash Automated Testing 
 bats test/test_cache-keys.bats
 bats test/test_determine-range.bats
 bats test/test_generate-changelog.bats
+bats test/test_merged-branches.bats
 ```
 
 ### CI Testing
@@ -94,6 +125,9 @@ Tests run automatically on pull requests when relevant files change. The CI work
 - ✅ Commit range determination logic
 - ✅ Skip build decision making
 - ✅ Changelog generation and formatting
+- ✅ **Nested merge detection** (B→A→develop, C→B→A→develop)
+- ✅ **Reverse merge filtering** (conflict resolution exclusion)
+- ✅ **Custom target branch patterns**
 - ✅ Error handling and edge cases
 - ✅ Debug output functionality
 - ✅ Git command failure scenarios

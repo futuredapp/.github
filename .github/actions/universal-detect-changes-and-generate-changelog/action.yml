@@ -26,7 +26,7 @@ inputs:
     default: false
   target_branch:
     required: false
-    description: 'Target branch name(s) to detect merges into. Regex pattern used to filter which merges are included in the changelog. Default captures merges into main, develop, or master branches.'
+    description: 'Target branch name(s) to filter reverse merges. Uses Extended Regular Expression (ERE) syntax to match branch names that should be excluded when merged INTO feature branches (e.g., main→feature for conflict resolution). Supports regex patterns like "(release.*|hotfix.*)" for flexible matching. Default: "(main|develop|master)"'
     default: "(main|develop|master)"
 
 outputs:
