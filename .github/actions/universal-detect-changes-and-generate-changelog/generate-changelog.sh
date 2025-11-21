@@ -4,6 +4,7 @@
 # Global variables
 FROM_COMMIT="$FROM_COMMIT"
 TO_COMMIT="$TO_COMMIT"
+TARGET_BRANCH="${TARGET_BRANCH:-(main|develop|master)}"
 FORMATTED_CHANGELOG=""
 FORMATTED_BRANCH_NAMES=""
 
@@ -34,14 +35,16 @@ get_changelog() {
 get_branch_names() {
   local from_commit="$1"
   local to_commit="$2"
-  
+
   if [ "$from_commit" == "$to_commit" ]; then
-    git log --merges --first-parent --pretty=format:"%s" HEAD~1..HEAD | \
+    git log --merges --pretty=format:"%s" HEAD~1..HEAD | \
+      grep -v -E "Merge branch '(${TARGET_BRANCH})' into" | \
       sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
       grep -v '^$' 2>&1 || true
     return 0
   else
-    git log --merges --first-parent --pretty=format:"%s" "${from_commit}..${to_commit}" | \
+    git log --merges --pretty=format:"%s" "${from_commit}..${to_commit}" | \
+      grep -v -E "Merge branch '(${TARGET_BRANCH})' into" | \
       sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
       grep -v '^$' 2>&1 || true
     return 0
@@ -137,9 +140,10 @@ main() {
     debug_log "FROM_COMMIT is same as HEAD. Using range HEAD~1..HEAD"
     raw_changelog=$(git log --merges --first-parent --pretty=format:"%b" HEAD~1..HEAD 2>&1)
     git_exit_code=$?
-    
+
     if [ $git_exit_code -eq 0 ]; then
-      raw_branch_names=$(git log --merges --first-parent --pretty=format:"%s" HEAD~1..HEAD 2>&1 | \
+      raw_branch_names=$(git log --merges --pretty=format:"%s" HEAD~1..HEAD 2>&1 | \
+        grep -v -E "Merge branch '(${TARGET_BRANCH})' into" | \
         sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
         grep -v '^$' 2>&1 || true)
       git_exit_code=0
@@ -150,9 +154,10 @@ main() {
     debug_log "Using range ${FROM_COMMIT}..${TO_COMMIT}"
     raw_changelog=$(git log --merges --first-parent --pretty=format:"%b" "${FROM_COMMIT}..${TO_COMMIT}" 2>&1)
     git_exit_code=$?
-    
+
     if [ $git_exit_code -eq 0 ]; then
-      raw_branch_names=$(git log --merges --first-parent --pretty=format:"%s" "${FROM_COMMIT}..${TO_COMMIT}" 2>&1 | \
+      raw_branch_names=$(git log --merges --pretty=format:"%s" "${FROM_COMMIT}..${TO_COMMIT}" 2>&1 | \
+        grep -v -E "Merge branch '(${TARGET_BRANCH})' into" | \
         sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
         grep -v '^$' 2>&1 || true)
       git_exit_code=0

@@ -24,6 +24,10 @@ inputs:
     description: 'Whether to download Git-LFS files during checkout. Default is false.'
     type: boolean
     default: false
+  target_branch:
+    required: false
+    description: 'Target branch name(s) to detect merges into. Regex pattern used to filter which merges are included in the changelog. Default captures merges into main, develop, or master branches.'
+    default: "(main|develop|master)"
 
 outputs:
   skip_build:
@@ -91,3 +95,4 @@ runs:
         FROM_COMMIT: ${{ steps.determine_range.outputs.from_commit }}
         TO_COMMIT: ${{ steps.determine_range.outputs.to_commit }}
         DEBUG: ${{ inputs.debug }}
+        TARGET_BRANCH: ${{ inputs.target_branch }}
