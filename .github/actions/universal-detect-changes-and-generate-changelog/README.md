@@ -21,7 +21,7 @@ This GitHub Action detects changes since the last built commit and generates a c
 | `fallback_lookback` | No | `"24 hours"` | Time to look back for merge commits when no previous build commit is found |
 | `cache_key_prefix` | No | - | Custom prefix for cache keys. If not provided, will use `latest_builded_commit-`. If provided, format will be `{prefix}-latest_builded_commit-` |
 | `use_git_lfs` | No | `false` | Whether to download Git-LFS files during checkout |
-| `target_branch` | No | `"(main\|develop\|master)"` | Regex pattern to filter reverse merges. Matches branch names that should be excluded when merged INTO feature branches (e.g., `main→feature`). Supports ERE syntax like `"(release.*\|hotfix.*)"` |
+| `exclude_source_branches` | No | `"(main\|develop\|master)"` | Exclude merged commits of given branches. Regex pattern (ERE). Example: `"(release.*\|hotfix.*)"` |
 
 ## Outputs
 
@@ -46,7 +46,7 @@ The action detects **all merged branches** including nested merges where one fea
 
 - **Branch Names**: Uses `git log --merges` (without `--first-parent`) to see all merge commits
 - **Changelog Messages**: Uses `git log --merges --first-parent` to follow only main branch history
-- **Filtering**: Negative filtering via `grep -v "Merge branch '(main|develop|master)' into"` excludes reverse merges
+- **Filtering**: Excludes source branches via `grep -v "Merge branch '(EXCLUDE_SOURCE_BRANCHES)' into"`
 
 ### Performance Considerations
 
@@ -87,7 +87,7 @@ Generates formatted changelog and branch names with nested merge detection.
 **Environment Variables:**
 - `FROM_COMMIT`: Starting commit
 - `TO_COMMIT`: Ending commit
-- `TARGET_BRANCH`: Regex pattern for filtering reverse merges (default: `(main|develop|master)`)
+- `EXCLUDE_SOURCE_BRANCHES`: Regex pattern for excluding source branches (default: `(main|develop|master)`)
 - `DEBUG`: Debug mode flag
 
 **Outputs:**

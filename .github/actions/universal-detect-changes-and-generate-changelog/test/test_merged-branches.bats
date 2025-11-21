@@ -11,7 +11,7 @@ load 'test_helper'
 # The generate-changelog.sh script now uses `git log --merges` (without --first-parent)
 # combined with negative filtering to detect ALL merged branches including nested ones.
 #
-# The filtering logic: grep -v "Merge branch '(main|develop|master)' into"
+# The filtering logic: grep -v "Merge branch '(EXCLUDE_SOURCE_BRANCHES)' into"
 # - Removes reverse merges (main→feature) used for conflict resolution
 # - Keeps all forward merges (feature→feature and feature→main)
 #
@@ -23,7 +23,7 @@ load 'test_helper'
   export FROM_COMMIT="base-commit"
   export TO_COMMIT="HEAD"
   export DEBUG="false"
-  export TARGET_BRANCH="(main|develop|master)"
+  export EXCLUDE_SOURCE_BRANCHES="(main|develop|master)"
 
   # Simulate git history where feature-A squashes commits from feature-B
   # Then feature-A merges to develop
@@ -57,11 +57,11 @@ load 'test_helper'
   # This test shows the squash-merge case where B has no separate merge commit.
 }
 
-@test "merged-branches: detects true nested merge B→A→develop with separate merge commits (FIXED)" {
+@test "merged-branches: detects true nested merge B→A→develop with separate merge commits" {
   export FROM_COMMIT="base-commit"
   export TO_COMMIT="HEAD"
   export DEBUG="false"
-  export TARGET_BRANCH="(main|develop|master)"
+  export EXCLUDE_SOURCE_BRANCHES="(main|develop|master)"
 
   # Simulate git history where BOTH merges are present:
   # 1. feature-B has a merge commit into feature-A
@@ -93,14 +93,13 @@ load 'test_helper'
   # Result: Both feature-A and feature-B are detected
   [ "$(grep '^merged_branches=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "feature-A, feature-B" ]
 
-  # This is the FIXED behavior - both nested branches are now detected!
 }
 
 @test "merged-branches: filters out conflict resolution merges (develop→A, then A→develop)" {
   export FROM_COMMIT="base-commit"
   export TO_COMMIT="HEAD"
   export DEBUG="false"
-  export TARGET_BRANCH="(main|develop|master)"
+  export EXCLUDE_SOURCE_BRANCHES="(main|develop|master)"
 
   # Simulate git history:
   # 1. develop merges into feature-A (conflict resolution - should be filtered out)
@@ -136,11 +135,11 @@ load 'test_helper'
   # This is CORRECT behavior - conflict resolution merges (main→feature) are filtered out
 }
 
-@test "merged-branches: multiple nested branches C→B→A→develop (FIXED)" {
+@test "merged-branches: multiple nested branches C→B→A→develop" {
   export FROM_COMMIT="base-commit"
   export TO_COMMIT="HEAD"
   export DEBUG="false"
-  export TARGET_BRANCH="(main|develop|master)"
+  export EXCLUDE_SOURCE_BRANCHES="(main|develop|master)"
 
   # Simulate git history:
   # 1. Branch C merges into branch B
@@ -169,10 +168,9 @@ load 'test_helper'
 
   [ "$status" -eq 0 ]
 
-  # FIXED BEHAVIOR: Detects all nested branches A, B, and C
+  # Detects all nested branches A, B, and C
   [ "$(grep '^merged_branches=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "feature-A, feature-B, feature-C" ]
 
-  # This demonstrates that deep nesting is now properly detected!
 }
 
 @test "merged-branches: parallel merges A and B separately to develop (WORKING CASE)" {
@@ -211,11 +209,11 @@ load 'test_helper'
   # This is the EXPECTED working case - parallel merges work correctly
 }
 
-@test "merged-branches: mixed scenario with nested and parallel merges (FIXED)" {
+@test "merged-branches: mixed scenario with nested and parallel merges" {
   export FROM_COMMIT="base-commit"
   export TO_COMMIT="HEAD"
   export DEBUG="false"
-  export TARGET_BRANCH="(main|develop|master)"
+  export EXCLUDE_SOURCE_BRANCHES="(main|develop|master)"
 
   # Simulate git history:
   # 1. Branch B merges into branch A (nested)
@@ -244,17 +242,16 @@ load 'test_helper'
 
   [ "$status" -eq 0 ]
 
-  # FIXED BEHAVIOR: Detects A, B, and C
+  # Detects A, B, and C
   [ "$(grep '^merged_branches=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "feature-A, feature-B, feature-C" ]
 
-  # This shows that both parallel and nested merges are now detected!
 }
 
 @test "merged-branches: handles pull request merge format" {
   export FROM_COMMIT="base-commit"
   export TO_COMMIT="HEAD"
   export DEBUG="false"
-  export TARGET_BRANCH="(main|develop|master)"
+  export EXCLUDE_SOURCE_BRANCHES="(main|develop|master)"
 
   # Test that pull request merge commits are properly parsed
   git() {
@@ -283,7 +280,7 @@ load 'test_helper'
   export FROM_COMMIT="base-commit"
   export TO_COMMIT="HEAD"
   export DEBUG="false"
-  export TARGET_BRANCH="(main|develop|master)"
+  export EXCLUDE_SOURCE_BRANCHES="(main|develop|master)"
 
   git() {
     case "$1" in
@@ -312,7 +309,7 @@ load 'test_helper'
   export FROM_COMMIT="base-commit"
   export TO_COMMIT="HEAD"
   export DEBUG="false"
-  export TARGET_BRANCH="(main|develop|master)"
+  export EXCLUDE_SOURCE_BRANCHES="(main|develop|master)"
 
   git() {
     case "$1" in
@@ -344,7 +341,7 @@ load 'test_helper'
   export FROM_COMMIT="base-commit"
   export TO_COMMIT="HEAD"
   export DEBUG="false"
-  export TARGET_BRANCH="(main|develop|master)"
+  export EXCLUDE_SOURCE_BRANCHES="(main|develop|master)"
 
   git() {
     case "$1" in
@@ -372,7 +369,7 @@ load 'test_helper'
   export FROM_COMMIT="base-commit"
   export TO_COMMIT="HEAD"
   export DEBUG="false"
-  export TARGET_BRANCH="(main|develop|master)"
+  export EXCLUDE_SOURCE_BRANCHES="(main|develop|master)"
 
   git() {
     case "$1" in
@@ -401,8 +398,8 @@ load 'test_helper'
   export FROM_COMMIT="base-commit"
   export TO_COMMIT="HEAD"
   export DEBUG="false"
-  # Explicitly unset TARGET_BRANCH to test default fallback
-  unset TARGET_BRANCH
+  # Explicitly unset EXCLUDE_SOURCE_BRANCHES to test default fallback
+  unset EXCLUDE_SOURCE_BRANCHES
 
   # Test that default (main|develop|master) is used
   git() {
@@ -438,7 +435,7 @@ load 'test_helper'
   export FROM_COMMIT="base-commit"
   export TO_COMMIT="HEAD"
   export DEBUG="false"
-  export TARGET_BRANCH="(release|production)"
+  export EXCLUDE_SOURCE_BRANCHES="(release|production)"
 
   # Test custom target branch filtering
   git() {
@@ -463,22 +460,11 @@ load 'test_helper'
   [ "$status" -eq 0 ]
 
   # The negative filter grep -v "Merge branch '(release|production)' into"
-  # filters out: "Merge branch 'main' into feature-A" (NO - main doesn't match pattern)
-  # Actually, it filters nothing because none of the sources match (release|production)
-  # Wait, the filter is looking for the SOURCE branch, not the target!
-  # So "Merge branch 'main' into feature-A" - source is 'main', doesn't match filter, INCLUDED
+  # excludes merges where release or production is the SOURCE branch
+  # "Merge branch 'main' into feature-A" - source is 'main', doesn't match, INCLUDED
   # "Merge branch 'feature-A' into release" - source is 'feature-A', doesn't match, INCLUDED
-  # etc.
-  # The filter only removes merges where the SOURCE is release/production/main
-  # With pattern "(release|production)", only "Merge branch 'release...' or 'production...'" are filtered
-  # So all four should be included since none have release/production as source
-
-  # Wait, let me reconsider the logic...
-  # grep -v -E "Merge branch '(${TARGET_BRANCH})' into"
-  # This matches: "Merge branch 'release' into ..." or "Merge branch 'production' into ..."
-  # So it EXCLUDES merges where release or production is the SOURCE
-  # In our test, no merge has release/production as source, so all are included
+  # Result: All branches are included since none have release/production as source
   [ "$(grep '^merged_branches=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "feature-A, feature-B, feature-C, main" ]
 
-  # This demonstrates that TARGET_BRANCH is configurable for different workflows
+  # This demonstrates that EXCLUDE_SOURCE_BRANCHES is configurable for different workflows
 }

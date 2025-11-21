@@ -24,9 +24,9 @@ inputs:
     description: 'Whether to download Git-LFS files during checkout. Default is false.'
     type: boolean
     default: false
-  target_branch:
+  exclude_source_branches:
     required: false
-    description: 'Target branch name(s) to filter reverse merges. Uses Extended Regular Expression (ERE) syntax to match branch names that should be excluded when merged INTO feature branches (e.g., main→feature for conflict resolution). Supports regex patterns like "(release.*|hotfix.*)" for flexible matching. Default: "(main|develop|master)"'
+    description: 'Exclude merged commits of given branches. Regex pattern (ERE). Example: "(release.*|hotfix.*)"'
     default: "(main|develop|master)"
 
 outputs:
@@ -95,4 +95,4 @@ runs:
         FROM_COMMIT: ${{ steps.determine_range.outputs.from_commit }}
         TO_COMMIT: ${{ steps.determine_range.outputs.to_commit }}
         DEBUG: ${{ inputs.debug }}
-        TARGET_BRANCH: ${{ inputs.target_branch }}
+        EXCLUDE_SOURCE_BRANCHES: ${{ inputs.exclude_source_branches }}

@@ -4,7 +4,7 @@
 # Global variables
 FROM_COMMIT="$FROM_COMMIT"
 TO_COMMIT="$TO_COMMIT"
-TARGET_BRANCH="${TARGET_BRANCH:-(main|develop|master)}"
+EXCLUDE_SOURCE_BRANCHES="${EXCLUDE_SOURCE_BRANCHES:-(main|develop|master)}"
 FORMATTED_CHANGELOG=""
 FORMATTED_BRANCH_NAMES=""
 
@@ -42,13 +42,13 @@ get_branch_names() {
 
   if [ "$from_commit" == "$to_commit" ]; then
     git log --merges --pretty=format:"%s" HEAD~1..HEAD | \
-      grep -v -E "Merge branch '(${TARGET_BRANCH})' into" | \
+      grep -v -E "Merge branch '(${EXCLUDE_SOURCE_BRANCHES})' into" | \
       sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
       grep -v '^$' 2>&1 || true
     return 0
   else
     git log --merges --pretty=format:"%s" "${from_commit}..${to_commit}" | \
-      grep -v -E "Merge branch '(${TARGET_BRANCH})' into" | \
+      grep -v -E "Merge branch '(${EXCLUDE_SOURCE_BRANCHES})' into" | \
       sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
       grep -v '^$' 2>&1 || true
     return 0
@@ -149,7 +149,7 @@ main() {
     if [ $git_exit_code -eq 0 ]; then
       # Branch names do NOT use --first-parent to detect nested merges
       raw_branch_names=$(git log --merges --pretty=format:"%s" HEAD~1..HEAD 2>&1 | \
-        grep -v -E "Merge branch '(${TARGET_BRANCH})' into" | \
+        grep -v -E "Merge branch '(${EXCLUDE_SOURCE_BRANCHES})' into" | \
         sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
         grep -v '^$' 2>&1 || true)
       git_exit_code=0
@@ -165,7 +165,7 @@ main() {
     if [ $git_exit_code -eq 0 ]; then
       # Branch names do NOT use --first-parent to detect nested merges
       raw_branch_names=$(git log --merges --pretty=format:"%s" "${FROM_COMMIT}..${TO_COMMIT}" 2>&1 | \
-        grep -v -E "Merge branch '(${TARGET_BRANCH})' into" | \
+        grep -v -E "Merge branch '(${EXCLUDE_SOURCE_BRANCHES})' into" | \
         sed -e "s/^Merge branch '//" -e "s/^Merge pull request .* from //" -e "s/' into.*$//" -e "s/ into.*$//" | \
         grep -v '^$' 2>&1 || true)
       git_exit_code=0
