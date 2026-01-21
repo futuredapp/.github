@@ -46,6 +46,11 @@ on:
         description: "Path to directory containing Fastfile. If not specified, uses iosApp. Example: iosApp/appA"
         type: string
         required: false
+      kmp_only_simulator:
+        description: "Run only on simulator"
+        type: boolean
+        required: false
+        default: false
 
     secrets:
       GRADLE_CACHE_ENCRYPTION_KEY:
@@ -79,6 +84,7 @@ jobs:
         env:
           KMP_BUILD_FLAVOR: ${{ inputs.kmp_swift_package_flavor }}
           KMP_FRAMEWORK_BUILD_TYPE: debug
+          KMP_ONLY_SIMULATOR: ${{ inputs.kmp_only_simulator }}
         run: |
           cd ${{ inputs.kmp_swift_package_path }}
           make build
