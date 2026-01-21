@@ -10,7 +10,8 @@ if [[ -n "$MERGED_BRANCHES" ]]; then
   IFS=',' read -ra BRANCHES <<< "$MERGED_BRANCHES"
   for branch in "${BRANCHES[@]}"; do
     # Trim leading/trailing whitespace from branch name
-    branch=$(echo "$branch" | xargs)
+    branch="${branch#"${branch%%[![:space:]]*}"}"
+    branch="${branch%"${branch##*[![:space:]]}"}"
     while IFS= read -r key; do
         JIRA_KEYS+=("$key")
     done < <(echo "$branch" | grep -oE '[A-Z0-9]+-[0-9]+')

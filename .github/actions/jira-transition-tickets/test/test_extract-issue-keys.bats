@@ -183,3 +183,18 @@ teardown() {
   [ "$status" -eq 0 ]
   [ "$(grep '^issue_keys=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "PROJ25-123,PROJ25-456" ]
 }
+
+@test "extract-issue-keys: handles single quotes" {
+  run "$BATS_TEST_DIRNAME/../scripts/extract-issue-keys.sh" "Merge remote-tracking branch 'origin/develop, feature/PROJ-1011-eaa-login, futuredapp/feature/PROJ-1009-eaa-intro"
+
+  [ "$status" -eq 0 ]
+  [ "$(grep '^issue_keys=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "PROJ-1009,PROJ-1011" ]
+}
+
+@test "extract-issue-keys: handles double quotes" {
+  run "$BATS_TEST_DIRNAME/../scripts/extract-issue-keys.sh" "Merge remote-tracking branch 'origin/develop', feature/PROJ-1011-eaa-login, futuredapp/feature/PROJ-1009-eaa-intro"
+
+  [ "$status" -eq 0 ]
+  [ "$(grep '^issue_keys=' "$GITHUB_OUTPUT" | cut -d= -f2)" = "PROJ-1009,PROJ-1011" ]
+}
+
