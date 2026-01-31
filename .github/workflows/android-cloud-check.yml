@@ -39,6 +39,11 @@ on:
         required: false
         type: string
         default: ""
+      FETCH_DEPTH:
+        description: "Number of commits to fetch. 0 indicates all history for all branches and tags. Set to 0 if Danger cannot find merge base."
+        required: false
+        type: number
+        default: 1
 
     secrets:
       GRADLE_CACHE_ENCRYPTION_KEY:
@@ -60,6 +65,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: ${{ inputs.USE_GIT_LFS }}
+          fetch-depth: ${{ inputs.FETCH_DEPTH }}
       - name: Set up environment
         uses: futuredapp/.github/.github/actions/android-setup-environment@main
         with:

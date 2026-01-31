@@ -46,6 +46,11 @@ on:
         description: "Path to directory containing Fastfile. If not specified, uses iosApp. Example: iosApp/appA"
         type: string
         required: false
+      fetch_depth:
+        description: "Number of commits to fetch. 0 indicates all history for all branches and tags. Set to 0 if Danger cannot find merge base."
+        type: number
+        required: false
+        default: 1
 
     secrets:
       GRADLE_CACHE_ENCRYPTION_KEY:
@@ -65,6 +70,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: ${{ inputs.use_git_lfs }}
+          fetch-depth: ${{ inputs.fetch_depth }}
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
