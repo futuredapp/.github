@@ -42,6 +42,15 @@ inputs:
   secret_properties:
     required: false
     description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input."
+  signing_keystore_password:
+    description: "Password to provided keystore"
+    required: false
+  signing_key_alias:
+    description: "Alias of the signing key in the provided keystore"
+    required: false
+  signing_key_password:
+    description: "Password to the key in the provided keystore"
+    required: false
 
 runs:
   using: "composite"
@@ -66,6 +75,10 @@ runs:
     - name: Build universal APK
       id: build_apk
       shell: bash
+      env:
+        ANDROID_KEYSTORE_PASSWORD: ${{ inputs.signing_keystore_password }}
+        ANDROID_KEY_ALIAS: ${{ inputs.signing_key_alias }}
+        ANDROID_KEY_PASSWORD: ${{ inputs.signing_key_password }}
       run: |
         ./gradlew ${{ inputs.package_gradle_task }} -P buildkonfig.flavor="$KMP_FLAVOR"
         APK_FILE=$(find . -name '*.apk' | grep -v -e '.*intermediate' -e '.*baseline')

@@ -82,6 +82,15 @@ on:
       SECRET_PROPERTIES:
         required: false
         description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input."
+      SIGNING_KEYSTORE_PASSWORD:
+        description: "Password to provided keystore"
+        required: false
+      SIGNING_KEY_ALIAS:
+        description: "Alias of the signing key in the provided keystore"
+        required: false
+      SIGNING_KEY_PASSWORD:
+        description: "Password to the key in the provided keystore"
+        required: false
 
 jobs:
   build:
@@ -115,3 +124,6 @@ jobs:
           kmp_flavor: ${{ inputs.KMP_FLAVOR }}
           secret_properties_file: ${{ inputs.SECRET_PROPERTIES_FILE }}
           secret_properties: ${{ secrets.SECRET_PROPERTIES }}
+          signing_keystore_password: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          signing_key_alias: ${{ secrets.SIGNING_KEY_ALIAS }}
+          signing_key_password: ${{ secrets.SIGNING_KEY_PASSWORD }}
