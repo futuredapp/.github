@@ -111,7 +111,7 @@ jobs:
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
       - name: Build and upload to App Distribution
-        uses: futuredapp/.github/.github/actions/android-build-firebase@main
+        uses: futuredapp/.github/.github/actions/android-build-firebase@feature/firebase-release
         with:
           test_gradle_task: ${{ inputs.TEST_GRADLE_TASKS }}
           package_gradle_task: ${{ inputs.PACKAGE_GRADLE_TASK }}
