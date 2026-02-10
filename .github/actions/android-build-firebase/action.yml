@@ -44,13 +44,13 @@ inputs:
     description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input."
   signing_keystore_password:
     description: "Password to provided keystore"
-    required: false
+    required: true
   signing_key_alias:
     description: "Alias of the signing key in the provided keystore"
-    required: false
+    required: true
   signing_key_password:
     description: "Password to the key in the provided keystore"
-    required: false
+    required: true
 
 runs:
   using: "composite"
