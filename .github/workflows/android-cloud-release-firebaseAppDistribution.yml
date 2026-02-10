@@ -105,7 +105,7 @@ jobs:
         with:
           lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Set up environment
-        uses: futuredapp/.github/.github/actions/android-setup-environment
+        uses: futuredapp/.github/.github/actions/android-setup-environment@main
         with:
           java_version: ${{ inputs.JAVA_VERSION }}
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
