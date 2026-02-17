@@ -16,5 +16,15 @@ if [ -n "$CUSTOM_BUILD_PATH" ]; then
   cd $GITHUB_WORKSPACE/$CUSTOM_BUILD_PATH
 fi
 
+# Build fastlane arguments from optional overrides
+FASTLANE_ARGS=""
+if [ -n "$BUILD_NUMBER" ]; then
+  FASTLANE_ARGS="$FASTLANE_ARGS build_number:$BUILD_NUMBER"
+fi
+if [ -n "$VERSION_NUMBER" ]; then
+  FASTLANE_ARGS="$FASTLANE_ARGS version_number:$VERSION_NUMBER"
+fi
+
 # Environment variables are already set by action.yml
-bundle exec fastlane beta
+# shellcheck disable=SC2086
+bundle exec fastlane beta $FASTLANE_ARGS

@@ -5,7 +5,10 @@ inputs:
     description: 'Match password'
     required: true
   version_number:
-    description: 'Version number'
+    description: 'Version number (supports x.y.z or x.y.z-k format where k is build number)'
+    required: false
+  build_number:
+    description: 'Custom build number. Skips auto-increment from TestFlight.'
     required: false
   app_store_connect_api_key_key:
     description: 'App Store Connect API Key'
@@ -28,12 +31,19 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Parse version tag
+      id: parse_version
+      shell: bash
+      run: ${{ github.action_path }}/parse-version-tag.sh
+      env:
+        VERSION_TAG: ${{ inputs.version_number }}
     - name: Run release script
       shell: bash
       run: ${{ github.action_path }}/release.sh
       env:
         MATCH_PASSWORD: ${{ inputs.match_password }}
-        VERSION_NUMBER: ${{ inputs.version_number }}
+        VERSION_NUMBER: ${{ steps.parse_version.outputs.version_number }}
+        BUILD_NUMBER: ${{ inputs.build_number || steps.parse_version.outputs.build_number }}
         APP_STORE_CONNECT_API_KEY_KEY: ${{ inputs.app_store_connect_api_key_key }}
         APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ inputs.app_store_connect_api_key_key_id }}
         APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ inputs.app_store_connect_api_key_issuer_id }}
