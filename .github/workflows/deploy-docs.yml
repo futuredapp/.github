@@ -1,0 +1,57 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [main]
+    tags: ['*']
+    paths:
+      - '.github/workflows/*.yml'
+      - '.github/actions/*/action.yml'
+      - '.github/actions/*/README.md'
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - 'scripts/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-docs
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - uses: actions/cache@v4
+        with:
+          key: mkdocs-${{ hashFiles('requirements-docs.txt') }}
+          path: .cache
+          restore-keys: mkdocs-
+      - run: pip install -r requirements-docs.txt
+      - name: Determine version and ref
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "ref=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=main" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Inject version into site title
+        run: |
+          sed -i "s/^site_name:.*/site_name: Futured CI\/CD Workflows ${{ steps.version.outputs.version }}/" mkdocs.yml
+      - run: python scripts/generate-docs.py --ref ${{ steps.version.outputs.ref }}
+      - run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+      - run: mkdocs gh-deploy --force
