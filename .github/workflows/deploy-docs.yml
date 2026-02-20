@@ -8,10 +8,10 @@ on:
       - '.github/workflows/*.yml'
       - '.github/actions/*/action.yml'
       - '.github/actions/*/README.md'
-      - 'docs/**'
-      - 'mkdocs.yml'
-      - 'scripts/**'
-      - 'requirements-docs.txt'
+      - '.github/docs/**'
+      - '.github/mkdocs.yml'
+      - '.github/scripts/**'
+      - '.github/requirements-docs.txt'
   workflow_dispatch:
 
 permissions:
@@ -24,6 +24,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .github
     steps:
       - uses: actions/checkout@v6
         with:
@@ -33,7 +36,7 @@ jobs:
         with:
           python-version: '3.x'
           cache: 'pip'
-          cache-dependency-path: requirements-docs.txt
+          cache-dependency-path: .github/requirements-docs.txt
       - run: pip install -r requirements-docs.txt
       - name: Determine version and alias
         id: version
