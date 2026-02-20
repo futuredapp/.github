@@ -13,16 +13,18 @@ on:
       - '.github/scripts/**'
       - '.github/requirements-docs.txt'
   workflow_dispatch:
+  delete:
 
 permissions:
   contents: write
 
 concurrency:
-  group: deploy-docs
+  group: deploy-docs-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   deploy:
+    if: github.event_name != 'delete'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -46,16 +48,14 @@ jobs:
             {
               echo "version=$VERSION"
               echo "alias=latest"
-              echo "ref=$VERSION"
             } >> "$GITHUB_OUTPUT"
           else
             {
-              echo "version=main"
+              echo "version=${GITHUB_REF#refs/heads/}"
               echo "alias="
-              echo "ref=main"
             } >> "$GITHUB_OUTPUT"
           fi
-      - run: python scripts/generate-docs.py --ref ${{ steps.version.outputs.ref }}
+      - run: python scripts/generate-docs.py --ref ${{ steps.version.outputs.version }}
       - run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
@@ -65,5 +65,26 @@ jobs:
             mike deploy --push --update-aliases ${{ steps.version.outputs.version }} ${{ steps.version.outputs.alias }}
             mike set-default --push latest
           else
-            mike deploy --push main
+            mike deploy --push ${{ steps.version.outputs.version }}
           fi
+
+  cleanup-preview:
+    if: github.event_name == 'delete' && github.event.ref_type == 'branch' && github.event.ref != 'main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .github
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+          cache-dependency-path: .github/requirements-docs.txt
+      - run: pip install -r requirements-docs.txt
+      - run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+      - run: mike delete --push "${{ github.event.ref }}"
