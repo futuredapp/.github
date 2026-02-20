@@ -5,6 +5,11 @@
     "aliases": []
   },
   {
+    "version": "feature-auto-generate-nav",
+    "title": "feature-auto-generate-nav",
+    "aliases": []
+  },
+  {
     "version": "2.2.0",
     "title": "2.2.0",
     "aliases": [
