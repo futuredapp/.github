@@ -220,13 +220,14 @@ def main() -> None:
 
     # Top-level workflow index
     all_wf_items = []
-    for category in ["ios", "ios-kmp", "android", "kmp", "universal"]:
+    wf_categories = [c for c in CATEGORY_LABELS if c in wf_by_category]
+    for category in wf_categories:
         label = CATEGORY_LABELS.get(category, category.title())
         all_wf_items.append(
             {
                 "title": f"{label} Workflows",
                 "link": f"{category}/index.md",
-                "description": f"{len(wf_by_category.get(category, []))} workflow(s)",
+                "description": f"{len(wf_by_category[category])} workflow(s)",
             }
         )
     render_index(
@@ -240,13 +241,14 @@ def main() -> None:
 
     # Top-level action index
     all_act_items = []
-    for category in ["android", "ios", "utility"]:
+    act_categories = [c for c in CATEGORY_LABELS if c in act_by_category]
+    for category in act_categories:
         label = CATEGORY_LABELS.get(category, category.title())
         all_act_items.append(
             {
                 "title": f"{label} Actions",
                 "link": f"{category}/index.md",
-                "description": f"{len(act_by_category.get(category, []))} action(s)",
+                "description": f"{len(act_by_category[category])} action(s)",
             }
         )
     render_index(

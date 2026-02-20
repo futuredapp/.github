@@ -6,7 +6,7 @@ All composite GitHub Actions organized by platform.
 
 | Name | Description |
 |------|-------------|
-| [Android Actions](android/index.md) | 5 action(s) |
 | [iOS Actions](ios/index.md) | 5 action(s) |
+| [Android Actions](android/index.md) | 5 action(s) |
 | [Utility Actions](utility/index.md) | 3 action(s) |
 

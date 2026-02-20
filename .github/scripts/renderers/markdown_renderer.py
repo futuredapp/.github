@@ -56,7 +56,7 @@ def _resolve_action_link(uses_ref: str, from_output_path: str) -> dict | None:
 
     action_name = match.group(1)
     for _key, cfg in ACTIONS.items():
-        if action_name in cfg["source"]:
+        if cfg["source"] == f"actions/{action_name}/action.yml":
             rel = os.path.relpath(cfg["output"], os.path.dirname(from_output_path))
             return {"name": cfg["title"], "link": rel}
     return None
