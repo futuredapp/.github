@@ -3,6 +3,7 @@
 # Android Generate Baseline Profiles
 
 **Source:** [`workflows/android-cloud-generate-baseline-profiles.yml`](https://github.com/futuredapp/.github/blob/main/.github/workflows/android-cloud-generate-baseline-profiles.yml)
+
 **Runner:** `ubuntu-latest`
 
 *Generate baseline profiles*

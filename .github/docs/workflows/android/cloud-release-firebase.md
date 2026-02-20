@@ -3,6 +3,7 @@
 # Android Release (Firebase)
 
 **Source:** [`workflows/android-cloud-release-firebaseAppDistribution.yml`](https://github.com/futuredapp/.github/blob/main/.github/workflows/android-cloud-release-firebaseAppDistribution.yml)
+
 **Runner:** `ubuntu-latest`
 
 *Android Release to Firebase App Distribution*

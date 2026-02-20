@@ -6,6 +6,7 @@
     This is not a reusable workflow — it runs directly on `pull_request` events in this repository.
 
 **Source:** [`workflows/workflows-lint.yml`](https://github.com/futuredapp/.github/blob/main/.github/workflows/workflows-lint.yml)
+
 **Runner:** `ubuntu-latest`
 
 *Check Pull Request*

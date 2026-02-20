@@ -3,6 +3,7 @@
 # Android Release (Google Play)
 
 **Source:** [`workflows/android-cloud-release-googlePlay.yml`](https://github.com/futuredapp/.github/blob/main/.github/workflows/android-cloud-release-googlePlay.yml)
+
 **Runner:** `ubuntu-latest`
 
 *Android Release to Google Play*
