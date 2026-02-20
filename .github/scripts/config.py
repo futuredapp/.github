@@ -30,6 +30,7 @@ EXCLUDE: set[str] = {"deploy-docs"}
 #   source             – relative path to the YAML file
 #   category           – category id (must exist in CATEGORY_LABELS)
 #   title              – display title (default: YAML `name:` field)
+#   nav_title          – short title for the mkdocs nav sidebar
 #   output             – output markdown path
 #   runner             – runner label shown in docs
 #   not_reusable       – bool; True hides the "Usage" snippet (auto-detected
@@ -43,6 +44,7 @@ EXCLUDE: set[str] = {"deploy-docs"}
 #   source             – relative path to action.yml
 #   category           – category id (must exist in CATEGORY_LABELS)
 #   title              – display title (default: YAML `name:` field)
+#   nav_title          – short title for the mkdocs nav sidebar
 #   output             – output markdown path
 #   readme             – relative path to a README.md to embed (auto-detected)
 #
@@ -54,6 +56,34 @@ OVERRIDES: dict[str, dict] = {
     },
     "workflows-lint": {
         "not_reusable": True,
+        "nav_title": "Workflows Lint",
+    },
+    "android-cloud-check": {
+        "nav_title": "PR Check",
+    },
+    "android-cloud-release-firebaseAppDistribution": {
+        "nav_title": "Release (Firebase)",
+    },
+    "android-cloud-release-googlePlay": {
+        "nav_title": "Release (Google Play)",
+    },
+    "kmp-combined-nightly-build": {
+        "nav_title": "Combined Nightly Build",
+    },
+    "android-build-firebase": {
+        "nav_title": "Build Firebase",
+    },
+    "android-build-googlePlay": {
+        "nav_title": "Build Google Play",
+    },
+    "android-setup-environment": {
+        "nav_title": "Setup Environment",
+    },
+    "ios-export-secrets": {
+        "nav_title": "Export Secrets",
+    },
+    "universal-detect-changes-and-generate-changelog": {
+        "nav_title": "Detect Changes & Changelog",
     },
 }
 

@@ -56,52 +56,58 @@ nav:
       - Overview: workflows/index.md
       - iOS:
           - workflows/ios/index.md
-          - Test: workflows/ios/selfhosted-test.md
-          - Nightly Build: workflows/ios/selfhosted-nightly-build.md
-          - On-demand Build: workflows/ios/selfhosted-on-demand-build.md
-          - Release: workflows/ios/selfhosted-release.md
           - Build (Deprecated): workflows/ios/selfhosted-build.md
+          - Nightly Build: workflows/ios/selfhosted-nightly-build.md
+          - On-Demand Build: workflows/ios/selfhosted-on-demand-build.md
+          - Release: workflows/ios/selfhosted-release.md
+          - Test: workflows/ios/selfhosted-test.md
       - iOS + KMP:
           - workflows/ios-kmp/index.md
-          - Test: workflows/ios-kmp/selfhosted-test.md
           - Build: workflows/ios-kmp/selfhosted-build.md
           - Release: workflows/ios-kmp/selfhosted-release.md
+          - Test: workflows/ios-kmp/selfhosted-test.md
       - Android:
           - workflows/android/index.md
-          - PR Check: workflows/android/cloud-check.md
-          - Nightly Build: workflows/android/cloud-nightly-build.md
-          - Release (Firebase): workflows/android/cloud-release-firebase.md
-          - Release (Google Play): workflows/android/cloud-release-googleplay.md
           - Generate Baseline Profiles: workflows/android/cloud-generate-baseline-profiles.md
+          - Nightly Build: workflows/android/cloud-nightly-build.md
+          - PR Check: workflows/android/cloud-check.md
+          - Release (Firebase): workflows/android/cloud-release-firebaseAppDistribution.md
+          - Release (Google Play): workflows/android/cloud-release-googlePlay.md
       - KMP:
           - workflows/kmp/index.md
-          - Detect Changes: workflows/kmp/cloud-detect-changes.md
           - Combined Nightly Build: workflows/kmp/combined-nightly-build.md
+          - Detect Changes: workflows/kmp/cloud-detect-changes.md
       - Universal:
           - workflows/universal/index.md
-          - Workflows Lint: workflows/universal/workflows-lint.md
           - Cloud Backup: workflows/universal/cloud-backup.md
           - Self-hosted Backup: workflows/universal/selfhosted-backup.md
+          - Workflows Lint: workflows/universal/workflows-lint.md
   - Actions:
       - Overview: actions/index.md
-      - Android:
-          - actions/android/index.md
-          - Setup Environment: actions/android/setup-environment.md
-          - Check: actions/android/check.md
-          - Build Firebase: actions/android/build-firebase.md
-          - Build Google Play: actions/android/build-googleplay.md
-          - Generate Baseline Profiles: actions/android/generate-baseline-profiles.md
       - iOS:
           - actions/ios/index.md
           - Export Secrets: actions/ios/export-secrets.md
-          - Fastlane Test: actions/ios/fastlane-test.md
           - Fastlane Beta: actions/ios/fastlane-beta.md
           - Fastlane Release: actions/ios/fastlane-release.md
-          - KMP Build: actions/ios/kmp-build.md
+          - Fastlane Test: actions/ios/fastlane-test.md
+      - iOS + KMP:
+          - actions/ios-kmp/index.md
+          - Build: actions/ios-kmp/build.md
+      - Android:
+          - actions/android/index.md
+          - Build Firebase: actions/android/build-firebase.md
+          - Build Google Play: actions/android/build-googlePlay.md
+          - Check: actions/android/check.md
+          - Generate Baseline Profiles: actions/android/generate-baseline-profiles.md
+          - Setup Environment: actions/android/setup-environment.md
+      - KMP:
+          - actions/kmp/index.md
+          - Detect Changes: actions/kmp/detect-changes.md
+      - Universal:
+          - actions/universal/index.md
+          - Detect Changes & Changelog: actions/universal/detect-changes-and-generate-changelog.md
       - Utility:
           - actions/utility/index.md
-          - KMP Detect Changes: actions/utility/kmp-detect-changes.md
-          - Detect Changes & Changelog: actions/utility/detect-changes-changelog.md
           - JIRA Transition Tickets: actions/utility/jira-transition-tickets.md
 
 copyright: Made with ❤️‍🔥 at Futured
