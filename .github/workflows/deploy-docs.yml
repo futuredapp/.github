@@ -50,8 +50,9 @@ jobs:
               echo "alias=latest"
             } >> "$GITHUB_OUTPUT"
           else
+            BRANCH="${GITHUB_REF#refs/heads/}"
             {
-              echo "version=${GITHUB_REF#refs/heads/}"
+              echo "version=${BRANCH//\//-}"
               echo "alias="
             } >> "$GITHUB_OUTPUT"
           fi
@@ -87,4 +88,6 @@ jobs:
       - run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-      - run: mike delete --push "${{ github.event.ref }}"
+      - run: |
+          VERSION="${{ github.event.ref }}"
+          mike delete --push "${VERSION//\//-}"
