@@ -36,6 +36,8 @@ EXCLUDE: set[str] = {"deploy-docs"}
 #                        when `workflow_call` trigger is absent)
 #   deprecated         – bool; True marks the workflow as deprecated
 #   deprecated_message – markdown string shown in the deprecation banner
+#   readme             – relative path to a companion .md to embed
+#                        (auto-detected from workflows/{key}.md)
 #
 # Supported keys (actions):
 #   source             – relative path to action.yml
@@ -154,6 +156,10 @@ def discover_workflows(root: Path) -> dict[str, dict]:
 
         if not _has_workflow_call(path):
             entry["not_reusable"] = True
+
+        readme = path.with_suffix(".md")
+        if readme.exists():
+            entry["readme"] = f"workflows/{readme.name}"
 
         # Merge overrides on top.
         if key in OVERRIDES:
