@@ -107,6 +107,8 @@ nav:
 copyright: Made with ❤️‍🔥 at Futured
 
 extra:
+  version:
+    provider: mike
   social:
     - icon: material/web
       name: Web

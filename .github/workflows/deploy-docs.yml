@@ -11,6 +11,7 @@ on:
       - 'docs/**'
       - 'mkdocs.yml'
       - 'scripts/**'
+      - 'requirements-docs.txt'
   workflow_dispatch:
 
 permissions:
@@ -34,21 +35,32 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements-docs.txt
       - run: pip install -r requirements-docs.txt
-      - name: Determine version and ref
+      - name: Determine version and alias
         id: version
         run: |
-          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            echo "ref=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+            VERSION="${GITHUB_REF#refs/tags/}"
+            {
+              echo "version=$VERSION"
+              echo "alias=latest"
+              echo "ref=$VERSION"
+            } >> "$GITHUB_OUTPUT"
           else
-            echo "ref=main" >> "$GITHUB_OUTPUT"
+            {
+              echo "version=main"
+              echo "alias="
+              echo "ref=main"
+            } >> "$GITHUB_OUTPUT"
           fi
-      - name: Inject version into site title
-        run: |
-          sed -i "s/^site_name:.*/site_name: Futured CI\/CD Workflows ${{ steps.version.outputs.version }}/" mkdocs.yml
       - run: python scripts/generate-docs.py --ref ${{ steps.version.outputs.ref }}
       - run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-      - run: mkdocs gh-deploy --force
+      - name: Deploy versioned docs
+        run: |
+          if [[ -n "${{ steps.version.outputs.alias }}" ]]; then
+            mike deploy --push --update-aliases ${{ steps.version.outputs.version }} ${{ steps.version.outputs.alias }}
+            mike set-default --push latest
+          else
+            mike deploy --push main
+          fi
