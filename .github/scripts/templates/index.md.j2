@@ -1,0 +1,12 @@
+# {{ title }}
+
+{{ description }}
+
+{% if items %}
+| Name | Description |
+|------|-------------|
+{% for item in items %}
+| [{{ item.title }}]({{ item.link }}) | {{ item.description }} |
+{% endfor %}
+
+{% endif %}

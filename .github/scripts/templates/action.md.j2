@@ -1,0 +1,46 @@
+# {{ title }}
+
+**Source:** [`{{ source_path }}`](https://github.com/futuredapp/.github/blob/main/.github/{{ source_path }})
+
+{{ spec.description }}
+
+{% if inputs %}
+## Usage
+
+```yaml
+- uses: futuredapp/.github/.github/{{ action_path }}@{{ ref }}
+{% if required_inputs %}
+  with:
+{% for inp in required_inputs %}
+    {{ inp.name }}: {{ inp.usage_placeholder }}
+{% endfor %}
+{% endif %}
+```
+
+{% endif %}
+{% if inputs %}
+## Inputs
+
+| Name | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+{% for inp in inputs %}
+| `{{ inp.name }}` | `{{ inp.type }}` | {{ "Yes" if inp.required else "No" }} | {{ "`" + inp.default + "`" if inp.default is not none and inp.default != "" else "—" }} | {{ inp.description }} |
+{% endfor %}
+
+{% endif %}
+{% if outputs %}
+## Outputs
+
+| Name | Description |
+|------|-------------|
+{% for out in outputs %}
+| `{{ out.name }}` | {{ out.description }} |
+{% endfor %}
+
+{% endif %}
+{% if enrichment %}
+## Additional Details
+
+{{ enrichment }}
+
+{% endif %}

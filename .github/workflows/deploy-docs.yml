@@ -1,0 +1,66 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [main]
+    tags: ['*']
+    paths:
+      - '.github/workflows/*.yml'
+      - '.github/actions/*/action.yml'
+      - '.github/actions/*/README.md'
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - 'scripts/**'
+      - 'requirements-docs.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-docs
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+          cache-dependency-path: requirements-docs.txt
+      - run: pip install -r requirements-docs.txt
+      - name: Determine version and alias
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            {
+              echo "version=$VERSION"
+              echo "alias=latest"
+              echo "ref=$VERSION"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "version=main"
+              echo "alias="
+              echo "ref=main"
+            } >> "$GITHUB_OUTPUT"
+          fi
+      - run: python scripts/generate-docs.py --ref ${{ steps.version.outputs.ref }}
+      - run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+      - name: Deploy versioned docs
+        run: |
+          if [[ -n "${{ steps.version.outputs.alias }}" ]]; then
+            mike deploy --push --update-aliases ${{ steps.version.outputs.version }} ${{ steps.version.outputs.alias }}
+            mike set-default --push latest
+          else
+            mike deploy --push main
+          fi

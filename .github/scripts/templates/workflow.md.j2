@@ -1,0 +1,88 @@
+# {{ title }}
+
+{% if deprecated %}
+!!! warning "Deprecated"
+    {{ deprecated_message }}
+
+{% endif %}
+{% if not_reusable %}
+!!! info "Internal Workflow"
+    This is not a reusable workflow — it runs directly on `pull_request` events in this repository.
+
+{% endif %}
+**Source:** [`{{ source_path }}`](https://github.com/futuredapp/.github/blob/main/.github/{{ source_path }})
+{% if runner %}
+
+**Runner:** `{{ runner }}`
+{% endif %}
+
+{% if spec.name != title %}
+*{{ spec.name }}*
+{% endif %}
+
+{% if inputs %}
+## Usage
+
+```yaml
+jobs:
+  {{ usage_job_name }}:
+    uses: futuredapp/.github/.github/{{ source_path }}@{{ ref }}
+{% if required_inputs %}
+    with:
+{% for inp in required_inputs %}
+      {{ inp.name }}: {{ inp.usage_placeholder }}
+{% endfor %}
+{% endif %}
+{% if required_secrets %}
+    secrets:
+{% for sec in required_secrets %}
+      {{ sec.name }}: {{"${{"}} secrets.{{ sec.name }} {{"}}"}}
+{% endfor %}
+{% endif %}
+```
+
+{% endif %}
+{% if inputs %}
+## Inputs
+
+| Name | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+{% for inp in inputs %}
+| `{{ inp.name }}` | `{{ inp.type }}` | {{ "Yes" if inp.required else "No" }} | {{ "`" + inp.default + "`" if inp.default is not none and inp.default != "" else "—" }} | {{ inp.description }} |
+{% endfor %}
+
+{% endif %}
+{% if secrets %}
+## Secrets
+
+| Name | Required | Description |
+|------|----------|-------------|
+{% for sec in secrets %}
+| `{{ sec.name }}` | {{ "Yes" if sec.required else "No" }} | {{ sec.description }} |
+{% endfor %}
+
+{% endif %}
+{% if outputs %}
+## Outputs
+
+| Name | Description |
+|------|-------------|
+{% for out in outputs %}
+| `{{ out.name }}` | {{ out.description }} |
+{% endfor %}
+
+{% endif %}
+{% if internal_actions %}
+## Internal Actions Used
+
+{% for action in internal_actions %}
+- [`{{ action.name }}`]({{ action.link }})
+{% endfor %}
+
+{% endif %}
+{% if enrichment %}
+## Additional Details
+
+{{ enrichment }}
+
+{% endif %}
