@@ -16,6 +16,12 @@ inputs:
   app_store_connect_api_key_issuer_id:
     description: 'App Store Connect API Key Issuer ID'
     required: true
+  build_number:
+    description: 'Custom build number. Skips auto-increment from TestFlight.'
+    required: false
+  version_number:
+    description: 'Custom version number. Overrides default.'
+    required: false
   custom_values:
     description: 'Custom values'
     required: false
@@ -37,6 +43,8 @@ runs:
         APP_STORE_CONNECT_API_KEY_KEY: ${{ inputs.app_store_connect_api_key_key }}
         APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ inputs.app_store_connect_api_key_key_id }}
         APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ inputs.app_store_connect_api_key_issuer_id }}
+        BUILD_NUMBER: ${{ inputs.build_number }}
+        VERSION_NUMBER: ${{ inputs.version_number }}
         CUSTOM_VALUES: ${{ inputs.custom_values }}
         IOS_ROOT_PATH: ${{ inputs.ios_root_path }}
         CUSTOM_BUILD_PATH: ${{ inputs.custom_build_path }}

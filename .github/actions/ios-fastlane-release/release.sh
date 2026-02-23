@@ -16,5 +16,10 @@ if [ -n "$CUSTOM_BUILD_PATH" ]; then
   cd $GITHUB_WORKSPACE/$CUSTOM_BUILD_PATH
 fi
 
+# Build fastlane arguments from optional overrides
+fastlane_args=()
+[ -n "$BUILD_NUMBER" ] && fastlane_args+=("build_number:$BUILD_NUMBER")
+[ -n "$VERSION_NUMBER" ] && fastlane_args+=("version_number:$VERSION_NUMBER")
+
 # Environment variables are already set by action.yml
-bundle exec fastlane release
+bundle exec fastlane release "${fastlane_args[@]}"

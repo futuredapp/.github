@@ -42,6 +42,14 @@ on:
         type: string
         required: false
       # Custom values
+      build_number:
+        description: 'Custom build number. Skips auto-increment from TestFlight.'
+        type: string
+        required: false
+      version_number:
+        description: 'Custom version number. Overrides default (1.0.0).'
+        type: string
+        required: false
       custom_values:
         description: 'Custom string that can contains values specified in your workflow file. Those values will be placed into environment variable. Example: "CUSTOM-1: 1; CUSTOM-2: 2"'
         type: string
@@ -110,6 +118,8 @@ jobs:
           APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
           APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
           APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          build_number: ${{ inputs.build_number }}
+          version_number: ${{ inputs.version_number }}
           custom_values: ${{ inputs.custom_values }}
 
       - name: Upload IPA
