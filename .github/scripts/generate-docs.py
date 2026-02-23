@@ -27,6 +27,7 @@ ROOT_DIR = SCRIPT_DIR.parent
 sys.path.insert(0, str(ROOT_DIR))
 
 from scripts.config import ACTIONS, CATEGORY_LABELS, WORKFLOWS
+from scripts.nav_generator import build_nav, inject_nav, render_nav_yaml
 from scripts.enrichers.ai_enricher import AIEnricher
 from scripts.enrichers.base import BaseEnricher, EnrichmentResult
 from scripts.enrichers.readme_enricher import ReadmeEnricher
@@ -259,6 +260,16 @@ def main() -> None:
         output_path=ROOT_DIR / "docs" / "actions" / "index.md",
     )
     print(f"  Written: docs/actions/index.md")
+
+    # -------------------------------------------------------------------
+    # Generate nav in mkdocs.yml
+    # -------------------------------------------------------------------
+    print("\nGenerating nav...")
+    nav = build_nav(WORKFLOWS, ACTIONS, CATEGORY_LABELS)
+    nav_yaml = render_nav_yaml(nav)
+    mkdocs_path = ROOT_DIR / "mkdocs.yml"
+    inject_nav(mkdocs_path, nav_yaml)
+    print(f"  Updated: {mkdocs_path.relative_to(ROOT_DIR)}")
 
     # -------------------------------------------------------------------
     # Summary
