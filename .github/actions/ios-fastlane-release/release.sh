@@ -17,14 +17,9 @@ if [ -n "$CUSTOM_BUILD_PATH" ]; then
 fi
 
 # Build fastlane arguments from optional overrides
-FASTLANE_ARGS=""
-if [ -n "$BUILD_NUMBER" ]; then
-  FASTLANE_ARGS="$FASTLANE_ARGS build_number:$BUILD_NUMBER"
-fi
-if [ -n "$VERSION_NUMBER" ]; then
-  FASTLANE_ARGS="$FASTLANE_ARGS version_number:$VERSION_NUMBER"
-fi
+fastlane_args=()
+[ -n "$BUILD_NUMBER" ] && fastlane_args+=("build_number:$BUILD_NUMBER")
+[ -n "$VERSION_NUMBER" ] && fastlane_args+=("version_number:$VERSION_NUMBER")
 
 # Environment variables are already set by action.yml
-# shellcheck disable=SC2086
-bundle exec fastlane release $FASTLANE_ARGS
+bundle exec fastlane release "${fastlane_args[@]}"
