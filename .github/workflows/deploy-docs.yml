@@ -19,7 +19,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: deploy-docs-${{ github.ref }}
+  group: deploy-docs-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
