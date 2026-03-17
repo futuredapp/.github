@@ -133,7 +133,7 @@ jobs:
       
       - name: Store latest build commit SHA in cache
         if: success() && steps.detect_changes.outputs.skip_build == 'false'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: latest_builded_commit.txt
           key: ${{ steps.detect_changes.outputs.cache_key }}
