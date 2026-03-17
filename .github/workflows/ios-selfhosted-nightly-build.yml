@@ -113,14 +113,14 @@ jobs:
 
       - name: Upload IPA
         if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Build.ipa
           path: build_output/*.ipa
 
       - name: Upload dSYM
         if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Build.app.dSYM.zip
           path: build_output/*.app.dSYM.zip
