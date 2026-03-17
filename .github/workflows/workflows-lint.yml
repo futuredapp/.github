@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v6
       - name: Install Bats
         id: install_bats
-        uses: bats-core/bats-action@3.0.1
+        uses: bats-core/bats-action@4.0.0
       - name: Run tests
         shell: bash
         run: bats -r .

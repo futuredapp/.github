@@ -92,12 +92,12 @@ jobs:
         SECRET_PROPERTIES: ${{ secrets.SECRET_PROPERTIES }}
         REQUIRED_KEYS: ${{ inputs.required_keys }}
     - name: Setup Java
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         java-version: ${{ inputs.java_version }}
         distribution: ${{ inputs.java_distribution }}
     - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v4
+      uses: gradle/actions/setup-gradle@v5
       with:
         cache-disabled: true
     - name: Build KMP Package

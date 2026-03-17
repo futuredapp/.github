@@ -87,7 +87,7 @@ runs:
         name: mapping_file
         path: ${{ steps.build_aab.outputs.mapping_file }}
     - name: Upload to Google Play
-      uses: r0adkll/upload-google-play@v1.1.1
+      uses: r0adkll/upload-google-play@v1.1.3
       with:
         serviceAccountJsonPlainText: ${{ inputs.google_play_publish_service_account }}
         packageName: ${{ inputs.google_play_application_id }}
