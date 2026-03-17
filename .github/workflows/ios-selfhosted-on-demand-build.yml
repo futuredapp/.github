@@ -89,7 +89,7 @@ jobs:
       
       - name: Checkout
         if: ${{ inputs.changelog != '' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           lfs: ${{ inputs.use_git_lfs }}
 

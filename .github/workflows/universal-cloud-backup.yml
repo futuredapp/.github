@@ -36,7 +36,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         lfs: ${{ inputs.use_git_lfs }}
         fetch-depth: 0 # Make deep copy
