@@ -28,7 +28,7 @@ runs:
 
     - name: Zip Simulator App
       shell: bash
-      run: ditto -c -k DerivedData/Build/Products/Debug-iphonesimulator/*.app simulator-app.zip
+      run: ditto -c -k --keepParent DerivedData/Build/Products/Debug-iphonesimulator/*.app simulator-app.zip
 
     - name: Upload Simulator App
       uses: actions/upload-artifact@v7
