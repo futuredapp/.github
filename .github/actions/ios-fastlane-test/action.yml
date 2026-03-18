@@ -26,8 +26,12 @@ runs:
         CUSTOM_BUILD_PATH: ${{ inputs.custom_build_path }}
         SCAN_DERIVED_DATA_PATH: ${{ github.workspace }}/DerivedData
 
+    - name: Zip Simulator App
+      shell: bash
+      run: ditto -c -k DerivedData/Build/Products/Debug-iphonesimulator/*.app simulator-app.zip
+
     - name: Upload Simulator App
       uses: actions/upload-artifact@v7
       with:
         name: simulator-app
-        path: '**/Build/Products/Debug-iphonesimulator/*.app'
+        path: simulator-app.zip
