@@ -46,8 +46,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN_DANGER }}
           custom_values: ${{ inputs.custom_values }}
 
-      - name: Upload Simulator App
-        uses: actions/upload-artifact@v7
-        with:
-          name: simulator-app
-          path: '**/Build/Products/Debug-iphonesimulator/*.app'

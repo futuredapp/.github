@@ -24,3 +24,9 @@ runs:
         CUSTOM_VALUES: ${{ inputs.custom_values }}
         IOS_ROOT_PATH: ${{ inputs.ios_root_path }}
         CUSTOM_BUILD_PATH: ${{ inputs.custom_build_path }}
+
+    - name: Upload Simulator App
+      uses: actions/upload-artifact@v4
+      with:
+        name: simulator-app
+        path: '**/Build/Products/Debug-iphonesimulator/*.app'
