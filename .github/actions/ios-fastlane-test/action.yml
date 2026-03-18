@@ -24,11 +24,11 @@ runs:
         CUSTOM_VALUES: ${{ inputs.custom_values }}
         IOS_ROOT_PATH: ${{ inputs.ios_root_path }}
         CUSTOM_BUILD_PATH: ${{ inputs.custom_build_path }}
-        SCAN_DERIVED_DATA_PATH: ${{ github.workspace }}/DerivedData
+        SCAN_DERIVED_DATA_PATH: ${{ runner.temp }}/DerivedData
 
     - name: Zip Simulator App
       shell: bash
-      run: ditto -c -k --keepParent DerivedData/Build/Products/Debug-iphonesimulator/*.app simulator-app.zip
+      run: ditto -c -k --keepParent ${{ runner.temp }}/DerivedData/Build/Products/Debug-iphonesimulator/*.app simulator-app.zip
 
     - name: Upload Simulator App
       uses: actions/upload-artifact@v7
