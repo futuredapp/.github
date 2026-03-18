@@ -24,6 +24,7 @@ runs:
         CUSTOM_VALUES: ${{ inputs.custom_values }}
         IOS_ROOT_PATH: ${{ inputs.ios_root_path }}
         CUSTOM_BUILD_PATH: ${{ inputs.custom_build_path }}
+        SCAN_DERIVED_DATA_PATH: ${{ github.workspace }}/DerivedData
 
     - name: Upload Simulator App
       uses: actions/upload-artifact@v7
