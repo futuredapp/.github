@@ -23,7 +23,7 @@ runs:
       shell: bash
       run: ./gradlew --continue ${{ inputs.test_gradle_task }}
     - name: Danger action
-      uses: MeilCli/danger-action@v2
+      uses: MeilCli/danger-action@v6
       continue-on-error: true
       with:
         plugins_file: 'Gemfile'

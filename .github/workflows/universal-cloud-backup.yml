@@ -36,12 +36,12 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         lfs: ${{ inputs.use_git_lfs }}
         fetch-depth: 0 # Make deep copy
     - name: Setup SSH
-      uses: kielabokkie/ssh-key-and-known-hosts-action@v1.1.0
+      uses: kielabokkie/ssh-key-and-known-hosts-action@v1
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
         ssh-host: ${{ inputs.host }}

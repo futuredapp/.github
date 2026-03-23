@@ -47,7 +47,7 @@ runs:
   using: "composite"
   steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: ${{ inputs.checkout_depth }}
         lfs: ${{ inputs.use_git_lfs }}
@@ -62,7 +62,7 @@ runs:
 
     - name: Restore cache for previous build commit SHA
       id: restore_last_build_cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v5
       continue-on-error: true
       with:
         path: latest_builded_commit.txt

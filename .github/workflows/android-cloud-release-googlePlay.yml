@@ -94,7 +94,7 @@ jobs:
       GRADLE_OPTS: ${{ inputs.GRADLE_OPTS }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Set up environment

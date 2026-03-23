@@ -71,7 +71,7 @@ runs:
         APK_FILE=$(find . -name '*.apk' | grep -v -e '.*intermediate' -e '.*baseline')
         echo "universal_apk_file=$APK_FILE" >> "$GITHUB_OUTPUT"
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: universal_apk
         path: ${{ steps.build_apk.outputs.universal_apk_file }}

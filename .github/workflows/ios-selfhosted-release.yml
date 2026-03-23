@@ -56,7 +56,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           lfs: ${{ inputs.use_git_lfs }}
 
@@ -79,13 +79,13 @@ jobs:
           custom_values: ${{ inputs.custom_values }}
 
       - name: Upload IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Build.ipa
           path: build_output/*.ipa
 
       - name: Upload dSYM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Build.app.dSYM.zip
           path: build_output/*.app.dSYM.zip
