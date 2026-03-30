@@ -74,13 +74,14 @@ def _build_whats_new_context(ref: str) -> dict | None:
         if not result:
             return None
         _old_tag, diffs = result
-        version = ref
+        title = f"What's New in {ref}"
     else:
         # Branch build: show unreleased changes since the latest tag
         result = get_head_diff()
         if not result:
             return None
-        _old_tag, version, diffs = result
+        _old_tag, _version, diffs = result
+        title = "What's Going to Change"
 
     link_map = _build_docs_link_map()
 
@@ -132,7 +133,7 @@ def _build_whats_new_context(ref: str) -> dict | None:
         return None
 
     return {
-        "version": version,
+        "title": title,
         "breaking": breaking,
         "added": added,
         "removed": removed,
@@ -367,7 +368,7 @@ def main() -> None:
     print("\nGenerating home page...")
     whats_new = _build_whats_new_context(args.ref)
     if whats_new:
-        print(f"  What's New: {whats_new['version']} "
+        print(f"  {whats_new['title']} "
               f"({len(whats_new['breaking'])} breaking, "
               f"{len(whats_new['added'])} added, "
               f"{len(whats_new['input_changes'])} changed)")
