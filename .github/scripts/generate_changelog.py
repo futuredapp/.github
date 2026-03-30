@@ -655,19 +655,30 @@ def get_version_diff(version: str) -> tuple[str, list[FileDiff]] | None:
 
 
 def get_head_diff() -> tuple[str, str, list[FileDiff]] | None:
-    """Return (latest_tag, 'main', diffs) diffing HEAD against the latest tag.
+    """Return (old_tag, version_label, diffs) for non-tag builds.
 
-    Used for non-tag builds to show what changed since the last release.
-    Returns None if no tags exist or no changes found.
+    First tries diffing HEAD against the latest tag (unreleased changes).
+    If no new changes exist, falls back to showing the latest tag's own
+    changes so branch previews still display useful content.
+    Returns None if no tags exist.
     """
     tags = get_sorted_tags()
     if not tags:
         return None
     latest = tags[-1]
+
+    # Try unreleased changes first
     diffs = diff_tags(latest, "HEAD")
-    if not diffs:
-        return None
-    return (latest, "main", diffs)
+    if diffs:
+        return (latest, "main", diffs)
+
+    # Fall back to the latest tag's own diff
+    result = get_version_diff(latest)
+    if result:
+        old_tag, tag_diffs = result
+        return (old_tag, latest, tag_diffs)
+
+    return None
 
 
 # ---------------------------------------------------------------------------

@@ -59,19 +59,27 @@ def _build_docs_link_map() -> dict[str, str]:
     return links
 
 
+def _is_tag(ref: str) -> bool:
+    """Check if ref matches an existing git tag."""
+    from scripts.generate_changelog import get_sorted_tags
+    return ref in get_sorted_tags()
+
+
 def _build_whats_new_context(ref: str) -> dict | None:
     """Build template context for the home page What's New section."""
-    if ref == "main":
-        result = get_head_diff()
-        if not result:
-            return None
-        _old_tag, version, diffs = result
-    else:
+    if _is_tag(ref):
+        # Tag build: show that tag's changes (None for first tag / re-tags)
         result = get_version_diff(ref)
         if not result:
             return None
         _old_tag, diffs = result
         version = ref
+    else:
+        # Branch build: show unreleased changes, or fall back to latest tag
+        result = get_head_diff()
+        if not result:
+            return None
+        _old_tag, version, diffs = result
 
     link_map = _build_docs_link_map()
 
