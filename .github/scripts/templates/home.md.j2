@@ -2,35 +2,64 @@
 
 Reusable GitHub Actions workflows and composite actions for **iOS**, **Android**, and **Kotlin Multiplatform** projects at Futured.
 
+{% if whats_new %}
 ---
 
-## What's New in 2.2.1
+## What's New in {{ whats_new.version }}
 
+{% if whats_new.breaking %}
+!!! danger "Breaking Changes"
+
+{% for item in whats_new.breaking %}
+{% if item.link %}
+    - **[`{{ item.key }}`]({{ item.link }})** ({{ item.kind }})
+{% else %}
+    - **`{{ item.key }}`** ({{ item.kind }})
+{% endif %}
+{% for c in item.removed_inputs %}
+        - Removed input `{{ c.name }}`
+{% endfor %}
+{% for c in item.removed_secrets %}
+        - Removed secret `{{ c.name }}`
+{% endfor %}
+{% for c in item.removed_outputs %}
+        - Removed output `{{ c.name }}`
+{% endfor %}
+{% endfor %}
+
+{% endif %}
+{% if whats_new.added or whats_new.removed %}
+### Workflows & Actions
+
+{% for item in whats_new.added %}
+{% if item.link %}
+- :material-plus-circle: Added {{ item.kind }} **[`{{ item.key }}`]({{ item.link }})**
+{% else %}
+- :material-plus-circle: Added {{ item.kind }} **`{{ item.key }}`**
+{% endif %}
+{% endfor %}
+{% for item in whats_new.removed %}
+- :material-minus-circle: Removed {{ item.kind }} **`{{ item.key }}`**
+{% endfor %}
+
+{% endif %}
+{% if whats_new.input_changes %}
 ### Input Changes
 
-#### [`ios-selfhosted-on-demand-build`](workflows/ios/selfhosted-on-demand-build.md)
+{% for item in whats_new.input_changes %}
+{% if item.link %}
+#### [`{{ item.key }}`]({{ item.link }})
+{% else %}
+#### `{{ item.key }}`
+{% endif %}
 
-| Input | Change | Details |
-|---|---|---|
-| `build_number` | :material-plus:{ title="Added" } | type: `string` |
-| `version_number` | :material-plus:{ title="Added" } | type: `string` |
+{{ item.input_table }}
 
-#### [`ios-fastlane-beta`](actions/ios/fastlane-beta.md)
-
-| Input | Change | Details |
-|---|---|---|
-| `build_number` | :material-plus:{ title="Added" } | type: `string` |
-| `version_number` | :material-plus:{ title="Added" } | type: `string` |
-
-#### [`ios-fastlane-release`](actions/ios/fastlane-release.md)
-
-| Input | Change | Details |
-|---|---|---|
-| `build_number` | :material-plus:{ title="Added" } | type: `string` |
-| `version_number` | :material-pencil:{ title="Modified" } | description updated |
-
+{% endfor %}
+{% endif %}
 [:octicons-arrow-right-24: Full Changelog](changelog.md)
 
+{% endif %}
 ---
 
 ## What's Inside

@@ -12,22 +12,22 @@ _2026-03-23_
 
 | Input | Change | Details |
 |---|---|---|
-| `build_number` | :material-plus: Added | type: `string` |
-| `version_number` | :material-plus: Added | type: `string` |
+| `build_number` | :material-plus:{ title="Added" } | type: `string` |
+| `version_number` | :material-plus:{ title="Added" } | type: `string` |
 
 #### `ios-fastlane-release`
 
 | Input | Change | Details |
 |---|---|---|
-| `build_number` | :material-plus: Added | type: `string` |
-| `version_number` | :material-pencil: Modified | description updated |
+| `build_number` | :material-plus:{ title="Added" } | type: `string` |
+| `version_number` | :material-pencil:{ title="Modified" } | description updated |
 
 #### `ios-selfhosted-on-demand-build`
 
 | Input | Change | Details |
 |---|---|---|
-| `build_number` | :material-plus: Added | type: `string` |
-| `version_number` | :material-plus: Added | type: `string` |
+| `build_number` | :material-plus:{ title="Added" } | type: `string` |
+| `version_number` | :material-plus:{ title="Added" } | type: `string` |
 
 ### Internal changes
 
@@ -70,7 +70,7 @@ _2026-02-20_
 
 | Input | Change | Details |
 |---|---|---|
-| `exclude_source_branches` | :material-plus: Added | type: `string`, default: `(main|develop|master)` |
+| `exclude_source_branches` | :material-plus:{ title="Added" } | type: `string`, default: `(main|develop|master)` |
 
 **Contributors:** Matej Semančík, Šimon Šesták
 
@@ -105,53 +105,53 @@ _2025-11-14_
 
 | Input | Change | Details |
 |---|---|---|
-| `JIRA_TRANSITION` | :material-plus: Added | type: `string`, default: `Testing` |
+| `JIRA_TRANSITION` | :material-plus:{ title="Added" } | type: `string`, default: `Testing` |
 
 | Secret | Change | Details |
 |---|---|---|
-| `JIRA_CONTEXT` | :material-plus: Added |  |
+| `JIRA_CONTEXT` | :material-plus:{ title="Added" } |  |
 
 #### `ios-selfhosted-nightly-build`
 
 | Input | Change | Details |
 |---|---|---|
-| `checkout_depth` | :material-plus: Added | type: `number`, default: `100` |
-| `custom_values` | :material-pencil: Modified | default: _none_ -> `24 hours` |
-| `jira_transition` | :material-plus: Added | type: `string`, default: `Testing` |
-| `secret_properties` | :material-minus: Removed |  |
+| `checkout_depth` | :material-plus:{ title="Added" } | type: `number`, default: `100` |
+| `custom_values` | :material-pencil:{ title="Modified" } | default: _none_ -> `24 hours` |
+| `jira_transition` | :material-plus:{ title="Added" } | type: `string`, default: `Testing` |
+| `secret_properties` | :material-minus:{ title="Removed" } |  |
 
 | Secret | Change | Details |
 |---|---|---|
-| `JIRA_CONTEXT` | :material-plus: Added |  |
+| `JIRA_CONTEXT` | :material-plus:{ title="Added" } |  |
 
 #### `ios-selfhosted-on-demand-build`
 
 | Input | Change | Details |
 |---|---|---|
-| `checkout_depth` | :material-plus: Added | type: `number`, default: `100` |
-| `secret_properties` | :material-minus: Removed |  |
+| `checkout_depth` | :material-plus:{ title="Added" } | type: `number`, default: `100` |
+| `secret_properties` | :material-minus:{ title="Removed" } |  |
 
 #### `ios-selfhosted-release`
 
 | Input | Change | Details |
 |---|---|---|
-| `secret_properties` | :material-minus: Removed |  |
+| `secret_properties` | :material-minus:{ title="Removed" } |  |
 
 #### `kmp-combined-nightly-build`
 
 | Input | Change | Details |
 |---|---|---|
-| `JIRA_TRANSITION` | :material-plus: Added | type: `string`, default: `Testing` |
+| `JIRA_TRANSITION` | :material-plus:{ title="Added" } | type: `string`, default: `Testing` |
 
 | Secret | Change | Details |
 |---|---|---|
-| `JIRA_CONTEXT` | :material-plus: Added |  |
+| `JIRA_CONTEXT` | :material-plus:{ title="Added" } |  |
 
 #### `universal-detect-changes-and-generate-changelog`
 
 | Input | Change | Details |
 |---|---|---|
-| `use_git_lfs` | :material-plus: Added | type: `boolean`, default: `False` |
+| `use_git_lfs` | :material-plus:{ title="Added" } | type: `boolean`, default: `False` |
 
 ### Internal changes
 
@@ -190,84 +190,84 @@ _2025-11-12_
 
 | Input | Change | Details |
 |---|---|---|
-| `github_token_danger` | :material-plus: Added | type: `string` |
+| `github_token_danger` | :material-plus:{ title="Added" } | type: `string` |
 
 #### `android-cloud-check`
 
 | Secret | Change | Details |
 |---|---|---|
-| `GITHUB_TOKEN_DANGER` | :material-plus: Added |  |
+| `GITHUB_TOKEN_DANGER` | :material-plus:{ title="Added" } |  |
 
 #### `ios-kmp-build`
 
 | Input | Change | Details |
 |---|---|---|
-| `ios_custom_build_path` | :material-plus: Added | type: `string` |
+| `ios_custom_build_path` | :material-plus:{ title="Added" } | type: `string` |
 
 #### `ios-kmp-selfhosted-build`
 
 | Input | Change | Details |
 |---|---|---|
-| `custom_build_path` | :material-plus: Added | type: `string` |
+| `custom_build_path` | :material-plus:{ title="Added" } | type: `string` |
 
 #### `ios-kmp-selfhosted-release`
 
 | Input | Change | Details |
 |---|---|---|
-| `custom_build_path` | :material-plus: Added | type: `string` |
+| `custom_build_path` | :material-plus:{ title="Added" } | type: `string` |
 
 #### `ios-kmp-selfhosted-test`
 
 | Input | Change | Details |
 |---|---|---|
-| `custom_build_path` | :material-plus: Added | type: `string` |
+| `custom_build_path` | :material-plus:{ title="Added" } | type: `string` |
 
 | Secret | Change | Details |
 |---|---|---|
-| `GITHUB_TOKEN_DANGER` | :material-plus: Added |  |
+| `GITHUB_TOKEN_DANGER` | :material-plus:{ title="Added" } |  |
 
 #### `ios-selfhosted-build`
 
 | Input | Change | Details |
 |---|---|---|
-| `changelog_checkout_depth` | :material-minus: Removed |  |
-| `changelog_debug` | :material-minus: Removed |  |
-| `force_build` | :material-minus: Removed |  |
-| `required_keys` | :material-pencil: Modified | default: `` -> _none_ |
-| `secret_properties` | :material-plus: Added | type: `string` |
-| `timeout_minutes` | :material-plus: Added | type: `number`, default: `30` |
-| `xcconfig_path` | :material-pencil: Modified | default: `` -> _none_ |
+| `changelog_checkout_depth` | :material-minus:{ title="Removed" } |  |
+| `changelog_debug` | :material-minus:{ title="Removed" } |  |
+| `force_build` | :material-minus:{ title="Removed" } |  |
+| `required_keys` | :material-pencil:{ title="Modified" } | default: `` -> _none_ |
+| `secret_properties` | :material-plus:{ title="Added" } | type: `string` |
+| `timeout_minutes` | :material-plus:{ title="Added" } | type: `number`, default: `30` |
+| `xcconfig_path` | :material-pencil:{ title="Modified" } | default: `` -> _none_ |
 
 #### `ios-selfhosted-release`
 
 | Input | Change | Details |
 |---|---|---|
-| `required_keys` | :material-pencil: Modified | default: `` -> _none_ |
-| `secret_properties` | :material-plus: Added | type: `string` |
-| `timeout_minutes` | :material-plus: Added | type: `number`, default: `30` |
-| `xcconfig_path` | :material-pencil: Modified | default: `` -> _none_ |
+| `required_keys` | :material-pencil:{ title="Modified" } | default: `` -> _none_ |
+| `secret_properties` | :material-plus:{ title="Added" } | type: `string` |
+| `timeout_minutes` | :material-plus:{ title="Added" } | type: `number`, default: `30` |
+| `xcconfig_path` | :material-pencil:{ title="Modified" } | default: `` -> _none_ |
 
 #### `ios-selfhosted-test`
 
 | Input | Change | Details |
 |---|---|---|
-| `timeout_minutes` | :material-plus: Added | type: `number`, default: `30` |
+| `timeout_minutes` | :material-plus:{ title="Added" } | type: `number`, default: `30` |
 
 | Secret | Change | Details |
 |---|---|---|
-| `GITHUB_TOKEN_DANGER` | :material-plus: Added |  |
+| `GITHUB_TOKEN_DANGER` | :material-plus:{ title="Added" } |  |
 
 #### `kmp-combined-nightly-build`
 
 | Input | Change | Details |
 |---|---|---|
-| `IOS_CUSTOM_BUILD_PATH` | :material-plus: Added | type: `string` |
+| `IOS_CUSTOM_BUILD_PATH` | :material-plus:{ title="Added" } | type: `string` |
 
 #### `universal-detect-changes-and-generate-changelog`
 
 | Input | Change | Details |
 |---|---|---|
-| `cache_key_prefix` | :material-plus: Added | type: `string` |
+| `cache_key_prefix` | :material-plus:{ title="Added" } | type: `string` |
 
 ### Internal changes
 
@@ -322,39 +322,39 @@ _2025-10-07_
 
 | Input | Change | Details |
 |---|---|---|
-| `BUNDLE_GRADLE_TASK` | :material-minus: Removed |  |
-| `PACKAGE_GRADLE_TASK` | :material-plus: Added | type: `string`, required |
-| `SIGNING_KEYSTORE_PATH` | :material-minus: Removed |  |
+| `BUNDLE_GRADLE_TASK` | :material-minus:{ title="Removed" } |  |
+| `PACKAGE_GRADLE_TASK` | :material-plus:{ title="Added" } | type: `string`, required |
+| `SIGNING_KEYSTORE_PATH` | :material-minus:{ title="Removed" } |  |
 
 | Secret | Change | Details |
 |---|---|---|
-| `SIGNING_KEYSTORE_PASSWORD` | :material-minus: Removed |  |
-| `SIGNING_KEY_ALIAS` | :material-minus: Removed |  |
-| `SIGNING_KEY_PASSWORD` | :material-minus: Removed |  |
+| `SIGNING_KEYSTORE_PASSWORD` | :material-minus:{ title="Removed" } |  |
+| `SIGNING_KEY_ALIAS` | :material-minus:{ title="Removed" } |  |
+| `SIGNING_KEY_PASSWORD` | :material-minus:{ title="Removed" } |  |
 
 #### `android-cloud-release-googlePlay`
 
 | Input | Change | Details |
 |---|---|---|
-| `SIGNING_KEYSTORE_PATH` | :material-minus: Removed |  |
+| `SIGNING_KEYSTORE_PATH` | :material-minus:{ title="Removed" } |  |
 
 #### `ios-kmp-selfhosted-build`
 
 | Input | Change | Details |
 |---|---|---|
-| `changelog` | :material-plus: Added | type: `string`, default: `${{ github.event.pull_request.title }}` |
+| `changelog` | :material-plus:{ title="Added" } | type: `string`, default: `${{ github.event.pull_request.title }}` |
 
 #### `ios-selfhosted-build`
 
 | Input | Change | Details |
 |---|---|---|
-| `force_build` | :material-plus: Added | type: `boolean`, default: `False` |
+| `force_build` | :material-plus:{ title="Added" } | type: `boolean`, default: `False` |
 
 #### `universal-detect-changes-and-generate-changelog`
 
 | Output | Change |
 |---|---|
-| `cache_key` | :material-plus: Added |
+| `cache_key` | :material-plus:{ title="Added" } |
 
 ### Internal changes
 
@@ -391,89 +391,89 @@ _2025-08-27_
 
 | Input | Change | Details |
 |---|---|---|
-| `required_keys` | :material-plus: Added | type: `string`, default: `` |
-| `xcconfig_path` | :material-plus: Added | type: `string`, default: `` |
+| `required_keys` | :material-plus:{ title="Added" } | type: `string`, default: `` |
+| `xcconfig_path` | :material-plus:{ title="Added" } | type: `string`, default: `` |
 
 | Secret | Change | Details |
 |---|---|---|
-| `SECRET_PROPERTIES` | :material-plus: Added |  |
+| `SECRET_PROPERTIES` | :material-plus:{ title="Added" } |  |
 
 #### `ios-cloud-release`
 
 | Input | Change | Details |
 |---|---|---|
-| `required_keys` | :material-plus: Added | type: `string`, default: `` |
-| `xcconfig_path` | :material-plus: Added | type: `string`, default: `` |
+| `required_keys` | :material-plus:{ title="Added" } | type: `string`, default: `` |
+| `xcconfig_path` | :material-plus:{ title="Added" } | type: `string`, default: `` |
 
 | Secret | Change | Details |
 |---|---|---|
-| `SECRET_PROPERTIES` | :material-plus: Added |  |
+| `SECRET_PROPERTIES` | :material-plus:{ title="Added" } |  |
 
 #### `ios-kmp-selfhosted-build`
 
 | Input | Change | Details |
 |---|---|---|
-| `java_distribution` | :material-plus: Added | type: `string`, default: `zulu` |
-| `java_version` | :material-plus: Added | type: `string`, default: `17` |
-| `required_keys` | :material-plus: Added | type: `string`, default: `` |
-| `xcconfig_path` | :material-plus: Added | type: `string`, default: `` |
+| `java_distribution` | :material-plus:{ title="Added" } | type: `string`, default: `zulu` |
+| `java_version` | :material-plus:{ title="Added" } | type: `string`, default: `17` |
+| `required_keys` | :material-plus:{ title="Added" } | type: `string`, default: `` |
+| `xcconfig_path` | :material-plus:{ title="Added" } | type: `string`, default: `` |
 
 | Secret | Change | Details |
 |---|---|---|
-| `SECRET_PROPERTIES` | :material-plus: Added |  |
+| `SECRET_PROPERTIES` | :material-plus:{ title="Added" } |  |
 
 #### `ios-kmp-selfhosted-release`
 
 | Input | Change | Details |
 |---|---|---|
-| `java_distribution` | :material-plus: Added | type: `string`, default: `zulu` |
-| `java_version` | :material-plus: Added | type: `string`, default: `17` |
-| `required_keys` | :material-plus: Added | type: `string`, default: `` |
-| `xcconfig_path` | :material-plus: Added | type: `string`, default: `` |
+| `java_distribution` | :material-plus:{ title="Added" } | type: `string`, default: `zulu` |
+| `java_version` | :material-plus:{ title="Added" } | type: `string`, default: `17` |
+| `required_keys` | :material-plus:{ title="Added" } | type: `string`, default: `` |
+| `xcconfig_path` | :material-plus:{ title="Added" } | type: `string`, default: `` |
 
 | Secret | Change | Details |
 |---|---|---|
-| `SECRET_PROPERTIES` | :material-plus: Added |  |
+| `SECRET_PROPERTIES` | :material-plus:{ title="Added" } |  |
 
 #### `ios-kmp-selfhosted-test`
 
 | Input | Change | Details |
 |---|---|---|
-| `java_distribution` | :material-plus: Added | type: `string`, default: `zulu` |
-| `java_version` | :material-plus: Added | type: `string`, default: `17` |
+| `java_distribution` | :material-plus:{ title="Added" } | type: `string`, default: `zulu` |
+| `java_version` | :material-plus:{ title="Added" } | type: `string`, default: `17` |
 
 #### `ios-selfhosted-build`
 
 | Input | Change | Details |
 |---|---|---|
-| `changelog_checkout_depth` | :material-plus: Added | type: `number`, default: `100` |
-| `changelog_debug` | :material-plus: Added | type: `boolean`, default: `False` |
-| `changelog_fallback_lookback` | :material-plus: Added | type: `string`, default: `24 hours` |
-| `required_keys` | :material-plus: Added | type: `string`, default: `` |
-| `runner_label` | :material-plus: Added | type: `string`, default: `self-hosted` |
-| `xcconfig_path` | :material-plus: Added | type: `string`, default: `` |
+| `changelog_checkout_depth` | :material-plus:{ title="Added" } | type: `number`, default: `100` |
+| `changelog_debug` | :material-plus:{ title="Added" } | type: `boolean`, default: `False` |
+| `changelog_fallback_lookback` | :material-plus:{ title="Added" } | type: `string`, default: `24 hours` |
+| `required_keys` | :material-plus:{ title="Added" } | type: `string`, default: `` |
+| `runner_label` | :material-plus:{ title="Added" } | type: `string`, default: `self-hosted` |
+| `xcconfig_path` | :material-plus:{ title="Added" } | type: `string`, default: `` |
 
 | Secret | Change | Details |
 |---|---|---|
-| `SECRET_PROPERTIES` | :material-plus: Added |  |
+| `SECRET_PROPERTIES` | :material-plus:{ title="Added" } |  |
 
 #### `ios-selfhosted-release`
 
 | Input | Change | Details |
 |---|---|---|
-| `required_keys` | :material-plus: Added | type: `string`, default: `` |
-| `runner_label` | :material-plus: Added | type: `string`, default: `self-hosted` |
-| `xcconfig_path` | :material-plus: Added | type: `string`, default: `` |
+| `required_keys` | :material-plus:{ title="Added" } | type: `string`, default: `` |
+| `runner_label` | :material-plus:{ title="Added" } | type: `string`, default: `self-hosted` |
+| `xcconfig_path` | :material-plus:{ title="Added" } | type: `string`, default: `` |
 
 | Secret | Change | Details |
 |---|---|---|
-| `SECRET_PROPERTIES` | :material-plus: Added |  |
+| `SECRET_PROPERTIES` | :material-plus:{ title="Added" } |  |
 
 #### `ios-selfhosted-test`
 
 | Input | Change | Details |
 |---|---|---|
-| `runner_label` | :material-plus: Added | type: `string`, default: `self-hosted` |
+| `runner_label` | :material-plus:{ title="Added" } | type: `string`, default: `self-hosted` |
 
 ### Internal changes
 
@@ -493,45 +493,45 @@ _2025-06-05_
 
 | Input | Change | Details |
 |---|---|---|
-| `USE_GIT_LFS` | :material-plus: Added | type: `boolean`, default: `False` |
+| `USE_GIT_LFS` | :material-plus:{ title="Added" } | type: `boolean`, default: `False` |
 
 | Secret | Change | Details |
 |---|---|---|
-| `GRADLE_CACHE_ENCRYPTION_KEY` | :material-plus: Added |  |
+| `GRADLE_CACHE_ENCRYPTION_KEY` | :material-plus:{ title="Added" } |  |
 
 #### `android-cloud-release-firebaseAppDistribution`
 
 | Input | Change | Details |
 |---|---|---|
-| `USE_GIT_LFS` | :material-plus: Added | type: `boolean`, default: `False` |
+| `USE_GIT_LFS` | :material-plus:{ title="Added" } | type: `boolean`, default: `False` |
 
 | Secret | Change | Details |
 |---|---|---|
-| `GRADLE_CACHE_ENCRYPTION_KEY` | :material-plus: Added |  |
+| `GRADLE_CACHE_ENCRYPTION_KEY` | :material-plus:{ title="Added" } |  |
 
 #### `android-cloud-release-googlePlay`
 
 | Input | Change | Details |
 |---|---|---|
-| `USE_GIT_LFS` | :material-plus: Added | type: `boolean`, default: `False` |
+| `USE_GIT_LFS` | :material-plus:{ title="Added" } | type: `boolean`, default: `False` |
 
 #### `ios-kmp-selfhosted-build`
 
 | Secret | Change | Details |
 |---|---|---|
-| `GRADLE_CACHE_ENCRYPTION_KEY` | :material-plus: Added |  |
+| `GRADLE_CACHE_ENCRYPTION_KEY` | :material-plus:{ title="Added" } |  |
 
 #### `ios-kmp-selfhosted-test`
 
 | Secret | Change | Details |
 |---|---|---|
-| `GRADLE_CACHE_ENCRYPTION_KEY` | :material-plus: Added |  |
+| `GRADLE_CACHE_ENCRYPTION_KEY` | :material-plus:{ title="Added" } |  |
 
 #### `kmp-cloud-detect-changes`
 
 | Input | Change | Details |
 |---|---|---|
-| `USE_GIT_LFS` | :material-plus: Added | type: `boolean`, default: `False` |
+| `USE_GIT_LFS` | :material-plus:{ title="Added" } | type: `boolean`, default: `False` |
 
 ### Internal changes
 
@@ -560,63 +560,63 @@ _2025-03-13_
 
 | Input | Change | Details |
 |---|---|---|
-| `GRADLE_OPTS` | :material-plus: Added | type: `string`, default: `` |
+| `GRADLE_OPTS` | :material-plus:{ title="Added" } | type: `string`, default: `` |
 
 #### `android-cloud-release-firebaseAppDistribution`
 
 | Input | Change | Details |
 |---|---|---|
-| `GRADLE_OPTS` | :material-plus: Added | type: `string`, default: `` |
-| `SECRET_PROPERTIES_FILE` | :material-pencil: Modified | description updated |
-| `VERSION_NAME` | :material-pencil: Modified | default: `1.X.X-snapshot` -> _none_ |
+| `GRADLE_OPTS` | :material-plus:{ title="Added" } | type: `string`, default: `` |
+| `SECRET_PROPERTIES_FILE` | :material-pencil:{ title="Modified" } | description updated |
+| `VERSION_NAME` | :material-pencil:{ title="Modified" } | default: `1.X.X-snapshot` -> _none_ |
 
 #### `android-cloud-release-googlePlay`
 
 | Input | Change | Details |
 |---|---|---|
-| `GRADLE_OPTS` | :material-plus: Added | type: `string`, default: `` |
+| `GRADLE_OPTS` | :material-plus:{ title="Added" } | type: `string`, default: `` |
 
 #### `ios-kmp-selfhosted-build`
 
 | Input | Change | Details |
 |---|---|---|
-| `kmp_swift_package_flavor` | :material-plus: Added | type: `string`, default: `prod` |
-| `kmp_swift_package_integration` | :material-plus: Added | type: `boolean`, default: `False` |
-| `kmp_swift_package_path` | :material-plus: Added | type: `string`, default: `iosApp/shared/KMP` |
+| `kmp_swift_package_flavor` | :material-plus:{ title="Added" } | type: `string`, default: `prod` |
+| `kmp_swift_package_integration` | :material-plus:{ title="Added" } | type: `boolean`, default: `False` |
+| `kmp_swift_package_path` | :material-plus:{ title="Added" } | type: `string`, default: `iosApp/shared/KMP` |
 
 #### `ios-kmp-selfhosted-release`
 
 | Input | Change | Details |
 |---|---|---|
-| `kmp_swift_package_flavor` | :material-plus: Added | type: `string`, default: `prod` |
-| `kmp_swift_package_integration` | :material-plus: Added | type: `boolean`, default: `False` |
-| `kmp_swift_package_path` | :material-plus: Added | type: `string`, default: `iosApp/shared/KMP` |
+| `kmp_swift_package_flavor` | :material-plus:{ title="Added" } | type: `string`, default: `prod` |
+| `kmp_swift_package_integration` | :material-plus:{ title="Added" } | type: `boolean`, default: `False` |
+| `kmp_swift_package_path` | :material-plus:{ title="Added" } | type: `string`, default: `iosApp/shared/KMP` |
 
 | Secret | Change | Details |
 |---|---|---|
-| `APP_STORE_CONNECT_API_KEY_ISSUER_ID_CUSTOMER` | :material-minus: Removed |  |
-| `APP_STORE_CONNECT_API_KEY_KEY_CUSTOMER` | :material-minus: Removed |  |
-| `APP_STORE_CONNECT_API_KEY_KEY_ID_CUSTOMER` | :material-minus: Removed |  |
+| `APP_STORE_CONNECT_API_KEY_ISSUER_ID_CUSTOMER` | :material-minus:{ title="Removed" } |  |
+| `APP_STORE_CONNECT_API_KEY_KEY_CUSTOMER` | :material-minus:{ title="Removed" } |  |
+| `APP_STORE_CONNECT_API_KEY_KEY_ID_CUSTOMER` | :material-minus:{ title="Removed" } |  |
 
 #### `ios-kmp-selfhosted-test`
 
 | Input | Change | Details |
 |---|---|---|
-| `kmp_swift_package_flavor` | :material-plus: Added | type: `string`, default: `dev` |
-| `kmp_swift_package_integration` | :material-plus: Added | type: `boolean`, default: `False` |
-| `kmp_swift_package_path` | :material-plus: Added | type: `string`, default: `iosApp/shared/KMP` |
+| `kmp_swift_package_flavor` | :material-plus:{ title="Added" } | type: `string`, default: `dev` |
+| `kmp_swift_package_integration` | :material-plus:{ title="Added" } | type: `boolean`, default: `False` |
+| `kmp_swift_package_path` | :material-plus:{ title="Added" } | type: `string`, default: `iosApp/shared/KMP` |
 
 #### `universal-cloud-backup`
 
 | Input | Change | Details |
 |---|---|---|
-| `push_tags` | :material-plus: Added | type: `boolean`, default: `False` |
+| `push_tags` | :material-plus:{ title="Added" } | type: `boolean`, default: `False` |
 
 #### `universal-selfhosted-backup`
 
 | Input | Change | Details |
 |---|---|---|
-| `push_tags` | :material-plus: Added | type: `boolean`, default: `False` |
+| `push_tags` | :material-plus:{ title="Added" } | type: `boolean`, default: `False` |
 
 **Contributors:** Jakub Marek, Jan Maděra, Matej Semančík
 
@@ -632,7 +632,7 @@ _2025-02-07_
 
 | Input | Change | Details |
 |---|---|---|
-| `RELEASE_NOTES` | :material-plus: Added | type: `string`, default: `${{ github.event.head_commit.message }}` |
+| `RELEASE_NOTES` | :material-plus:{ title="Added" } | type: `string`, default: `${{ github.event.head_commit.message }}` |
 
 **Contributors:** Matej Semančík
 
@@ -655,13 +655,13 @@ _2025-01-30_
 
 | Input | Change | Details |
 |---|---|---|
-| `timeout_minutes` | :material-plus: Added | type: `number`, default: `30` |
+| `timeout_minutes` | :material-plus:{ title="Added" } | type: `number`, default: `30` |
 
 #### `ios-kmp-selfhosted-test`
 
 | Input | Change | Details |
 |---|---|---|
-| `timeout_minutes` | :material-plus: Added | type: `number`, default: `30` |
+| `timeout_minutes` | :material-plus:{ title="Added" } | type: `number`, default: `30` |
 
 **Contributors:** Matej Semančík
 

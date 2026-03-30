@@ -469,39 +469,43 @@ def diff_tags(old_tag: str, new_tag: str) -> list[FileDiff]:
 # ---------------------------------------------------------------------------
 
 
-def _render_input_table(changes: list[InputChange]) -> list[str]:
+def _change_icon(change: str) -> str:
+    """Return a Material icon with a hover tooltip for the change type."""
+    mapping = {
+        "added": ':material-plus:{ title="Added" }',
+        "removed": ':material-minus:{ title="Removed" }',
+        "modified": ':material-pencil:{ title="Modified" }',
+    }
+    return mapping[change]
+
+
+def render_input_table(changes: list[InputChange]) -> list[str]:
     lines = [
         "| Input | Change | Details |",
         "|---|---|---|",
     ]
     for c in changes:
-        icon = {"added": ":material-plus:", "removed": ":material-minus:", "modified": ":material-pencil:"}[c.change]
-        label = {"added": "Added", "removed": "Removed", "modified": "Modified"}[c.change]
-        lines.append(f"| `{c.name}` | {icon} {label} | {c.details} |")
+        lines.append(f"| `{c.name}` | {_change_icon(c.change)} | {c.details} |")
     return lines
 
 
-def _render_secret_table(changes: list[SecretChange]) -> list[str]:
+def render_secret_table(changes: list[SecretChange]) -> list[str]:
     lines = [
         "| Secret | Change | Details |",
         "|---|---|---|",
     ]
     for c in changes:
-        icon = {"added": ":material-plus:", "removed": ":material-minus:", "modified": ":material-pencil:"}[c.change]
-        label = {"added": "Added", "removed": "Removed", "modified": "Modified"}[c.change]
-        lines.append(f"| `{c.name}` | {icon} {label} | {c.details} |")
+        lines.append(f"| `{c.name}` | {_change_icon(c.change)} | {c.details} |")
     return lines
 
 
-def _render_output_table(changes: list[OutputChange]) -> list[str]:
+def render_output_table(changes: list[OutputChange]) -> list[str]:
     lines = [
         "| Output | Change |",
         "|---|---|",
     ]
     for c in changes:
-        icon = {"added": ":material-plus:", "removed": ":material-minus:"}[c.change]
-        label = {"added": "Added", "removed": "Removed"}[c.change]
-        lines.append(f"| `{c.name}` | {icon} {label} |")
+        lines.append(f"| `{c.name}` | {_change_icon(c.change)} |")
     return lines
 
 
@@ -598,13 +602,13 @@ def render_version(
             lines.append(f"#### `{d.key}`")
             lines.append("")
             if d.input_changes:
-                lines.extend(_render_input_table(d.input_changes))
+                lines.extend(render_input_table(d.input_changes))
                 lines.append("")
             if d.secret_changes:
-                lines.extend(_render_secret_table(d.secret_changes))
+                lines.extend(render_secret_table(d.secret_changes))
                 lines.append("")
             if d.output_changes:
-                lines.extend(_render_output_table(d.output_changes))
+                lines.extend(render_output_table(d.output_changes))
                 lines.append("")
 
     # --- Internal changes ---
@@ -625,6 +629,45 @@ def render_version(
         lines.append("")
 
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Public API — used by generate-docs.py for the home page "What's New" section
+# ---------------------------------------------------------------------------
+
+
+def get_version_diff(version: str) -> tuple[str, list[FileDiff]] | None:
+    """Return (previous_tag, diffs) for the given version tag.
+
+    Returns None if version is not a tag, is the first tag, or is a
+    re-tag of the same commit as its predecessor.
+    """
+    tags = get_sorted_tags()
+    if version not in tags:
+        return None
+    idx = tags.index(version)
+    if idx == 0:
+        return None
+    old_tag = tags[idx - 1]
+    if _git("rev-parse", old_tag) == _git("rev-parse", version):
+        return None
+    return (old_tag, diff_tags(old_tag, version))
+
+
+def get_head_diff() -> tuple[str, str, list[FileDiff]] | None:
+    """Return (latest_tag, 'main', diffs) diffing HEAD against the latest tag.
+
+    Used for non-tag builds to show what changed since the last release.
+    Returns None if no tags exist or no changes found.
+    """
+    tags = get_sorted_tags()
+    if not tags:
+        return None
+    latest = tags[-1]
+    diffs = diff_tags(latest, "HEAD")
+    if not diffs:
+        return None
+    return (latest, "main", diffs)
 
 
 # ---------------------------------------------------------------------------

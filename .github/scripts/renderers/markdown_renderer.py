@@ -197,6 +197,23 @@ def render_action(
     return output_path
 
 
+def render_home(
+    whats_new: dict | None,
+    templates_dir: str | Path,
+    output_base: str | Path,
+) -> Path:
+    """Render the home page (index.md) with optional What's New section."""
+    env = _build_env(templates_dir)
+    template = env.get_template("home.md.j2")
+
+    rendered = template.render(whats_new=whats_new)
+
+    output_path = Path(output_base) / "docs" / "index.md"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(rendered, encoding="utf-8")
+    return output_path
+
+
 def render_index(
     title: str,
     description: str,

@@ -33,11 +33,102 @@ from scripts.enrichers.base import BaseEnricher, EnrichmentResult
 from scripts.enrichers.readme_enricher import ReadmeEnricher
 from scripts.parsers.action_parser import parse_action
 from scripts.parsers.workflow_parser import parse_workflow
+from scripts.generate_changelog import (
+    FileDiff,
+    get_head_diff,
+    get_version_diff,
+    render_input_table,
+    render_secret_table,
+)
 from scripts.renderers.markdown_renderer import (
     render_action,
+    render_home,
     render_index,
     render_workflow,
 )
+
+
+def _build_docs_link_map() -> dict[str, str]:
+    """Build a mapping from workflow/action key to its docs path relative to index.md."""
+    links: dict[str, str] = {}
+    for key, cfg in WORKFLOWS.items():
+        # output is like "docs/workflows/ios/selfhosted-test.md" → strip "docs/"
+        links[key] = cfg["output"].removeprefix("docs/")
+    for key, cfg in ACTIONS.items():
+        links[key] = cfg["output"].removeprefix("docs/")
+    return links
+
+
+def _build_whats_new_context(ref: str) -> dict | None:
+    """Build template context for the home page What's New section."""
+    if ref == "main":
+        result = get_head_diff()
+        if not result:
+            return None
+        _old_tag, version, diffs = result
+    else:
+        result = get_version_diff(ref)
+        if not result:
+            return None
+        _old_tag, diffs = result
+        version = ref
+
+    link_map = _build_docs_link_map()
+
+    breaking = []
+    for d in diffs:
+        if d.has_breaking_changes:
+            breaking.append({
+                "key": d.key,
+                "kind": d.kind,
+                "link": link_map.get(d.key),
+                "removed_inputs": [c for c in d.input_changes if c.change == "removed"],
+                "removed_secrets": [c for c in d.secret_changes if c.change == "removed"],
+                "removed_outputs": [c for c in d.output_changes if c.change == "removed"],
+            })
+
+    added = [{"key": d.key, "kind": d.kind, "link": link_map.get(d.key)} for d in diffs if d.status == "added"]
+    removed = [{"key": d.key, "kind": d.kind} for d in diffs if d.status == "removed"]
+
+    input_changes = []
+    for d in diffs:
+        if d.status in ("changed",) and d.has_api_changes:
+            table_lines = []
+            if d.input_changes:
+                table_lines.extend(render_input_table(d.input_changes))
+            if d.secret_changes:
+                table_lines.extend(render_secret_table(d.secret_changes))
+            if table_lines:
+                input_changes.append({
+                    "key": d.key,
+                    "link": link_map.get(d.key),
+                    "input_table": "\n".join(table_lines),
+                })
+    # Also include input tables from breaking-change items
+    for d in diffs:
+        if d.has_breaking_changes and d.has_api_changes:
+            table_lines = []
+            if d.input_changes:
+                table_lines.extend(render_input_table(d.input_changes))
+            if d.secret_changes:
+                table_lines.extend(render_secret_table(d.secret_changes))
+            if table_lines:
+                input_changes.append({
+                    "key": d.key,
+                    "link": link_map.get(d.key),
+                    "input_table": "\n".join(table_lines),
+                })
+
+    if not breaking and not added and not removed and not input_changes:
+        return None
+
+    return {
+        "version": version,
+        "breaking": breaking,
+        "added": added,
+        "removed": removed,
+        "input_changes": input_changes,
+    }
 
 
 def _run_enrichers(
@@ -260,6 +351,21 @@ def main() -> None:
         output_path=ROOT_DIR / "docs" / "actions" / "index.md",
     )
     print(f"  Written: docs/actions/index.md")
+
+    # -------------------------------------------------------------------
+    # Generate home page with What's New section
+    # -------------------------------------------------------------------
+    print("\nGenerating home page...")
+    whats_new = _build_whats_new_context(args.ref)
+    if whats_new:
+        print(f"  What's New: {whats_new['version']} "
+              f"({len(whats_new['breaking'])} breaking, "
+              f"{len(whats_new['added'])} added, "
+              f"{len(whats_new['input_changes'])} changed)")
+    else:
+        print("  No API changes to highlight")
+    home_path = render_home(whats_new, templates_dir, ROOT_DIR)
+    print(f"  Written: {home_path.relative_to(ROOT_DIR)}")
 
     # -------------------------------------------------------------------
     # Generate nav in mkdocs.yml
