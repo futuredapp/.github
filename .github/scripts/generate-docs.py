@@ -36,6 +36,7 @@ from scripts.parsers.workflow_parser import parse_workflow
 from scripts.generate_changelog import (
     FileDiff,
     get_head_diff,
+    get_sorted_tags,
     get_version_diff,
     render_input_table,
     render_secret_table,
@@ -75,7 +76,7 @@ def _build_whats_new_context(ref: str) -> dict | None:
         _old_tag, diffs = result
         version = ref
     else:
-        # Branch build: show unreleased changes, or fall back to latest tag
+        # Branch build: show unreleased changes since the latest tag
         result = get_head_diff()
         if not result:
             return None
