@@ -113,6 +113,11 @@ jobs:
 
           mike set-default --push latest
 
+          echo "::group::Deploying main"
+          python scripts/generate-docs.py --ref main
+          mike deploy --push main
+          echo "::endgroup::"
+
   cleanup-preview:
     if: github.event_name == 'delete' && github.event.ref_type == 'branch' && github.event.ref != 'main'
     runs-on: ubuntu-latest
