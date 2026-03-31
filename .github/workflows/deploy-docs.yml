@@ -29,7 +29,7 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event_name != 'delete'
+    if: github.event_name != 'delete' && !(github.event_name == 'workflow_dispatch' && inputs.rebuild_all_versions)
     runs-on: ubuntu-latest
     defaults:
       run:
