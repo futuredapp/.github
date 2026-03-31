@@ -2,49 +2,7 @@
 
 [![Validate release tag](https://github.com/futuredapp/.github/actions/workflows/validate-release-tag.yml/badge.svg)](https://github.com/futuredapp/.github/actions/workflows/validate-release-tag.yml)
 
-## Reusable workflows
-
-This repo contains reusable workflows. These workflows are automatically
-set up when creating projects using
-[iOS project template](https://github.com/futuredapp/iOS-project-template).
-
-If you want to import them manually, reference a reusable workflow in your trigger workflow:
-
-```yml
-jobs:
-  { name }:
-    uses: futuredapp/.github/.github/workflows/{platform}-{runner}-{action}.yml@1.0.0
-    secrets:
-      # Secrets to be passed to called workflow
-      key: ${{ secrets.key }}
-```
-
-Name the job first and choose its platform, runner and action.
-Check the reusable workflow file and pass all the required secrets to it.
-All the available reusable workflows are listed in the following table.
-
-### Available workflows
-
-| Platform       | Runner      | Action                      | File                                                                                                                   | Description                                                                            |
-|:---------------|:------------|:----------------------------|:-----------------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------|
-| Universal      | Any         | Workflows Lint              | [`workflows-lint`](.github/workflows/workflows-lint.yml)                                                               | Lints GitHub workflow files for syntax and best practices.                             |
-| Universal      | Cloud       | Backup                      | [`universal-cloud-backup`](.github/workflows/universal-cloud-backup.yml)                                               | Backups currently checked out ref to a remote repository.                              |
-| Universal      | Self-hosted | Backup                      | [`universal-selfhosted-backup`](.github/workflows/universal-selfhosted-backup.yml)                                     | Backups currently checked out ref to a remote repository.                              |
-| iOS            | Self-hosted | Test                        | [`ios-selfhosted-test`](.github/workflows/ios-selfhosted-test.yml)                                                     | Lints and tests the PR.                                                                |
-| iOS            | Self-hosted | Build                       | [`ios-selfhosted-build`](.github/workflows/ios-selfhosted-build.yml)                                                   | **Deprecated.** Use `ios-selfhosted-nightly-build` or `ios-selfhosted-on-demand-build`.|
-| iOS            | Self-hosted | Nightly Build               | [`ios-selfhosted-nightly-build`](.github/workflows/ios-selfhosted-nightly-build.yml)                                   | Creates a nightly enterprise build and submits it to App Store Connect.                |
-| iOS            | Self-hosted | On-Demand Build             | [`ios-selfhosted-on-demand-build`](.github/workflows/ios-selfhosted-on-demand-build.yml)                               | Creates an on-demand enterprise build and submits it to App Store Connect.             |
-| iOS            | Self-hosted | Release                     | [`ios-selfhosted-release`](.github/workflows/ios-selfhosted-release.yml)                                               | Creates release build and submits it to App Store Connect.                             |
-| iOS (KMP)      | Self-hosted | Test                        | [`ios-kmp-selfhosted-test`](.github/workflows/ios-kmp-selfhosted-test.yml)                                             | Lints and tests the PR.                                                                |
-| iOS (KMP)      | Self-hosted | Build                       | [`ios-kmp-selfhosted-build`](.github/workflows/ios-kmp-selfhosted-build.yml)                                           | Creates enterprise release build and submits the build to Futured App Store Connect.   |
-| iOS (KMP)      | Self-hosted | Release                     | [`ios-kmp-selfhosted-release`](.github/workflows/ios-kmp-selfhosted-release.yml)                                       | Creates release build and submits it to App Store Connect.                             |
-| Android (+KMP) | Cloud       | Tests & Lint checks         | [`android-cloud-check`](.github/workflows/android-cloud-check.yml)                                                     | Runs unit tests and lint checks on pull request.                                       |
-| Android (+KMP) | Cloud       | Firebase Snapshot Release   | [`android-cloud-release-firebaseAppDistribution`](.github/workflows/android-cloud-release-firebaseAppDistribution.yml) | Publishes QA Snapshot build to Firebase App Distribution.                              |
-| Android (+KMP) | Cloud       | Google Play Release         | [`android-cloud-release-googlePlay`](.github/workflows/android-cloud-release-googlePlay.yml)                           | Publishes release build to Google Play.                                                |
-| Android        | Cloud       | Nightly Build               | [`android-cloud-nightly-build`](.github/workflows/android-cloud-nightly-build.yml)                                     | Automated nightly builds with Firebase App Distribution deployment.                    |
-| Android (+KMP) | Cloud       | Generate Baseline Profiles  | [`android-cloud-generate-baseline-profiles`](.github/workflows/android-cloud-generate-baseline-profiles.yml)           | Generates baseline profiles and creates PR with changes.                               |
-| KMP            | Cloud       | Detect Changes              | [`kmp-cloud-detect-changes`](.github/workflows/kmp-cloud-detect-changes.yml)                                           | Detects changed sources in KMP projects for conditional job execution.                 |
-| KMP            | Cloud       | Combined Nightly Build      | [`kmp-combined-nightly-build`](.github/workflows/kmp-combined-nightly-build.yml)                                       | Automated nightly builds for both iOS and Android platforms in KMP projects.           |
+Reusable workflows and actions for iOS, Android, and KMP projects. For detailed documentation, see the [autogenerated docs](https://futuredapp.github.io/.github/latest/).
 
 ## Creating a new release
 
