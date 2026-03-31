@@ -1,5 +1,7 @@
 # Futured GitHub configuration
 
+[![Validate release tag](https://github.com/futuredapp/.github/actions/workflows/validate-release-tag.yml/badge.svg)](https://github.com/futuredapp/.github/actions/workflows/validate-release-tag.yml)
+
 ## Reusable workflows
 
 This repo contains reusable workflows. These workflows are automatically
@@ -43,6 +45,22 @@ All the available reusable workflows are listed in the following table.
 | Android (+KMP) | Cloud       | Generate Baseline Profiles  | [`android-cloud-generate-baseline-profiles`](.github/workflows/android-cloud-generate-baseline-profiles.yml)           | Generates baseline profiles and creates PR with changes.                               |
 | KMP            | Cloud       | Detect Changes              | [`kmp-cloud-detect-changes`](.github/workflows/kmp-cloud-detect-changes.yml)                                           | Detects changed sources in KMP projects for conditional job execution.                 |
 | KMP            | Cloud       | Combined Nightly Build      | [`kmp-combined-nightly-build`](.github/workflows/kmp-combined-nightly-build.yml)                                       | Automated nightly builds for both iOS and Android platforms in KMP projects.           |
+
+## Creating a new release
+
+1. Bump all internal action refs to the new version:
+   ```bash
+   .github/scripts/bump-action-refs.sh 2.3.0
+   ```
+2. Commit and tag:
+   ```bash
+   git add -A
+   git commit -m "Bump action refs to 2.3.0"
+   git tag 2.3.0
+   git push origin main --tags
+   ```
+
+The [`validate-release-tag`](.github/workflows/validate-release-tag.yml) workflow runs on every tag push and fails if any `futuredapp/.github` refs don't match the tag version.
 
 ## Contributors
 
