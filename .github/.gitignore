@@ -1,3 +1,5 @@
 # Generated documentation (regenerate with: python scripts/generate-docs.py)
 docs/workflows/
 docs/actions/
+docs/changelog.md
+docs/index.md

@@ -111,6 +111,7 @@ nav:
       - Utility:
           - actions/utility/index.md
           - JIRA Transition Tickets: actions/utility/jira-transition-tickets.md
+  - Changelog: changelog.md
 
 copyright: Made with ❤️‍🔥 at Futured
 

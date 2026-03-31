@@ -167,6 +167,7 @@ def build_nav(
         {"Home": "index.md"},
         {"Workflows": _build_type_section(workflows, category_labels, "workflows")},
         {"Actions": _build_type_section(actions, category_labels, "actions")},
+        {"Changelog": "changelog.md"},
     ]
 
 
