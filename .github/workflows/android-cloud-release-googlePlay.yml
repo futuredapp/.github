@@ -98,12 +98,12 @@ jobs:
         with:
           lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Set up environment
-        uses: futuredapp/.github/.github/actions/android-setup-environment@main
+        uses: futuredapp/.github/.github/actions/android-setup-environment@2.3.0
         with:
           java_version: ${{ inputs.JAVA_VERSION }}
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
       - name: Build and release
-        uses: futuredapp/.github/.github/actions/android-build-googlePlay@main
+        uses: futuredapp/.github/.github/actions/android-build-googlePlay@2.3.0
         with:
           bundle_gradle_task: ${{ inputs.BUNDLE_GRADLE_TASK }}
           version_name: ${{ inputs.VERSION_NAME }}
