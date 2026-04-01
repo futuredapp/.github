@@ -6,11 +6,6 @@ on:
       - '[0-9]+.[0-9]+.[0-9]+'
 
   workflow_dispatch:
-    inputs:
-      version:
-        type: string
-        description: 'Version to bump consumer repos to (e.g. 2.3.0)'
-        required: true
 
 jobs:
   notify:
@@ -27,5 +22,10 @@ jobs:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
           NOTIFY_REPOS_WHITELIST: ${{ vars.NOTIFY_REPOS_WHITELIST }}
         run: |
-          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            VERSION=$(git tag --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          fi
+          echo "Version: $VERSION"
           bash .github/scripts/notify-consumer-repos.sh "$VERSION"
