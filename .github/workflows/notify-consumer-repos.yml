@@ -1,0 +1,31 @@
+name: Notify consumer repos
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: 'Version to bump consumer repos to (e.g. 2.3.0)'
+        required: true
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Create PRs in consumer repos
+        env:
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+          NOTIFY_REPOS_WHITELIST: ${{ vars.NOTIFY_REPOS_WHITELIST }}
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          bash .github/scripts/notify-consumer-repos.sh "$VERSION"
