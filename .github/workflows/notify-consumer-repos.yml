@@ -25,6 +25,7 @@ jobs:
       - name: Create PRs in consumer repos
         env:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+          NOTIFY_REPOS_WHITELIST: ${{ vars.NOTIFY_REPOS_WHITELIST }}
         run: |
           VERSION="${{ github.event.inputs.version || github.ref_name }}"
           bash .github/scripts/notify-consumer-repos.sh "$VERSION"
