@@ -35,15 +35,6 @@ if [ -n "$PREVIOUS_TAG" ]; then
     fi
 fi
 
-# Cross-platform sed in-place
-sedi() {
-    if sed --version >/dev/null 2>&1; then
-        sed -i -E "$@"  # GNU (Linux)
-    else
-        sed -i '' -E "$@"  # BSD (macOS)
-    fi
-}
-
 echo "Searching for consumer repos..."
 REPOS=""
 page=1
@@ -52,7 +43,7 @@ while true; do
         -f q="org:futuredapp \"uses: futuredapp/.github\" path:.github/workflows" \
         -f per_page=100 \
         -f page="$page" \
-        --jq '.items[].repository.full_name' 2>/dev/null)
+        --jq '.items[].repository.full_name' 2>/dev/null || true)
     [ -z "$result" ] && break
     REPOS="$REPOS
 $result"
@@ -62,7 +53,9 @@ REPOS=$(echo "$REPOS" | sort -u | sed '/^$/d')
 
 # Apply whitelist filter if set
 if [ -n "${NOTIFY_REPOS_WHITELIST:-}" ]; then
+    NOTIFY_REPOS_WHITELIST=$(echo "$NOTIFY_REPOS_WHITELIST" | tr -d '\r')
     FILTERED=""
+    set -f  # disable file glob expansion so patterns like "ios-*" stay literal
     for repo in $REPOS; do
         repo_name="${repo#*/}"
         for pattern in $NOTIFY_REPOS_WHITELIST; do
@@ -73,14 +66,19 @@ $repo"
             fi
         done
     done
+    set +f
     REPOS=$(echo "$FILTERED" | sed '/^$/d')
-    echo "Whitelist filter applied: $(echo "$REPOS" | wc -l | tr -d ' ') repos match"
+    count=$(echo "$REPOS" | grep -c . 2>/dev/null || true)
+    echo "Whitelist applied: ${count:-0} repos match"
 fi
 
 created=0
 updated=0
 skipped=0
 failed=0
+
+# Disable set -e for the repo loop — errors are handled explicitly with if/continue
+set +eo pipefail
 
 for repo in $REPOS; do
     # Skip self
@@ -117,7 +115,11 @@ for repo in $REPOS; do
 
     files_to_update=()
     for wf in $workflow_files; do
-        content=$(gh api "repos/$repo/contents/.github/workflows/$wf" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        raw_content=$(gh api "repos/$repo/contents/.github/workflows/$wf" --jq '.content' 2>/dev/null || echo "")
+        content=""
+        if [ -n "$raw_content" ]; then
+            content=$(echo "$raw_content" | base64 -d 2>/dev/null || echo "")
+        fi
         if echo "$content" | grep -q 'futuredapp/\.github/'; then
             if ! echo "$content" | grep -q "@${NEW_VERSION}"; then
                 files_to_update+=("$wf")
@@ -154,7 +156,7 @@ for repo in $REPOS; do
 
         # Reset branch to latest default branch HEAD
         if ! gh api "repos/$repo/git/refs/heads/$BRANCH_NAME" \
-            -X PATCH -f sha="$base_sha" -f force=true >/dev/null 2>&1; then
+            -X PATCH -f sha="$base_sha" -F force=true >/dev/null 2>&1; then
             echo "FAIL (cannot reset branch): $repo"
             failed=$((failed + 1))
             continue
@@ -165,21 +167,29 @@ for repo in $REPOS; do
         if ! gh api "repos/$repo/git/refs" \
             -f "ref=refs/heads/$BRANCH_NAME" \
             -f "sha=$base_sha" >/dev/null 2>&1; then
-            echo "FAIL (cannot create branch): $repo"
-            failed=$((failed + 1))
-            continue
+            # Branch may already exist from a previous run — try to reset it
+            if ! gh api "repos/$repo/git/refs/heads/$BRANCH_NAME" \
+                -X PATCH -f sha="$base_sha" -F force=true >/dev/null 2>&1; then
+                echo "FAIL (cannot create branch): $repo"
+                failed=$((failed + 1))
+                continue
+            fi
         fi
     fi
 
-    # Update each workflow file on the branch
+    # Update each workflow file on the branch via Contents API
     update_ok=true
     for wf in "${files_to_update[@]}"; do
-        file_info=$(gh api "repos/$repo/contents/.github/workflows/$wf" -f ref="$BRANCH_NAME" --jq '{sha: .sha, content: .content}' 2>/dev/null)
-        file_sha=$(echo "$file_info" | jq -r '.sha')
-        old_content=$(echo "$file_info" | jq -r '.content' | base64 -d)
+        file_data=$(gh api "repos/$repo/contents/.github/workflows/$wf?ref=$BRANCH_NAME" --jq '{sha: .sha, content: .content}' 2>/dev/null || echo "{}")
+        file_sha=$(echo "$file_data" | jq -r '.sha // empty')
+        raw_content=$(echo "$file_data" | jq -r '.content // empty')
+        old_content=""
+        if [ -n "$raw_content" ]; then
+            old_content=$(echo "$raw_content" | base64 -d 2>/dev/null || echo "")
+        fi
 
         new_content=$(echo "$old_content" | sed -E "s#(futuredapp/\.github/.+)@(main|[0-9]+\.[0-9]+\.[0-9]+)#\1@${NEW_VERSION}#g")
-        encoded=$(echo "$new_content" | base64)
+        encoded=$(echo "$new_content" | base64 | tr -d '\n')
 
         if ! gh api "repos/$repo/contents/.github/workflows/$wf" \
             -X PUT \
@@ -219,7 +229,7 @@ Updates \`futuredapp/.github\` workflow refs from current version to \`@${NEW_VE
 
     pr_body="$pr_body
 
-See [release notes](https://github.com/futuredapp/.github/releases/tag/${NEW_VERSION}) for what changed.
+See [changelog](https://futuredapp.github.io/.github/${NEW_VERSION}/) for what changed.
 
 ---
 *Automated PR created by [futuredapp/.github](https://github.com/futuredapp/.github)*"
