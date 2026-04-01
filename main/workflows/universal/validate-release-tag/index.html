@@ -5,13 +5,13 @@
       
       
       
-        <link rel="canonical" href="https://futuredapp.github.io/.github/main/workflows/android/cloud-release-firebaseAppDistribution/">
+        <link rel="canonical" href="https://futuredapp.github.io/.github/main/workflows/universal/validate-release-tag/">
       
       
-        <link rel="prev" href="../cloud-check/">
+        <link rel="prev" href="../selfhosted-backup/">
       
       
-        <link rel="next" href="../cloud-release-googlePlay/">
+        <link rel="next" href="../workflows-lint/">
       
       
         
@@ -22,7 +22,7 @@
     
     
       
-        <title>Release (Firebase) - Futured CI/CD Workflows</title>
+        <title>Validate Release Tag - Futured CI/CD Workflows</title>
       
     
     
@@ -86,7 +86,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#android-release-to-firebase-app-distribution" class="md-skip">
+        <a href="#validate-release-tag" class="md-skip">
           Skip to content
         </a>
       
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Release (Firebase)
+              Validate Release Tag
             
           </span>
         </div>
@@ -863,8 +863,6 @@
                 
   
   
-    
-  
   
   
     
@@ -896,15 +894,17 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" checked="">
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4">
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../" class="md-nav__link ">
+            <a href="../../android/" class="md-nav__link ">
               
   
   
@@ -928,7 +928,7 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -948,7 +948,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cloud-generate-baseline-profiles/" class="md-nav__link">
+      <a href="../../android/cloud-generate-baseline-profiles/" class="md-nav__link">
         
   
   
@@ -976,7 +976,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cloud-nightly-build/" class="md-nav__link">
+      <a href="../../android/cloud-nightly-build/" class="md-nav__link">
         
   
   
@@ -1004,7 +1004,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cloud-check/" class="md-nav__link">
+      <a href="../../android/cloud-check/" class="md-nav__link">
         
   
   
@@ -1029,37 +1029,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Release (Firebase)
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../android/cloud-release-firebaseAppDistribution/" class="md-nav__link">
         
   
   
@@ -1075,70 +1048,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-      
-        <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Usage
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#inputs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Inputs
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#secrets" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Secrets
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#internal-actions-used" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Internal Actions Used
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1151,7 +1060,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cloud-release-googlePlay/" class="md-nav__link">
+      <a href="../../android/cloud-release-googlePlay/" class="md-nav__link">
         
   
   
@@ -1324,8 +1233,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -1353,17 +1264,15 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_6">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" checked="">
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../universal/" class="md-nav__link ">
+            <a href="../" class="md-nav__link ">
               
   
   
@@ -1387,7 +1296,7 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1407,7 +1316,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../universal/cloud-backup/" class="md-nav__link">
+      <a href="../cloud-backup/" class="md-nav__link">
         
   
   
@@ -1435,7 +1344,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../universal/selfhosted-backup/" class="md-nav__link">
+      <a href="../selfhosted-backup/" class="md-nav__link">
         
   
   
@@ -1460,10 +1369,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../universal/validate-release-tag/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1479,6 +1397,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -1491,7 +1410,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../universal/workflows-lint/" class="md-nav__link">
+      <a href="../workflows-lint/" class="md-nav__link">
         
   
   
@@ -2514,58 +2433,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-      
-        <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Usage
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#inputs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Inputs
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#secrets" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Secrets
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#internal-actions-used" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Internal Actions Used
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -2581,165 +2448,13 @@
 
 
 
-<h1 id="android-release-to-firebase-app-distribution">Android Release to Firebase App Distribution</h1>
-<p><strong>Source:</strong> <a href="https://github.com/futuredapp/.github/blob/main/.github/workflows/android-cloud-release-firebaseAppDistribution.yml"><code>workflows/android-cloud-release-firebaseAppDistribution.yml</code></a></p>
+<h1 id="validate-release-tag">Validate release tag</h1>
+<div class="admonition info">
+<p class="admonition-title">Internal Workflow</p>
+<p>This is not a reusable workflow — it runs directly on <code>pull_request</code> events in this repository.</p>
+</div>
+<p><strong>Source:</strong> <a href="https://github.com/futuredapp/.github/blob/main/.github/workflows/validate-release-tag.yml"><code>workflows/validate-release-tag.yml</code></a></p>
 <p><strong>Runner:</strong> <code>ubuntu-latest</code></p>
-<h2 id="usage">Usage</h2>
-<div class="highlight"><pre><span></span><code><span class="nt">jobs</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">android-release-to-firebase-app-distribution</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">futuredapp/.github/.github/workflows/android-cloud-release-firebaseAppDistribution.yml@main</span>
-<span class="w">    </span><span class="nt">with</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">TEST_GRADLE_TASKS</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
-<span class="w">      </span><span class="nt">PACKAGE_GRADLE_TASK</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
-<span class="w">      </span><span class="nt">UPLOAD_GRADLE_TASK</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
-<span class="w">      </span><span class="nt">APP_DISTRIBUTION_GROUPS</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
-<span class="w">    </span><span class="nt">secrets</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">APP_DISTRIBUTION_SERVICE_ACCOUNT</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.APP_DISTRIBUTION_SERVICE_ACCOUNT }}</span>
-</code></pre></div>
-<h2 id="inputs">Inputs</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Required</th>
-<th>Default</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>TEST_GRADLE_TASKS</code></td>
-<td><code>string</code></td>
-<td>Yes</td>
-<td>—</td>
-<td>A Gradle task(s) for executing unit tests, for example <code>testReleaseUnitTest</code> or <code>testDevEnterpriseUnitTest</code></td>
-</tr>
-<tr>
-<td><code>PACKAGE_GRADLE_TASK</code></td>
-<td><code>string</code></td>
-<td>Yes</td>
-<td>—</td>
-<td>A Gradle task for packaging universal APK, eg. 'packageEnterpriseUniversalApk'</td>
-</tr>
-<tr>
-<td><code>UPLOAD_GRADLE_TASK</code></td>
-<td><code>string</code></td>
-<td>Yes</td>
-<td>—</td>
-<td>A Gradle task for uploading APK, for example <code>appDistributionUploadEnterprise</code></td>
-</tr>
-<tr>
-<td><code>APP_DISTRIBUTION_GROUPS</code></td>
-<td><code>string</code></td>
-<td>Yes</td>
-<td>—</td>
-<td>Comma-separated list of app distribution group IDs</td>
-</tr>
-<tr>
-<td><code>USE_GIT_LFS</code></td>
-<td><code>boolean</code></td>
-<td>No</td>
-<td><code>False</code></td>
-<td>Whether to download Git-LFS files</td>
-</tr>
-<tr>
-<td><code>VERSION_NAME</code></td>
-<td><code>string</code></td>
-<td>No</td>
-<td>—</td>
-<td>Version name. Example: '1.X.X-snapshot'</td>
-</tr>
-<tr>
-<td><code>BUILD_NUMBER_OFFSET</code></td>
-<td><code>number</code></td>
-<td>No</td>
-<td><code>0</code></td>
-<td>Build number offset. This number will be added to GITHUB_RUN_NUMBER and can be used to make corrections to build numbers.</td>
-</tr>
-<tr>
-<td><code>RELEASE_NOTES</code></td>
-<td><code>string</code></td>
-<td>No</td>
-<td><code>${{ github.event.head_commit.message }}</code></td>
-<td>Release notes for this build</td>
-</tr>
-<tr>
-<td><code>KMP_FLAVOR</code></td>
-<td><code>string</code></td>
-<td>No</td>
-<td><code>test</code></td>
-<td>KMP Build flavor. This is optional and only required by KMP projects and can be ignored on pure Android projects</td>
-</tr>
-<tr>
-<td><code>SECRET_PROPERTIES_FILE</code></td>
-<td><code>string</code></td>
-<td>No</td>
-<td><code>secrets.properties</code></td>
-<td>A path to file that will be populated with contents of 'SECRET_PROPERTIES' secret. This file can be picked up by Secrets Gradle plugin to embed secrets into BuildConfig.</td>
-</tr>
-<tr>
-<td><code>JAVA_VERSION</code></td>
-<td><code>string</code></td>
-<td>No</td>
-<td><code>17</code></td>
-<td>Java version to use</td>
-</tr>
-<tr>
-<td><code>JAVA_DISTRIBUTION</code></td>
-<td><code>string</code></td>
-<td>No</td>
-<td><code>zulu</code></td>
-<td>Java distribution to use</td>
-</tr>
-<tr>
-<td><code>GRADLE_OPTS</code></td>
-<td><code>string</code></td>
-<td>No</td>
-<td>—</td>
-<td>Gradle options</td>
-</tr>
-<tr>
-<td><code>TIMEOUT_MINUTES</code></td>
-<td><code>number</code></td>
-<td>No</td>
-<td><code>30</code></td>
-<td>Job timeout in minutes</td>
-</tr>
-</tbody>
-</table>
-<h2 id="secrets">Secrets</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Required</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>APP_DISTRIBUTION_SERVICE_ACCOUNT</code></td>
-<td>Yes</td>
-<td>JSON key of service account with permissions to upload build to Firebase App Distribution</td>
-</tr>
-<tr>
-<td><code>GRADLE_CACHE_ENCRYPTION_KEY</code></td>
-<td>No</td>
-<td>Configuration cache encryption key</td>
-</tr>
-<tr>
-<td><code>SECRET_PROPERTIES</code></td>
-<td>No</td>
-<td>Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input.</td>
-</tr>
-</tbody>
-</table>
-<h2 id="internal-actions-used">Internal Actions Used</h2>
-<ul>
-<li><a href="../../../actions/android/setup-environment/"><code>Set up Android environment</code></a></li>
-<li><a href="../../../actions/android/build-firebase/"><code>Enterprise build</code></a></li>
-</ul>
 
 
 
