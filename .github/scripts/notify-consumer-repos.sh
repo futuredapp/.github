@@ -18,6 +18,18 @@ DRY_RUN="${2:-}"
 BRANCH_NAME="housekeep/bump-shared-workflows-${NEW_VERSION}"
 SELF_REPO="futuredapp/.github"
 
+# Detect major version bump → breaking change
+PREVIOUS_TAG=$(git tag --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "^${NEW_VERSION}$" | head -1)
+IS_BREAKING=false
+if [ -n "$PREVIOUS_TAG" ]; then
+    old_major="${PREVIOUS_TAG%%.*}"
+    new_major="${NEW_VERSION%%.*}"
+    if [ "$old_major" != "$new_major" ]; then
+        IS_BREAKING=true
+        echo "Major version bump detected: ${PREVIOUS_TAG} → ${NEW_VERSION}"
+    fi
+fi
+
 # Cross-platform sed in-place
 sedi() {
     if sed --version >/dev/null 2>&1; then
@@ -151,25 +163,39 @@ for repo in $REPOS; do
         continue
     fi
 
-    # Create PR
-    pr_url=$(gh pr create \
-        --repo "$repo" \
-        --head "$BRANCH_NAME" \
-        --base "$default_branch" \
-        --title "Bump shared workflows to ${NEW_VERSION}" \
-        --body "$(cat <<PREOF
-## Summary
+    # Build PR body
+    pr_body="## Summary
 
 Updates \`futuredapp/.github\` workflow refs from current version to \`@${NEW_VERSION}\`.
 
-**Updated files:** ${files_to_update[*]}
+**Updated files:** ${files_to_update[*]}"
+
+    if [ "$IS_BREAKING" = true ]; then
+        pr_body="$pr_body
+
+> [!CAUTION]
+> **This is a major version bump (\`${PREVIOUS_TAG}\` → \`${NEW_VERSION}\`).** This release may contain breaking changes. Review carefully before merging."
+    fi
+
+    pr_body="$pr_body
 
 See [release notes](https://github.com/futuredapp/.github/releases/tag/${NEW_VERSION}) for what changed.
 
 ---
-*Automated PR created by [futuredapp/.github](https://github.com/futuredapp/.github)*
-PREOF
-)" 2>&1 || echo "")
+*Automated PR created by [futuredapp/.github](https://github.com/futuredapp/.github)*"
+
+    # Create PR
+    pr_title="Bump shared workflows to ${NEW_VERSION}"
+    if [ "$IS_BREAKING" = true ]; then
+        pr_title="⚠️ $pr_title (breaking changes)"
+    fi
+
+    pr_url=$(gh pr create \
+        --repo "$repo" \
+        --head "$BRANCH_NAME" \
+        --base "$default_branch" \
+        --title "$pr_title" \
+        --body "$pr_body" 2>&1 || echo "")
 
     if [ -n "$pr_url" ]; then
         echo "CREATED: $repo → $pr_url"
