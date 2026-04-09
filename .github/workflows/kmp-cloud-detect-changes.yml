@@ -28,7 +28,7 @@ name: Detect Changes
 #
 # Note: For direct action usage in other workflows, you can also use:
 #   - name: Detect Changes
-#     uses: futuredapp/.github/.github/actions/kmp-detect-changes@2.3.0
+#     uses: futuredapp/.github/.github/actions/kmp-detect-changes@2.3.1
 
 on:
   workflow_call:
@@ -58,6 +58,6 @@ jobs:
     steps:
       - name: Detect Changes
         id: detect
-        uses: futuredapp/.github/.github/actions/kmp-detect-changes@2.3.0
+        uses: futuredapp/.github/.github/actions/kmp-detect-changes@2.3.1
         with:
           USE_GIT_LFS: ${{ inputs.USE_GIT_LFS }}

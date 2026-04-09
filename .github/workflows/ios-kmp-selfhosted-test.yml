@@ -83,7 +83,7 @@ jobs:
           cd ${{ inputs.kmp_swift_package_path }}
           make build
       - name: Fastlane Test
-        uses: futuredapp/.github/.github/actions/ios-fastlane-test@2.3.0
+        uses: futuredapp/.github/.github/actions/ios-fastlane-test@2.3.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN_DANGER }}
           custom_values: ${{ inputs.custom_values }}

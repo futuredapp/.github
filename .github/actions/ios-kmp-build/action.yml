@@ -48,7 +48,7 @@ runs:
   steps:
     - name: Export secrets to .xcconfig file
       if: ${{ inputs.secret_xcconfig_path != '' }}
-      uses: futuredapp/.github/.github/actions/ios-export-secrets@2.3.0
+      uses: futuredapp/.github/.github/actions/ios-export-secrets@2.3.1
       with:
         XCCONFIG_PATH: ${{ inputs.secret_xcconfig_path }}
         SECRET_PROPERTIES: ${{ inputs.secret_properties }}
@@ -63,7 +63,7 @@ runs:
         cd ${{ inputs.kmp_swift_package_path }}
         make build
     - name: Fastlane Beta
-      uses: futuredapp/.github/.github/actions/ios-fastlane-beta@2.3.0
+      uses: futuredapp/.github/.github/actions/ios-fastlane-beta@2.3.1
       with:
         match_password: ${{ inputs.match_password }}
         testflight_changelog: ${{ inputs.testflight_changelog }}
