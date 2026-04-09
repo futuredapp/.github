@@ -28,10 +28,12 @@ runs:
 
     - name: Zip Simulator App
       shell: bash
+      continue-on-error: true
       run: ditto -c -k --keepParent ${{ runner.temp }}/DerivedData/Build/Products/Debug-iphonesimulator/*.app simulator-app.zip
 
     - name: Upload Simulator App
       uses: actions/upload-artifact@v7
+      continue-on-error: true
       with:
         name: simulator-app
         path: simulator-app.zip
