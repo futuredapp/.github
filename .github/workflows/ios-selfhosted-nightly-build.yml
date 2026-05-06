@@ -80,7 +80,7 @@ jobs:
     steps:
       - name: Detect changes and generate changelog
         id: detect_changes
-        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@2.3.2
+        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@2.3.3
         with:
           checkout_depth: ${{ inputs.checkout_depth }}
           fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
@@ -94,7 +94,7 @@ jobs:
 
       - name: Export secrets
         if: ${{ steps.detect_changes.outputs.skip_build == 'false' && inputs.xcconfig_path != '' }}
-        uses: futuredapp/.github/.github/actions/ios-export-secrets@2.3.2
+        uses: futuredapp/.github/.github/actions/ios-export-secrets@2.3.3
         with:
           XCCONFIG_PATH: ${{ inputs.xcconfig_path }}
           SECRET_PROPERTIES: ${{ secrets.SECRET_PROPERTIES }}
@@ -102,7 +102,7 @@ jobs:
 
       - name: Fastlane Beta
         if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
-        uses: futuredapp/.github/.github/actions/ios-fastlane-beta@2.3.2
+        uses: futuredapp/.github/.github/actions/ios-fastlane-beta@2.3.3
         with:
           match_password: ${{ secrets.MATCH_PASSWORD }}
           testflight_changelog: ${{ steps.set_changelog.outputs.changelog }}
@@ -158,7 +158,7 @@ jobs:
           fi
       - name: Transition JIRA tickets
         if: steps.check.outputs.enabled == 'true'
-        uses: futuredapp/.github/.github/actions/jira-transition-tickets@2.3.2
+        uses: futuredapp/.github/.github/actions/jira-transition-tickets@2.3.3
         with:
           jira_context: ${{ secrets.JIRA_CONTEXT }}
           transition: ${{ inputs.jira_transition }}
