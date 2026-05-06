@@ -152,7 +152,7 @@ jobs:
     steps:
       - name: Detect changes and generate changelog
         id: detect_changes
-        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@2.3.1
+        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@2.3.2
         with:
           checkout_depth: ${{ inputs.CHANGELOG_CHECKOUT_DEPTH }}
           debug: ${{ inputs.CHANGELOG_DEBUG }}
@@ -171,14 +171,14 @@ jobs:
         with:
           lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Set up environment
-        uses: futuredapp/.github/.github/actions/android-setup-environment@2.3.1
+        uses: futuredapp/.github/.github/actions/android-setup-environment@2.3.2
         with:
           java_version: ${{ inputs.JAVA_VERSION }}
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
           ruby: 'false'
       - name: Build and upload to TestFlight
-        uses: futuredapp/.github/.github/actions/ios-kmp-build@2.3.1
+        uses: futuredapp/.github/.github/actions/ios-kmp-build@2.3.2
         with:
           match_password: ${{ secrets.IOS_MATCH_PASSWORD }}
           app_store_connect_api_key_key: ${{ secrets.IOS_APP_STORE_CONNECT_API_KEY_KEY }}
@@ -208,13 +208,13 @@ jobs:
         with:
           lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Set up environment
-        uses: futuredapp/.github/.github/actions/android-setup-environment@2.3.1
+        uses: futuredapp/.github/.github/actions/android-setup-environment@2.3.2
         with:
           java_version: ${{ inputs.JAVA_VERSION }}
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
       - name: Build and upload to App Distribution
-        uses: futuredapp/.github/.github/actions/android-build-firebase@2.3.1
+        uses: futuredapp/.github/.github/actions/android-build-firebase@2.3.2
         with:
           test_gradle_task: ${{ inputs.ANDROID_TEST_GRADLE_TASK }}
           package_gradle_task: ${{ inputs.ANDROID_PACKAGE_GRADLE_TASK }}
@@ -270,7 +270,7 @@ jobs:
           fi
       - name: Transition JIRA tickets
         if: steps.check.outputs.enabled == 'true'
-        uses: futuredapp/.github/.github/actions/jira-transition-tickets@2.3.1
+        uses: futuredapp/.github/.github/actions/jira-transition-tickets@2.3.2
         with:
           jira_context: ${{ secrets.JIRA_CONTEXT }}
           transition: ${{ inputs.JIRA_TRANSITION }}

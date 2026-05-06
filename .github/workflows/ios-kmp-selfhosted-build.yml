@@ -97,14 +97,14 @@ jobs:
         with:
           lfs: ${{ inputs.use_git_lfs }}
       - name: Set up environment
-        uses: futuredapp/.github/.github/actions/android-setup-environment@2.3.1
+        uses: futuredapp/.github/.github/actions/android-setup-environment@2.3.2
         with:
           java_version: ${{ inputs.java_version }}
           java_distribution: ${{ inputs.java_distribution }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
           ruby: 'false'
       - name: Build and upload to TestFlight
-        uses: futuredapp/.github/.github/actions/ios-kmp-build@2.3.1
+        uses: futuredapp/.github/.github/actions/ios-kmp-build@2.3.2
         with:
           match_password: ${{ secrets.MATCH_PASSWORD }}
           app_store_connect_api_key_key: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
