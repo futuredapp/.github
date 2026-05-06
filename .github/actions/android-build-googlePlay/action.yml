@@ -33,6 +33,9 @@ inputs:
     description: 'A changesNotSentForReview Google Play flag. Enable when last google review failed, disable when last review was successful.'
     required: false
     default: false
+  release_name:
+    description: "Google Play release name. Defaults to version_name if not set."
+    required: false
   google_play_status:
     description: "Google Play release status (completed, draft, halted, inProgress)"
     required: false
@@ -100,4 +103,5 @@ runs:
         status: ${{ inputs.google_play_status }}
         whatsNewDirectory: ${{ inputs.google_play_whatsnew_dir }}
         mappingFile: ${{ steps.build_aab.outputs.mapping_file }}
+        releaseName: ${{ inputs.release_name || inputs.version_name }}
         changesNotSentForReview: ${{ toJSON(inputs.changes_not_sent_for_review) }}
