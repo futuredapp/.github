@@ -33,6 +33,10 @@ inputs:
     description: 'A changesNotSentForReview Google Play flag. Enable when last google review failed, disable when last review was successful.'
     required: false
     default: false
+  google_play_status:
+    description: "Google Play release status (completed, draft, halted, inProgress)"
+    required: false
+    default: 'draft'
   build_number_offset:
     description: "Build number offset. This number will be added to GITHUB_RUN_NUMBER and can be used to make corrections to build numbers."
     required: false
@@ -93,7 +97,7 @@ runs:
         packageName: ${{ inputs.google_play_application_id }}
         releaseFiles: ${{ steps.build_aab.outputs.bundle_file }}
         track: internal
-        status: draft
+        status: ${{ inputs.google_play_status }}
         whatsNewDirectory: ${{ inputs.google_play_whatsnew_dir }}
         mappingFile: ${{ steps.build_aab.outputs.mapping_file }}
         changesNotSentForReview: ${{ toJSON(inputs.changes_not_sent_for_review) }}

@@ -47,6 +47,11 @@ on:
         type: boolean
         required: false
         default: false
+      GOOGLE_PLAY_STATUS:
+        description: "Google Play release status (completed, draft, halted, inProgress)"
+        required: false
+        type: string
+        default: 'draft'
       TIMEOUT_MINUTES:
         description: "Job timeout in minutes"
         required: false
@@ -114,6 +119,7 @@ jobs:
           google_play_whatsnew_dir: ${{ inputs.GOOGLE_PLAY_WHATSNEW_DIRECTORY }}
           google_play_publish_service_account: ${{ secrets.GOOGLE_PLAY_PUBLISH_SERVICE_ACCOUNT }}
           changes_not_sent_for_review: ${{ inputs.CHANGES_NOT_SENT_FOR_REVIEW }}
+          google_play_status: ${{ inputs.GOOGLE_PLAY_STATUS }}
           build_number_offset: ${{ inputs.BUILD_NUMBER_OFFSET }}
           kmp_flavor: ${{ inputs.KMP_FLAVOR }}
           secret_properties_file: ${{ inputs.SECRET_PROPERTIES_FILE }}
