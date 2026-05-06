@@ -415,6 +415,62 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
+  <a href="#whats-going-to-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What's Going to Change
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What's Going to Change">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#input-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Input Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#android-cloud-release-googleplay" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        android-cloud-release-googlePlay
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#android-build-googleplay" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        android-build-googlePlay
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#whats-inside" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2520,6 +2576,62 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
+  <a href="#whats-going-to-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What's Going to Change
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What's Going to Change">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#input-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Input Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#android-cloud-release-googleplay" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        android-cloud-release-googlePlay
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#android-build-googleplay" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        android-build-googlePlay
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#whats-inside" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2571,6 +2683,54 @@
 
 <h1 id="futured-cicd-workflows">Futured CI/CD Workflows</h1>
 <p>Reusable GitHub Actions workflows and composite actions for <strong>iOS</strong>, <strong>Android</strong>, and <strong>Kotlin Multiplatform</strong> projects at Futured.</p>
+<hr>
+<h2 id="whats-going-to-change">What's Going to Change</h2>
+<h3 id="input-changes">Input Changes</h3>
+<h4 id="android-cloud-release-googleplay"><a href="workflows/android/cloud-release-googlePlay/"><code>android-cloud-release-googlePlay</code></a></h4>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Change</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GOOGLE_PLAY_STATUS</code></td>
+<td><span class="twemoji" title="Added"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"></path></svg></span></td>
+<td>type: <code>string</code>, default: <code>draft</code></td>
+</tr>
+<tr>
+<td><code>RELEASE_NAME</code></td>
+<td><span class="twemoji" title="Added"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"></path></svg></span></td>
+<td>type: <code>string</code>, default: ``</td>
+</tr>
+</tbody>
+</table>
+<h4 id="android-build-googleplay"><a href="actions/android/build-googlePlay/"><code>android-build-googlePlay</code></a></h4>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Change</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>google_play_status</code></td>
+<td><span class="twemoji" title="Added"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"></path></svg></span></td>
+<td>type: <code>string</code>, default: <code>draft</code></td>
+</tr>
+<tr>
+<td><code>release_name</code></td>
+<td><span class="twemoji" title="Added"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"></path></svg></span></td>
+<td>type: <code>string</code></td>
+</tr>
+</tbody>
+</table>
+<p><a href="changelog/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"></path></svg></span> Full Changelog</a></p>
 <hr>
 <h2 id="whats-inside">What's Inside</h2>
 <div class="grid cards">
