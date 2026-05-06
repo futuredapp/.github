@@ -72,7 +72,7 @@ runs:
       run: |
         ./gradlew ${{ inputs.bundle_gradle_task }} -P buildkonfig.flavor="$KMP_FLAVOR"
         BUNDLE_FILE=$(find . -name '*.aab' | grep -v -e '.*intermediate' -e '.*baseline')
-        MAPPING_FILE=$(find . -name mapping.txt)
+        MAPPING_FILE=$(find . -name mapping.txt -not -path '*/intermediates/*')
         
         echo "bundle_file=$BUNDLE_FILE" >> "$GITHUB_OUTPUT"
         echo "mapping_file=$MAPPING_FILE" >> "$GITHUB_OUTPUT"
