@@ -166,11 +166,19 @@ apply_change() {
             fi
             local base="${newest%.cc.json.gz}"
             cp "${PROJECT_DIR}/history/${newest}" "${PROJECT_DIR}/history/latest.cc.json.gz"
+            # Mirror the cg/meta sidecars onto the latest pointer — but DELETE
+            # the existing latest.* if the new newest entry has no sidecar.
+            # Otherwise the latest.cg.json could refer to a different (older)
+            # entry than latest.cc.json.gz.
             if [[ -f "${PROJECT_DIR}/history/${base}.cg.json" ]]; then
                 cp "${PROJECT_DIR}/history/${base}.cg.json" "${PROJECT_DIR}/history/latest.cg.json"
+            else
+                rm -f "${PROJECT_DIR}/history/latest.cg.json"
             fi
             if [[ -f "${PROJECT_DIR}/history/${base}.meta.json" ]]; then
                 cp "${PROJECT_DIR}/history/${base}.meta.json" "${PROJECT_DIR}/history/latest.meta.json"
+            else
+                rm -f "${PROJECT_DIR}/history/latest.meta.json"
             fi
             ;;
     esac
@@ -210,23 +218,33 @@ esac
 
 git commit -m "${COMMIT_MSG}"
 
-# Retry-on-conflict push: pull-rebase, regenerate manifest from filesystem
-# state (deterministic), and try again. Up to 5 attempts with linear backoff.
+# Retry-on-conflict push: instead of `git pull --rebase` (which can fail with
+# a merge conflict on manifest.json under concurrent writers and abort the
+# script via `set -e`), reset hard to remote HEAD and re-apply our changes.
+# This works because:
+#   - apply_change is idempotent on each mode (history/bulk-history skip
+#     existing entries; preview overwrites; delete-preview is `rm -f`).
+#   - manifest.json is rebuilt deterministically from the filesystem.
+# Up to 5 attempts with linear backoff.
 attempt=1
 while (( attempt <= 5 )); do
     if git push origin "${DATA_REPO_BRANCH}"; then
         echo "Pushed on attempt ${attempt}."
         exit 0
     fi
-    echo "Push rejected (attempt ${attempt}); rebasing and retrying…"
-    git pull --rebase origin "${DATA_REPO_BRANCH}"
+    echo "Push rejected (attempt ${attempt}); resetting to remote and reapplying…"
+    git fetch origin "${DATA_REPO_BRANCH}"
+    git reset --hard "origin/${DATA_REPO_BRANCH}"
+    apply_change
     if [[ -f scripts/build-manifest.mjs ]]; then
         node scripts/build-manifest.mjs
-        if ! git diff --quiet manifest.json; then
-            git add manifest.json
-            git commit --amend --no-edit
-        fi
     fi
+    if git diff --quiet && git diff --staged --quiet; then
+        echo "After reapply, nothing to commit — concurrent writer already covered our changes."
+        exit 0
+    fi
+    git add .
+    git commit -m "${COMMIT_MSG}"
     sleep $(( attempt * 3 ))
     (( attempt++ ))
 done

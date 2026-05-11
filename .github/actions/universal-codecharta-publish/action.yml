@@ -42,23 +42,25 @@ inputs:
     required: false
     description: >
       Snapshot stem, either `pr-<N>` or `merge-<short-sha>`. Required for
-      `history`, `backfill-history`, `set-latest`.
+      `history`. Not used by `bulk-history` (which discovers stems from the
+      snapshot filenames in `snapshots_dir`).
   date:
     required: false
     description: >
-      Snapshot date as `YYYY-MM-DD`. Required for `history`, `backfill-history`.
-      Optional for `set-latest` (will pick newest entry if omitted).
+      Snapshot date as `YYYY-MM-DD`. Required for `history`. Not used by
+      `bulk-history` or `set-latest`.
   cc_path:
     required: false
     description: >
       Absolute path to the local `.cc.json.gz` to publish. Required for
-      `preview`, `history`, `backfill-history`.
+      `preview` and `history`. Not used by `bulk-history` (paths come from
+      `snapshots_dir`).
   cg_path:
     required: false
     description: >
       Absolute path to the local `.cg.json` to publish. Required for `preview`
-      and `history`. Optional for `backfill-history` (history snapshots from
-      `mode: history` of the snapshot action do not include `.cg.json`).
+      and `history`. Bulk-history snapshots don't include `.cg.json` so this
+      isn't applicable there.
   meta_path:
     required: false
     description: >

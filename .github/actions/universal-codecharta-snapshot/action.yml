@@ -84,6 +84,10 @@ runs:
   using: composite
   steps:
     - name: Pull DependaCharta image
+      # History mode doesn't run DependaCharta (it walks merge commits via
+      # ccsh unifiedparser --commit only). Skip the pull to avoid 100+ MB of
+      # wasted network traffic on backfill runs.
+      if: inputs.mode == 'snapshot'
       shell: bash
       run: docker pull "${{ inputs.dependacharta_image }}"
 

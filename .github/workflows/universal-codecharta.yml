@@ -238,11 +238,14 @@ jobs:
               echo "pr=${{ github.event.pull_request.number }}"
             } >> "$GITHUB_OUTPUT"
           else
-            # push to develop/main — parse merge commit subject for "#NNN".
+            # push to develop/main — parse merge commit subject for the actual
+            # GitHub-generated "Merge pull request #NNN from …" format. A
+            # broader `#NNN` match would mis-classify commits that merely
+            # mention an issue (e.g. "Fix #123") as if they were PR merges.
             subject=$(git log -1 --format=%s HEAD)
             pr=""
             stem=""
-            if [[ "${subject}" =~ \#([0-9]+) ]]; then
+            if [[ "${subject}" =~ ^Merge\ pull\ request\ \#([0-9]+) ]]; then
               pr="${BASH_REMATCH[1]}"
               stem="pr-${pr}"
             else
@@ -335,9 +338,16 @@ jobs:
           cgPath="projects/${name}/previews/pr-${pr}.cg.json"
           latestPath="projects/${name}/history/latest.cc.json.gz"
 
-          ccUrl=$(jq -rn --arg p "${ccPath}" '@uri "/api/map?path=\($p)"')
-          cgUrl=$(jq -rn --arg p "${cgPath}" '@uri "/api/graph?path=\($p)"')
-          latestUrl=$(jq -rn --arg p "${latestPath}" '@uri "/api/map?path=\($p)"')
+          # Build the inner API URLs without encoding the path — our paths
+          # are alphanumeric + `-` + `.` + `/` which are all URL-safe in a
+          # query parameter value. Then encode each whole API URL exactly
+          # once when wrapping it into the studio/visualizer `file=`/`graph=`
+          # parameter. (Previously the path was encoded inside the API URL
+          # AND the whole URL was encoded again, producing `%252F` literals
+          # that broke the picker's path lookup.)
+          ccUrl="/api/map?path=${ccPath}"
+          cgUrl="/api/graph?path=${cgPath}"
+          latestUrl="/api/map?path=${latestPath}"
 
           ccStudio="${base}/studio/?file=$(jq -rn --arg u "${ccUrl}" '$u | @uri')"
           cgVis="${base}/dependacharta/?graph=$(jq -rn --arg u "${cgUrl}" '$u | @uri')"

@@ -68,46 +68,10 @@ FILE_EXTENSIONS="${CODECHARTA_FILE_EXTENSIONS:-${STACK_FE}}"
 TOKEI_TYPES="${CODECHARTA_TOKEI_TYPES:-${STACK_TOKEI}}"
 EXTRA_EXCLUDES="${CODECHARTA_EXTRA_EXCLUDES:-}"
 
-# ── ccsh helper invocations ──────────────────────────────────────────────────
-
-# Build the `-fe=...` argument when FILE_EXTENSIONS is non-empty. Emit nothing
-# when empty (multi mode) so ccsh uses its built-in default.
-ccsh_fe_arg() {
-    if [[ -n "${FILE_EXTENSIONS}" ]]; then
-        printf -- "-fe=%s" "${FILE_EXTENSIONS}"
-    fi
-}
-
-# Build the `-e=...` argument list from EXTRA_EXCLUDES (comma-separated regex
-# patterns). Emit nothing when empty.
-ccsh_extra_excludes_args() {
-    if [[ -z "${EXTRA_EXCLUDES}" ]]; then
-        return
-    fi
-    local IFS=','
-    for pattern in ${EXTRA_EXCLUDES}; do
-        printf -- "-e=%s\n" "${pattern}"
-    done
-}
-
-# Build the `--type ...` argument when TOKEI_TYPES is non-empty.
-tokei_type_args() {
-    if [[ -n "${TOKEI_TYPES}" ]]; then
-        printf -- "--type\n%s\n" "${TOKEI_TYPES}"
-    fi
-}
-
-# Build the `--exclude pattern` argument list from EXTRA_EXCLUDES. Tokei uses
-# globs/paths, not regex; we pass patterns verbatim and let tokei interpret.
-tokei_extra_excludes_args() {
-    if [[ -z "${EXTRA_EXCLUDES}" ]]; then
-        return
-    fi
-    local IFS=','
-    for pattern in ${EXTRA_EXCLUDES}; do
-        printf -- "--exclude\n%s\n" "${pattern}"
-    done
-}
+# Note: the ccsh `-fe=…` flag, tokei `--type` flag, and exclude lists are
+# re-derived inside the Docker `bash -lc` heredocs below because the host
+# environment doesn't transit naturally into the container. The env vars above
+# are passed in via `-e CC_*=…`; the inner bash builds the array forms from them.
 
 # ── Dependency metric descriptors ────────────────────────────────────────────
 
@@ -374,7 +338,11 @@ history() {
             fi
 
             generated=0
-            log_args=(--first-parent --merges "--format=%H|%cs|%s")
+            # Use ASCII unit separator (\x1f) as field delimiter rather than `|`
+            # — pipe characters are legal in commit subjects and would otherwise
+            # split a single record across multiple fields.
+            sep=$'\x1f'
+            log_args=(--first-parent --merges "--format=%H${sep}%cs${sep}%s")
             if [[ -n "${CC_PULL_REQUEST_LIMIT}" ]]; then
                 log_args=(-n "${CC_PULL_REQUEST_LIMIT}" "${log_args[@]}")
             fi
@@ -387,7 +355,7 @@ history() {
             fi
 
             for merge_commit in "${merge_commits[@]}"; do
-                IFS="|" read -r sha snapshot_date subject <<< "${merge_commit}"
+                IFS="${sep}" read -r sha snapshot_date subject <<< "${merge_commit}"
                 short_sha="${sha:0:7}"
 
                 if [[ "${subject}" =~ [Pp]ull[[:space:]]+[Rr]equest[[:space:]]+\#([0-9]+) ]]; then
