@@ -235,7 +235,13 @@ snapshot() {
             fi
             tokei_type_args=()
             if [[ -n "${CC_TOKEI_TYPES}" ]]; then
-                tokei_type_args+=(--type "${CC_TOKEI_TYPES}")
+                # tokei takes each language as its own `--type LANG` flag;
+                # passing the comma-list as a single value would search for
+                # a literal language named "Kotlin,Java" (nothing matches).
+                IFS="," read -ra tokei_types <<< "${CC_TOKEI_TYPES}"
+                for t in "${tokei_types[@]}"; do
+                    tokei_type_args+=(--type "${t}")
+                done
             fi
             tokei_exclude_args=()
             if [[ -n "${CC_EXTRA_EXCLUDES}" ]]; then

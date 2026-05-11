@@ -116,8 +116,13 @@ apply_change() {
             require_env SOURCE_CG_PATH
             cp "${SOURCE_CC_PATH}" "${PROJECT_DIR}/previews/pr-${PR_NUMBER}.cc.json.gz"
             cp "${SOURCE_CG_PATH}" "${PROJECT_DIR}/previews/pr-${PR_NUMBER}.cg.json"
+            # Mirror the meta sidecar OR explicitly remove it when source is
+            # missing. Without the removal a previous run's stale meta (e.g.
+            # an older PR title before a rename) would persist.
             if [[ -n "${SOURCE_META_PATH:-}" && -f "${SOURCE_META_PATH}" ]]; then
                 cp "${SOURCE_META_PATH}" "${PROJECT_DIR}/previews/pr-${PR_NUMBER}.meta.json"
+            else
+                rm -f "${PROJECT_DIR}/previews/pr-${PR_NUMBER}.meta.json"
             fi
             ;;
         history)
@@ -126,13 +131,20 @@ apply_change() {
             local basename="${DATE}-${STEM}"
             cp "${SOURCE_CC_PATH}" "${PROJECT_DIR}/history/${basename}.cc.json.gz"
             cp "${SOURCE_CG_PATH}" "${PROJECT_DIR}/history/${basename}.cg.json"
+            # As with preview: mirror or actively remove. A new history entry
+            # with no source meta should NOT inherit a stale per-entry meta
+            # from a prior write, and the latest.* pointers below must follow.
             if [[ -n "${SOURCE_META_PATH:-}" && -f "${SOURCE_META_PATH}" ]]; then
                 cp "${SOURCE_META_PATH}" "${PROJECT_DIR}/history/${basename}.meta.json"
+            else
+                rm -f "${PROJECT_DIR}/history/${basename}.meta.json"
             fi
             cp "${PROJECT_DIR}/history/${basename}.cc.json.gz" "${PROJECT_DIR}/history/latest.cc.json.gz"
             cp "${PROJECT_DIR}/history/${basename}.cg.json"    "${PROJECT_DIR}/history/latest.cg.json"
             if [[ -f "${PROJECT_DIR}/history/${basename}.meta.json" ]]; then
                 cp "${PROJECT_DIR}/history/${basename}.meta.json" "${PROJECT_DIR}/history/latest.meta.json"
+            else
+                rm -f "${PROJECT_DIR}/history/latest.meta.json"
             fi
             ;;
         bulk-history)
@@ -211,12 +223,15 @@ if [[ -f scripts/build-manifest.mjs ]]; then
     node scripts/build-manifest.mjs
 fi
 
-if git diff --quiet && git diff --staged --quiet; then
+# Stage everything first so untracked files (new snapshots for a project that
+# didn't exist in the data repo yet) are visible to the diff check. Without
+# this, `git diff --quiet` reports a clean tree because it doesn't look at
+# untracked paths, and we'd exit without publishing the new snapshot.
+git add -A
+if git diff --cached --quiet; then
     echo "No changes after publish; nothing to commit."
     exit 0
 fi
-
-git add .
 
 case "${MODE}" in
     preview)
@@ -259,11 +274,11 @@ while (( attempt <= 5 )); do
     if [[ -f scripts/build-manifest.mjs ]]; then
         node scripts/build-manifest.mjs
     fi
-    if git diff --quiet && git diff --staged --quiet; then
+    git add -A
+    if git diff --cached --quiet; then
         echo "After reapply, nothing to commit — concurrent writer already covered our changes."
         exit 0
     fi
-    git add .
     git commit -m "${COMMIT_MSG}"
     sleep $(( attempt * 3 ))
     (( attempt++ ))
