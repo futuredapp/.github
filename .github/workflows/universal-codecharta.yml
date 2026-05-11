@@ -260,13 +260,15 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
-      # ── Step 6: fetch PR metadata (history runs only) ─────────────────────
+      # ── Step 6: fetch PR metadata ─────────────────────────────────────────
       # Writes a sidecar JSON ({title, author, mergedAt, url}) next to the
-      # snapshot. The picker UI reads this to display PR titles in the
-      # timeline. Skipped for previews (the PR is the live thing being viewed)
-      # and for rebase-merge commits with no PR number.
-      - name: Fetch PR metadata sidecar (history)
-        if: steps.ids.outputs.kind == 'history' && steps.ids.outputs.pr != ''
+      # snapshot whenever we have a PR number — that's every preview (PR
+      # events) and every history entry whose merge commit subject parsed as
+      # "Merge pull request #NNN". The picker UI reads this to display PR
+      # titles alongside snapshots. Rebase-merge history entries (stem
+      # `merge-<sha>`) skip this step because there's no PR to query.
+      - name: Fetch PR metadata sidecar
+        if: steps.ids.outputs.pr != ''
         id: meta
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -299,6 +301,7 @@ jobs:
           pr_number: ${{ steps.ids.outputs.pr }}
           cc_path: ${{ steps.snapshot.outputs.cc_path }}
           cg_path: ${{ steps.snapshot.outputs.cg_path }}
+          meta_path: ${{ steps.meta.outputs.path }}
 
       # ── Step 7b: publish a history entry (develop/main pushes only) ───────
       # Same as preview but writes to projects/<name>/history/<date>-<stem>.*

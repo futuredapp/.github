@@ -100,6 +100,9 @@ apply_change() {
             require_env SOURCE_CG_PATH
             cp "${SOURCE_CC_PATH}" "${PROJECT_DIR}/previews/pr-${PR_NUMBER}.cc.json.gz"
             cp "${SOURCE_CG_PATH}" "${PROJECT_DIR}/previews/pr-${PR_NUMBER}.cg.json"
+            if [[ -n "${SOURCE_META_PATH:-}" && -f "${SOURCE_META_PATH}" ]]; then
+                cp "${SOURCE_META_PATH}" "${PROJECT_DIR}/previews/pr-${PR_NUMBER}.meta.json"
+            fi
             ;;
         history)
             require_env SOURCE_CC_PATH
@@ -151,7 +154,8 @@ apply_change() {
             ;;
         delete-preview)
             rm -f "${PROJECT_DIR}/previews/pr-${PR_NUMBER}.cc.json.gz" \
-                  "${PROJECT_DIR}/previews/pr-${PR_NUMBER}.cg.json"
+                  "${PROJECT_DIR}/previews/pr-${PR_NUMBER}.cg.json" \
+                  "${PROJECT_DIR}/previews/pr-${PR_NUMBER}.meta.json"
             ;;
         set-latest)
             local newest
