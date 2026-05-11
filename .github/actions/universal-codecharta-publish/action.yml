@@ -1,0 +1,93 @@
+name: CodeCharta publish
+description: >
+  Publishes a CodeCharta snapshot (or removes a preview) into a data repo —
+  `futuredapp/codebase-architectures` by default. Clones the data repo, copies
+  the artifacts into `projects/<project_name>/...`, rebuilds the manifest, and
+  pushes back to the data repo's default branch. Handles concurrent commits
+  via retry-on-conflict.
+
+inputs:
+  mode:
+    required: true
+    description: >
+      One of: preview, history, bulk-history, delete-preview, set-latest.
+      `preview` and `delete-preview` accept a numeric `pr_number`. `history`
+      accepts `stem` + `date` + paths. `bulk-history` accepts `snapshots_dir`.
+      `set-latest` takes no extra inputs.
+  project_name:
+    required: true
+    description: >
+      Output folder name in the data repo (`projects/<project_name>/`).
+  data_repo:
+    required: false
+    default: futuredapp/codebase-architectures
+    description: >
+      `<owner>/<name>` of the data repository that holds the published
+      snapshots and the manifest.
+  data_repo_branch:
+    required: false
+    default: main
+    description: >
+      Branch in the data repo to push to.
+  data_repo_token:
+    required: true
+    description: >
+      Token with write access to the data repo. Use a fine-grained PAT or an
+      app token scoped to `Contents: read+write`.
+  pr_number:
+    required: false
+    description: >
+      Pull-request number. Required for `preview` and `delete-preview`.
+  stem:
+    required: false
+    description: >
+      Snapshot stem, either `pr-<N>` or `merge-<short-sha>`. Required for
+      `history`, `backfill-history`, `set-latest`.
+  date:
+    required: false
+    description: >
+      Snapshot date as `YYYY-MM-DD`. Required for `history`, `backfill-history`.
+      Optional for `set-latest` (will pick newest entry if omitted).
+  cc_path:
+    required: false
+    description: >
+      Absolute path to the local `.cc.json.gz` to publish. Required for
+      `preview`, `history`, `backfill-history`.
+  cg_path:
+    required: false
+    description: >
+      Absolute path to the local `.cg.json` to publish. Required for `preview`
+      and `history`. Optional for `backfill-history` (history snapshots from
+      `mode: history` of the snapshot action do not include `.cg.json`).
+  meta_path:
+    required: false
+    description: >
+      Absolute path to the local `.meta.json` sidecar (PR title/author/etc.).
+      Optional; carried through to the data repo when present.
+  snapshots_dir:
+    required: false
+    description: >
+      Absolute path to a directory containing historical snapshots named
+      `<project>-<YYYY-MM-DD>-(pr-<N>|merge-<sha>).cc.json.gz` (with optional
+      `.meta.json` sidecars). Required for `bulk-history`. One clone, idempotent
+      copies for entries not yet present, one summary commit, one push.
+
+runs:
+  using: composite
+  steps:
+    - name: Publish to data repo
+      shell: bash
+      run: ${{ github.action_path }}/codecharta-publish.sh
+      env:
+        CODECHARTA_PUBLISH_MODE: ${{ inputs.mode }}
+        PROJECT_NAME: ${{ inputs.project_name }}
+        DATA_REPO: ${{ inputs.data_repo }}
+        DATA_REPO_BRANCH: ${{ inputs.data_repo_branch }}
+        CODEBASE_ARCHITECTURES_TOKEN: ${{ inputs.data_repo_token }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+        STEM: ${{ inputs.stem }}
+        DATE: ${{ inputs.date }}
+        SOURCE_CC_PATH: ${{ inputs.cc_path }}
+        SOURCE_CG_PATH: ${{ inputs.cg_path }}
+        SOURCE_META_PATH: ${{ inputs.meta_path }}
+        SNAPSHOTS_DIR: ${{ inputs.snapshots_dir }}

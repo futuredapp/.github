@@ -1,0 +1,338 @@
+name: CodeCharta + DependaCharta snapshot
+
+# Reusable workflow that runs the full CodeCharta + DependaCharta pipeline:
+#   - PR events: generate a preview snapshot, publish it under
+#     `projects/<project>/previews/`, post a PR comment with picker links.
+#   - PR closed: delete the preview entry.
+#   - Push to develop/main: generate a history snapshot, publish under
+#     `projects/<project>/history/` and refresh the `latest.*` pointers.
+#   - workflow_dispatch with backfill=true: walk N recent merges, publish each.
+
+on:
+  workflow_call:
+    inputs:
+      stack:
+        type: string
+        required: false
+        default: multi
+        description: >
+          Stack profile (swift | kotlin | kmp | ft-fullstack | multi).
+          Determines default ccsh `-fe=` and tokei `--type` filters.
+      project_name:
+        type: string
+        required: false
+        description: >
+          Override for the data-repo folder name. Defaults to the consumer's
+          repository name (`github.event.repository.name`).
+      file_extensions:
+        type: string
+        required: false
+        description: >
+          Optional override for ccsh `-fe=` (comma-separated extensions).
+      tokei_types:
+        type: string
+        required: false
+        description: >
+          Optional override for tokei `--type` (comma-separated language names).
+      extra_excludes:
+        type: string
+        required: false
+        description: >
+          Comma-separated patterns added to ccsh `-e=` and tokei `--exclude`.
+      backfill:
+        type: boolean
+        required: false
+        default: false
+        description: >
+          When true (workflow_dispatch only), runs the backfill job that walks
+          recent merges and publishes a history entry per PR.
+      pr_limit:
+        type: string
+        required: false
+        default: '20'
+        description: >
+          Max number of merges to walk in backfill mode.
+      dependacharta_image_tag:
+        type: string
+        required: false
+        default: fork-v0.2.1
+        description: >
+          Tag for the Futured DependaCharta fork image. Pin per release;
+          floating tags are discouraged.
+    secrets:
+      CODEBASE_ARCHITECTURES_TOKEN:
+        required: true
+        description: >
+          Fine-grained PAT or GitHub App token with write access to the data
+          repo (`futuredapp/codebase-architectures`).
+
+# Per-event concurrency. PR pushes serialize per PR; push events serialize per
+# ref; workflow_dispatch (typically backfill) serializes globally so the
+# manifest rebuild loop converges.
+concurrency:
+  group: codecharta-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Org-wide constants. Hardcoded by design; varying them would mean a
+  # cross-repo data migration, not a per-consumer setting.
+  DATA_REPO: futuredapp/codebase-architectures
+  PICKER_BASE_URL: https://codebase-arch.futured.app
+  DEPENDACHARTA_IMAGE_BASE: ghcr.io/futuredapp/dependacharta-swift
+
+jobs:
+  generate:
+    name: Generate snapshot
+    if: |
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' && github.event.action != 'closed')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history for git metrics
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve project name
+        id: project
+        shell: bash
+        run: |
+          name="${{ inputs.project_name }}"
+          if [[ -z "${name}" ]]; then
+            name="${{ github.event.repository.name }}"
+          fi
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+
+      - name: Run CodeCharta snapshot
+        id: snapshot
+        uses: futuredapp/.github/.github/actions/universal-codecharta-snapshot@ci/codecharta-actions
+        with:
+          mode: snapshot
+          project_name: ${{ steps.project.outputs.name }}
+          stack: ${{ inputs.stack }}
+          file_extensions: ${{ inputs.file_extensions }}
+          tokei_types: ${{ inputs.tokei_types }}
+          extra_excludes: ${{ inputs.extra_excludes }}
+          dependacharta_image: ${{ env.DEPENDACHARTA_IMAGE_BASE }}:${{ inputs.dependacharta_image_tag }}
+
+      - name: Determine target identifiers
+        id: ids
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "kind=preview" >> "$GITHUB_OUTPUT"
+            echo "pr=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          else
+            # push to develop/main — parse merge commit subject for "#NNN".
+            subject=$(git log -1 --format=%s HEAD)
+            pr=""
+            stem=""
+            if [[ "${subject}" =~ \#([0-9]+) ]]; then
+              pr="${BASH_REMATCH[1]}"
+              stem="pr-${pr}"
+            else
+              short_sha=$(git rev-parse --short=7 HEAD)
+              stem="merge-${short_sha}"
+            fi
+            echo "kind=history" >> "$GITHUB_OUTPUT"
+            echo "stem=${stem}" >> "$GITHUB_OUTPUT"
+            echo "pr=${pr}" >> "$GITHUB_OUTPUT"
+            echo "date=$(git log -1 --format=%cs HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch PR metadata sidecar (history)
+        if: steps.ids.outputs.kind == 'history' && steps.ids.outputs.pr != ''
+        id: meta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          meta_path="${RUNNER_TEMP}/${{ steps.project.outputs.name }}-pr-${{ steps.ids.outputs.pr }}.meta.json"
+          if gh pr view "${{ steps.ids.outputs.pr }}" \
+              --json title,author,mergedAt,url > "${meta_path}" 2>/dev/null; then
+            echo "path=${meta_path}" >> "$GITHUB_OUTPUT"
+            echo "Wrote ${meta_path}"
+          else
+            echo "PR metadata fetch failed; continuing without sidecar." >&2
+            rm -f "${meta_path}"
+          fi
+
+      - name: Publish (preview)
+        if: steps.ids.outputs.kind == 'preview'
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@ci/codecharta-actions
+        with:
+          mode: preview
+          project_name: ${{ steps.project.outputs.name }}
+          data_repo: ${{ env.DATA_REPO }}
+          data_repo_token: ${{ secrets.CODEBASE_ARCHITECTURES_TOKEN }}
+          pr_number: ${{ steps.ids.outputs.pr }}
+          cc_path: ${{ steps.snapshot.outputs.cc_path }}
+          cg_path: ${{ steps.snapshot.outputs.cg_path }}
+
+      - name: Publish (history)
+        if: steps.ids.outputs.kind == 'history'
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@ci/codecharta-actions
+        with:
+          mode: history
+          project_name: ${{ steps.project.outputs.name }}
+          data_repo: ${{ env.DATA_REPO }}
+          data_repo_token: ${{ secrets.CODEBASE_ARCHITECTURES_TOKEN }}
+          stem: ${{ steps.ids.outputs.stem }}
+          date: ${{ steps.ids.outputs.date }}
+          cc_path: ${{ steps.snapshot.outputs.cc_path }}
+          cg_path: ${{ steps.snapshot.outputs.cg_path }}
+          meta_path: ${{ steps.meta.outputs.path }}
+
+      - name: Compose PR comment links
+        if: steps.ids.outputs.kind == 'preview'
+        id: links
+        shell: bash
+        run: |
+          set -euo pipefail
+          pr="${{ steps.ids.outputs.pr }}"
+          name="${{ steps.project.outputs.name }}"
+          base="${{ env.PICKER_BASE_URL }}"
+          ccPath="projects/${name}/previews/pr-${pr}.cc.json.gz"
+          cgPath="projects/${name}/previews/pr-${pr}.cg.json"
+          latestPath="projects/${name}/history/latest.cc.json.gz"
+
+          ccUrl=$(jq -rn --arg p "${ccPath}" '@uri "/api/map?path=\($p)"')
+          cgUrl=$(jq -rn --arg p "${cgPath}" '@uri "/api/graph?path=\($p)"')
+          latestUrl=$(jq -rn --arg p "${latestPath}" '@uri "/api/map?path=\($p)"')
+
+          ccStudio="${base}/studio/?file=$(jq -rn --arg u "${ccUrl}" '$u | @uri')"
+          cgVis="${base}/dependacharta/?graph=$(jq -rn --arg u "${cgUrl}" '$u | @uri')"
+          ccDelta="${base}/studio/?file=$(jq -rn --arg u "${ccUrl}" '$u | @uri')&file=$(jq -rn --arg u "${latestUrl}" '$u | @uri')"
+
+          {
+            echo "ccStudio=${ccStudio}"
+            echo "cgVis=${cgVis}"
+            echo "ccDelta=${ccDelta}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post or update PR comment
+        if: steps.ids.outputs.kind == 'preview'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            <!-- codecharta-bot -->
+            ### Codebase architecture snapshot
+
+            - [Open this PR in CodeCharta](${{ steps.links.outputs.ccStudio }})
+            - [Open this PR in DependaCharta](${{ steps.links.outputs.cgVis }})
+            - [Compare PR vs latest develop (CodeCharta delta view)](${{ steps.links.outputs.ccDelta }})
+
+            Snapshot is regenerated on every push. Picker: ${{ env.PICKER_BASE_URL }}/
+          edit-mode: replace
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- codecharta-bot -->'
+
+  cleanup:
+    name: Cleanup preview
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - name: Resolve project name
+        id: project
+        shell: bash
+        run: |
+          name="${{ inputs.project_name }}"
+          if [[ -z "${name}" ]]; then
+            name="${{ github.event.repository.name }}"
+          fi
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+
+      - name: Delete preview
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@ci/codecharta-actions
+        with:
+          mode: delete-preview
+          project_name: ${{ steps.project.outputs.name }}
+          data_repo: ${{ env.DATA_REPO }}
+          data_repo_token: ${{ secrets.CODEBASE_ARCHITECTURES_TOKEN }}
+          pr_number: ${{ github.event.pull_request.number }}
+
+  backfill:
+    name: Backfill history
+    if: github.event_name == 'workflow_dispatch' && inputs.backfill == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve project name
+        id: project
+        shell: bash
+        run: |
+          name="${{ inputs.project_name }}"
+          if [[ -z "${name}" ]]; then
+            name="${{ github.event.repository.name }}"
+          fi
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate historical snapshots
+        id: history
+        uses: futuredapp/.github/.github/actions/universal-codecharta-snapshot@ci/codecharta-actions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          mode: history
+          project_name: ${{ steps.project.outputs.name }}
+          stack: ${{ inputs.stack }}
+          file_extensions: ${{ inputs.file_extensions }}
+          tokei_types: ${{ inputs.tokei_types }}
+          extra_excludes: ${{ inputs.extra_excludes }}
+          history_limit: ${{ inputs.pr_limit }}
+          dependacharta_image: ${{ env.DEPENDACHARTA_IMAGE_BASE }}:${{ inputs.dependacharta_image_tag }}
+
+      - name: Publish backfill batch
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@ci/codecharta-actions
+        with:
+          mode: bulk-history
+          project_name: ${{ steps.project.outputs.name }}
+          data_repo: ${{ env.DATA_REPO }}
+          data_repo_token: ${{ secrets.CODEBASE_ARCHITECTURES_TOKEN }}
+          snapshots_dir: ${{ steps.history.outputs.snapshots_dir }}
+
+      - name: Refresh latest pointer
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@ci/codecharta-actions
+        with:
+          mode: set-latest
+          project_name: ${{ steps.project.outputs.name }}
+          data_repo: ${{ env.DATA_REPO }}
+          data_repo_token: ${{ secrets.CODEBASE_ARCHITECTURES_TOKEN }}
