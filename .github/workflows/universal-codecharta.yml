@@ -9,10 +9,20 @@ name: CodeCharta + DependaCharta snapshot
 # a tagged ref. The consumer-side YAML only declares WHEN to run; this file
 # owns the actual pipeline.
 #
-# The pipeline produces "snapshots" — single .cc.json.gz files containing the
-# project's file tree, per-file complexity, LOC, churn, and dependency edges.
-# Snapshots are stored in a data repo (which the consumer specifies via the
-# `data_repo` input) and rendered by a picker UI (`picker_base_url` input).
+# The pipeline produces "snapshots" — `.cc.json.gz` files containing the
+# project's file tree plus, in the standard live path (PR previews and
+# develop/main pushes), per-file complexity, LOC, churn, and dependency
+# edges. Snapshots are stored in a data repo (which the consumer specifies
+# via the `data_repo` input) and rendered by a picker UI (`picker_base_url`
+# input).
+#
+# Backfilled history snapshots (the manual `workflow_dispatch` + `backfill`
+# path) are intentionally "lightweight": they walk past merge commits via
+# `ccsh unifiedparser --commit=<sha>` to capture per-commit file structure
+# but DO NOT re-run DependaCharta, tokei, or gitlogparser per commit —
+# rerunning those across N historical commits would explode CI cost. So
+# backfilled entries have file structure + complexity metrics but no LOC /
+# churn / dependency-graph data per historical entry.
 #
 # Four scenarios trigger this workflow, each handled by a different job:
 #
@@ -101,9 +111,9 @@ on:
           When true (workflow_dispatch only), routes execution to the backfill
           job instead of the generate/cleanup pair.
       pr_limit:
-        type: string
+        type: number
         required: false
-        default: '20'
+        default: 20
         description: >
           Max number of first-parent merges to walk in backfill mode. Larger
           values produce more historical snapshots at proportionally higher

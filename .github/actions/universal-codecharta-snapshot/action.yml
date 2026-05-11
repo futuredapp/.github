@@ -58,10 +58,11 @@ inputs:
       specific tag.
   analysis_image:
     required: false
-    default: codecharta/codecharta-analysis:latest
+    default: codecharta/codecharta-analysis:1.143.0
     description: >
-      Fully-qualified ccsh / tokei analysis image. Future versions of this
-      action will pin to a dated tag.
+      Fully-qualified ccsh / tokei analysis image. Pinned to a specific
+      upstream release for reproducibility — bump intentionally when picking
+      up upstream changes. Consumers can override via this input.
 
 outputs:
   cc_path:

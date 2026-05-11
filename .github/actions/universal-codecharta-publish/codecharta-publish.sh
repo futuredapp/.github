@@ -36,9 +36,11 @@ require_env CODEBASE_ARCHITECTURES_TOKEN
 
 # Validate PROJECT_NAME — used unquoted in path construction (e.g.
 # "projects/${PROJECT_NAME}/previews/…"). A value like `../foo` would let the
-# script write outside the projects/ tree. Restrict to a safe character set.
-if [[ ! "${PROJECT_NAME}" =~ ^[A-Za-z0-9._-]+$ ]]; then
-    echo "PROJECT_NAME must match [A-Za-z0-9._-]+ (got '${PROJECT_NAME}')" >&2
+# script write outside the projects/ tree. Restrict to a safe character set
+# AND reject pure-dot values which the regex accepts but are still traversal:
+# `PROJECT_NAME=..` makes PROJECT_DIR `projects/..` (i.e. the data repo root).
+if [[ ! "${PROJECT_NAME}" =~ ^[A-Za-z0-9._-]+$ ]] || [[ "${PROJECT_NAME}" == "." || "${PROJECT_NAME}" == ".." ]]; then
+    echo "PROJECT_NAME must match [A-Za-z0-9._-]+ and not be '.' or '..' (got '${PROJECT_NAME}')" >&2
     exit 64
 fi
 
