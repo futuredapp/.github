@@ -78,9 +78,12 @@ EXTRA_EXCLUDES="${CODECHARTA_EXTRA_EXCLUDES:-}"
 add_dependency_metric_descriptions() {
     local map_path="$1"
 
+    # The caller invokes this with `|| true` because metric-descriptor
+    # annotation is a nice-to-have, not a pipeline-critical step. Use `return`
+    # (not `exit`) on missing node so the rest of the action can continue.
     if ! command -v node >/dev/null 2>&1; then
-        echo "node is required to add dependency metric descriptions to ${map_path}" >&2
-        exit 69
+        echo "node not found; skipping dependency-metric descriptions for ${map_path}" >&2
+        return 0
     fi
 
     node - "${map_path}" <<'NODE'

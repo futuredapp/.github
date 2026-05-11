@@ -34,6 +34,22 @@ require_env PROJECT_NAME
 require_env DATA_REPO
 require_env CODEBASE_ARCHITECTURES_TOKEN
 
+# Validate PROJECT_NAME — used unquoted in path construction (e.g.
+# "projects/${PROJECT_NAME}/previews/…"). A value like `../foo` would let the
+# script write outside the projects/ tree. Restrict to a safe character set.
+if [[ ! "${PROJECT_NAME}" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    echo "PROJECT_NAME must match [A-Za-z0-9._-]+ (got '${PROJECT_NAME}')" >&2
+    exit 64
+fi
+
+# Validate DATA_REPO — interpolated into the clone URL. Shell-quoting prevents
+# command injection, but an unconstrained value can still target unintended
+# repositories. Restrict to <owner>/<name> with the same safe charset.
+if [[ ! "${DATA_REPO}" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]; then
+    echo "DATA_REPO must match <owner>/<name> (got '${DATA_REPO}')" >&2
+    exit 64
+fi
+
 DATA_REPO_BRANCH="${DATA_REPO_BRANCH:-main}"
 MODE="${CODECHARTA_PUBLISH_MODE}"
 
