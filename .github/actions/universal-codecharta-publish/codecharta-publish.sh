@@ -198,19 +198,19 @@ apply_change() {
             fi
             local base="${newest%.cc.json.gz}"
             cp "${PROJECT_DIR}/history/${newest}" "${PROJECT_DIR}/history/latest.cc.json.gz"
-            # Mirror the cg/meta sidecars onto the latest pointer — but DELETE
-            # the existing latest.* if the new newest entry has no sidecar.
-            # Otherwise the latest.cg.json could refer to a different (older)
-            # entry than latest.cc.json.gz.
+            # Update the cg/meta sidecars only when the selected newest entry
+            # has them. Otherwise leave the existing latest.* alone — backfill
+            # entries intentionally omit `.cg.json` (DependaCharta isn't run
+            # per historical commit), and we'd rather keep a graph from an
+            # older entry than break the picker's DependaCharta view entirely.
+            # `latest.meta.json` follows the same policy: rebase-merge history
+            # entries have no PR to query, but a prior PR-merge entry's title
+            # is more useful than no title at all.
             if [[ -f "${PROJECT_DIR}/history/${base}.cg.json" ]]; then
                 cp "${PROJECT_DIR}/history/${base}.cg.json" "${PROJECT_DIR}/history/latest.cg.json"
-            else
-                rm -f "${PROJECT_DIR}/history/latest.cg.json"
             fi
             if [[ -f "${PROJECT_DIR}/history/${base}.meta.json" ]]; then
                 cp "${PROJECT_DIR}/history/${base}.meta.json" "${PROJECT_DIR}/history/latest.meta.json"
-            else
-                rm -f "${PROJECT_DIR}/history/latest.meta.json"
             fi
             ;;
     esac
