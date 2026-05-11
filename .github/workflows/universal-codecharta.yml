@@ -1,15 +1,48 @@
 name: CodeCharta + DependaCharta snapshot
 
-# Reusable workflow that runs the full CodeCharta + DependaCharta pipeline:
-#   - PR events: generate a preview snapshot, publish it under
-#     `projects/<project>/previews/`, post a PR comment with picker links.
-#   - PR closed: delete the preview entry.
-#   - Push to develop/main: generate a history snapshot, publish under
-#     `projects/<project>/history/` and refresh the `latest.*` pointers.
-#   - workflow_dispatch with backfill=true: walk N recent merges, publish each.
+# ============================================================================
+# What this workflow does (high-level walk-through)
+# ============================================================================
+#
+# This is a *reusable workflow* — consumer repos invoke it from their own
+# .github/workflows/codecharta.yml via `uses: futuredapp/.github/.github/workflows/universal-codecharta.yml@<ref>`.
+# The consumer-side YAML only declares WHEN to run; this file owns the actual
+# pipeline.
+#
+# The pipeline produces "snapshots" — single .cc.json.gz files containing the
+# project's file tree, per-file complexity, LOC, churn, and dependency edges.
+# Snapshots are stored in the data repo (futuredapp/codebase-architectures) and
+# rendered by the picker UI at https://codebase-arch.futured.app/.
+#
+# Four scenarios trigger this workflow, each handled by a different job:
+#
+#   1. PR opened / pushed-to (targeting develop or main)
+#        → generate job, kind=preview
+#        → publishes to projects/<name>/previews/pr-<N>.cc.json.gz
+#        → posts/updates a PR comment with picker links
+#
+#   2. PR closed (merged or abandoned)
+#        → cleanup job
+#        → deletes the preview entry from the data repo
+#
+#   3. Push to develop / main
+#        → generate job, kind=history
+#        → publishes to projects/<name>/history/<date>-<stem>.cc.json.gz
+#        → refreshes latest.cc.json.gz pointer
+#
+#   4. Manual workflow_dispatch with backfill=true
+#        → backfill job
+#        → walks the last N merges, generates one snapshot per commit,
+#          publishes them in a single bulk commit, refreshes latest pointer
+#
+# The actual analysis (ccsh / tokei / gitlogparser / DependaCharta / merge)
+# lives in the universal-codecharta-snapshot composite action. The data-repo
+# orchestration (clone, copy, manifest rebuild, commit, push) lives in
+# universal-codecharta-publish. This workflow is just the glue.
 
 on:
   workflow_call:
+    # ── Inputs the consumer can set ──────────────────────────────────────────
     inputs:
       stack:
         type: string
@@ -17,88 +50,123 @@ on:
         default: multi
         description: >
           Stack profile (swift | kotlin | kmp | ft-fullstack | multi).
-          Determines default ccsh `-fe=` and tokei `--type` filters.
+          Resolves to default ccsh `-fe=` (file extensions) and tokei `--type`
+          (language filter) inside the snapshot action. Pick the named profile
+          that matches your repo; `multi` omits filters entirely (analyzes
+          everything the tools recognize).
       project_name:
         type: string
         required: false
         description: >
           Override for the data-repo folder name. Defaults to the consumer's
-          repository name (`github.event.repository.name`).
+          repository name (`github.event.repository.name`) — e.g. a workflow
+          running in `smsticket-ios` publishes to `projects/smsticket-ios/`.
       file_extensions:
         type: string
         required: false
         description: >
-          Optional override for ccsh `-fe=` (comma-separated extensions).
+          Optional override for ccsh `-fe=` (comma-separated extensions like
+          `kt,swift`). When set, supersedes the stack profile's default.
       tokei_types:
         type: string
         required: false
         description: >
-          Optional override for tokei `--type` (comma-separated language names).
+          Optional override for tokei `--type` (comma-separated language names
+          like `Kotlin,Swift`). When set, supersedes the stack profile's default.
       extra_excludes:
         type: string
         required: false
         description: >
-          Comma-separated patterns added to ccsh `-e=` and tokei `--exclude`.
+          Comma-separated patterns appended to ccsh `-e=` and tokei `--exclude`.
+          Use for repo-specific noise (vendored dirs, generated folders, etc.).
       backfill:
         type: boolean
         required: false
         default: false
         description: >
-          When true (workflow_dispatch only), runs the backfill job that walks
-          recent merges and publishes a history entry per PR.
+          When true (workflow_dispatch only), routes execution to the backfill
+          job instead of the generate/cleanup pair.
       pr_limit:
         type: string
         required: false
         default: '20'
         description: >
-          Max number of merges to walk in backfill mode.
+          Max number of first-parent merges to walk in backfill mode. Larger
+          values produce more historical snapshots at proportionally higher
+          cost. The 60-min job timeout caps this in practice around ~100.
       dependacharta_image_tag:
         type: string
         required: false
         default: fork-v0.2.1
         description: >
-          Tag for the Futured DependaCharta fork image. Pin per release;
-          floating tags are discouraged.
+          Tag on the Futured DependaCharta fork image. Pin per release of this
+          workflow; floating tags (e.g. `latest`) break reproducibility.
+
+    # ── Secrets the consumer must pass through ───────────────────────────────
     secrets:
       CODEBASE_ARCHITECTURES_TOKEN:
         required: true
         description: >
-          Fine-grained PAT or GitHub App token with write access to the data
-          repo (`futuredapp/codebase-architectures`).
+          Fine-grained PAT or GitHub App token with `Contents: read+write` on
+          futuredapp/codebase-architectures. The publish jobs use it to clone
+          the data repo and push commits.
 
-# Per-event concurrency. PR pushes serialize per PR; push events serialize per
-# ref; workflow_dispatch (typically backfill) serializes globally so the
-# manifest rebuild loop converges.
+# ── Concurrency ──────────────────────────────────────────────────────────────
+# Groups runs by (event_name, PR_number_or_ref):
+#   - Two pushes to the same PR serialize behind each other (so the second
+#     push doesn't overwrite the first's in-flight preview).
+#   - Two pushes to develop serialize too (the manifest rebuild loop needs to
+#     converge — concurrent pushes would race on it).
+#   - cancel-in-progress=false because the snapshot is the artifact; aborting
+#     mid-run leaves the data repo half-updated.
 concurrency:
   group: codecharta-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
+# ── Workflow-level env (org-wide constants) ──────────────────────────────────
+# These never vary per consumer. Hardcoded here rather than as inputs because
+# changing one of these would mean a coordinated migration across every
+# consumer repo, not a per-repo preference.
 env:
-  # Org-wide constants. Hardcoded by design; varying them would mean a
-  # cross-repo data migration, not a per-consumer setting.
   DATA_REPO: futuredapp/codebase-architectures
   PICKER_BASE_URL: https://codebase-arch.futured.app
   DEPENDACHARTA_IMAGE_BASE: ghcr.io/futuredapp/dependacharta-swift
 
 jobs:
+  # ==========================================================================
+  # JOB 1: generate
+  # Runs for: PR open/sync/reopen AND push to develop/main.
+  # Produces ONE snapshot, publishes it as either a preview (PR) or a history
+  # entry (push). For PRs, also posts a comment with picker links.
+  # ==========================================================================
   generate:
     name: Generate snapshot
+    # Fires on push (any branch the consumer's `on:` allows) OR on PR events
+    # that aren't `closed` (open / synchronize / reopen). Closed PRs go to the
+    # cleanup job below.
     if: |
       github.event_name == 'push' ||
       (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      contents: read
-      packages: read
-      pull-requests: write
+      contents: read         # checkout the consumer repo
+      packages: read         # pull the DependaCharta image from GHCR
+      pull-requests: write   # post/update the picker-links comment
 
     steps:
+      # ── Step 1: clone the consumer repo at the triggering ref ─────────────
+      # fetch-depth: 0 pulls the full git history, which gitlogparser needs to
+      # compute per-file churn (commits / authors over time).
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # full history for git metrics
+          fetch-depth: 0
 
+      # ── Step 2: authenticate Docker against GHCR ──────────────────────────
+      # The DependaCharta fork image (ghcr.io/futuredapp/dependacharta-swift)
+      # is private-by-default. GITHUB_TOKEN inherits read access for packages
+      # the calling repo can see.
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
@@ -106,6 +174,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # ── Step 3: figure out the data-repo folder name ──────────────────────
+      # `projects/<this-value>/` is where snapshots land in the data repo.
+      # Defaults to the consumer's repo name; consumer can override via input.
       - name: Resolve project name
         id: project
         shell: bash
@@ -116,9 +187,15 @@ jobs:
           fi
           echo "name=${name}" >> "$GITHUB_OUTPUT"
 
+      # ── Step 4: run the analysis pipeline ─────────────────────────────────
+      # The composite action wraps the full ccsh + tokei + gitlogparser +
+      # DependaCharta + merge flow in one step. Outputs:
+      #   - cc_path:  absolute path to ${project}.cc.json.gz (the map)
+      #   - cg_path:  absolute path to ${project}.cg.json (the graph)
+      # These outputs are consumed by the publish steps below.
       - name: Run CodeCharta snapshot
         id: snapshot
-        uses: futuredapp/.github/.github/actions/universal-codecharta-snapshot@ci/codecharta-actions
+        uses: futuredapp/.github/.github/actions/universal-codecharta-snapshot@main
         with:
           mode: snapshot
           project_name: ${{ steps.project.outputs.name }}
@@ -128,14 +205,25 @@ jobs:
           extra_excludes: ${{ inputs.extra_excludes }}
           dependacharta_image: ${{ env.DEPENDACHARTA_IMAGE_BASE }}:${{ inputs.dependacharta_image_tag }}
 
+      # ── Step 5: decide whether this is a preview or a history snapshot ────
+      # Branches the rest of the pipeline:
+      #   - kind=preview  → pr=<N>, publish to previews/pr-<N>.*
+      #   - kind=history  → stem=pr-<N> or merge-<sha>, date=<YYYY-MM-DD>,
+      #                     publish to history/<date>-<stem>.*
+      #
+      # For history runs, we parse "Merge pull request #NNN" from the commit
+      # subject. Rebase-merged commits (no #NNN in subject) fall back to a
+      # short-sha stem.
       - name: Determine target identifiers
         id: ids
         shell: bash
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "kind=preview" >> "$GITHUB_OUTPUT"
-            echo "pr=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            {
+              echo "kind=preview"
+              echo "pr=${{ github.event.pull_request.number }}"
+            } >> "$GITHUB_OUTPUT"
           else
             # push to develop/main — parse merge commit subject for "#NNN".
             subject=$(git log -1 --format=%s HEAD)
@@ -148,12 +236,19 @@ jobs:
               short_sha=$(git rev-parse --short=7 HEAD)
               stem="merge-${short_sha}"
             fi
-            echo "kind=history" >> "$GITHUB_OUTPUT"
-            echo "stem=${stem}" >> "$GITHUB_OUTPUT"
-            echo "pr=${pr}" >> "$GITHUB_OUTPUT"
-            echo "date=$(git log -1 --format=%cs HEAD)" >> "$GITHUB_OUTPUT"
+            {
+              echo "kind=history"
+              echo "stem=${stem}"
+              echo "pr=${pr}"
+              echo "date=$(git log -1 --format=%cs HEAD)"
+            } >> "$GITHUB_OUTPUT"
           fi
 
+      # ── Step 6: fetch PR metadata (history runs only) ─────────────────────
+      # Writes a sidecar JSON ({title, author, mergedAt, url}) next to the
+      # snapshot. The picker UI reads this to display PR titles in the
+      # timeline. Skipped for previews (the PR is the live thing being viewed)
+      # and for rebase-merge commits with no PR number.
       - name: Fetch PR metadata sidecar (history)
         if: steps.ids.outputs.kind == 'history' && steps.ids.outputs.pr != ''
         id: meta
@@ -172,9 +267,14 @@ jobs:
             rm -f "${meta_path}"
           fi
 
+      # ── Step 7a: publish a preview entry (PR runs only) ───────────────────
+      # The publish composite clones the data repo, copies the snapshot into
+      # projects/<name>/previews/pr-<N>.{cc.json.gz,cg.json}, rebuilds
+      # manifest.json, and pushes one commit. Retry-on-conflict handles
+      # concurrent writers.
       - name: Publish (preview)
         if: steps.ids.outputs.kind == 'preview'
-        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@ci/codecharta-actions
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@main
         with:
           mode: preview
           project_name: ${{ steps.project.outputs.name }}
@@ -184,9 +284,13 @@ jobs:
           cc_path: ${{ steps.snapshot.outputs.cc_path }}
           cg_path: ${{ steps.snapshot.outputs.cg_path }}
 
+      # ── Step 7b: publish a history entry (develop/main pushes only) ───────
+      # Same as preview but writes to projects/<name>/history/<date>-<stem>.*
+      # and ALSO refreshes the latest.{cc.json.gz,cg.json,meta.json} pointers
+      # so the picker can offer a delta view against current develop.
       - name: Publish (history)
         if: steps.ids.outputs.kind == 'history'
-        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@ci/codecharta-actions
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@main
         with:
           mode: history
           project_name: ${{ steps.project.outputs.name }}
@@ -198,6 +302,13 @@ jobs:
           cg_path: ${{ steps.snapshot.outputs.cg_path }}
           meta_path: ${{ steps.meta.outputs.path }}
 
+      # ── Step 8: build picker URLs for the PR comment (PR runs only) ───────
+      # Three URL-encoded links:
+      #   1. CodeCharta Studio with the PR's map loaded
+      #   2. DependaCharta visualizer with the PR's graph loaded
+      #   3. Studio delta view comparing the PR against latest develop
+      # The picker proxy at PICKER_BASE_URL serves the data repo's files via
+      # /api/map and /api/graph endpoints.
       - name: Compose PR comment links
         if: steps.ids.outputs.kind == 'preview'
         id: links
@@ -225,12 +336,30 @@ jobs:
             echo "ccDelta=${ccDelta}"
           } >> "$GITHUB_OUTPUT"
 
+      # ── Step 9: post or update the picker-links comment ───────────────────
+      # The comment carries an HTML marker (<!-- codecharta-bot -->) so the
+      # idempotent find-then-update pattern can locate the existing comment
+      # on re-runs and replace its body rather than stacking duplicates.
+      # (The find-comment step below replaces the old single-step
+      # peter-evans/create-or-update-comment usage which silently ignored
+      # comment-author/body-includes and created a fresh comment every push.)
+      - name: Find existing picker-links comment
+        if: steps.ids.outputs.kind == 'preview'
+        id: find-comment
+        uses: peter-evans/find-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- codecharta-bot -->'
+
       - name: Post or update PR comment
         if: steps.ids.outputs.kind == 'preview'
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
           body: |
             <!-- codecharta-bot -->
             ### Codebase architecture snapshot
@@ -240,10 +369,14 @@ jobs:
             - [Compare PR vs latest develop (CodeCharta delta view)](${{ steps.links.outputs.ccDelta }})
 
             Snapshot is regenerated on every push. Picker: ${{ env.PICKER_BASE_URL }}/
-          edit-mode: replace
-          comment-author: 'github-actions[bot]'
-          body-includes: '<!-- codecharta-bot -->'
 
+  # ==========================================================================
+  # JOB 2: cleanup
+  # Runs for: PR closed (merged or abandoned).
+  # No analysis runs here — we already published the preview on the prior PR
+  # event. This job's only job is to delete the now-stale preview entry from
+  # the data repo so it doesn't accumulate dead snapshots.
+  # ==========================================================================
   cleanup:
     name: Cleanup preview
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -263,8 +396,11 @@ jobs:
           fi
           echo "name=${name}" >> "$GITHUB_OUTPUT"
 
+      # Removes projects/<name>/previews/pr-<N>.{cc.json.gz,cg.json} from the
+      # data repo, rebuilds manifest, commits ("Drop preview for <name> PR
+      # #<N>"), pushes. Idempotent — no-op if the preview was never created.
       - name: Delete preview
-        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@ci/codecharta-actions
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@main
         with:
           mode: delete-preview
           project_name: ${{ steps.project.outputs.name }}
@@ -272,6 +408,17 @@ jobs:
           data_repo_token: ${{ secrets.CODEBASE_ARCHITECTURES_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
 
+  # ==========================================================================
+  # JOB 3: backfill
+  # Runs for: manual workflow_dispatch with backfill=true.
+  # Walks the last N first-parent merge commits on the current branch and
+  # produces one historical snapshot per commit. Publishes them in a single
+  # bulk commit (vs N individual commits — much faster), then refreshes the
+  # latest.* pointers.
+  #
+  # Useful for seeding the timeline when first adopting this workflow on an
+  # existing repo with many past merges.
+  # ==========================================================================
   backfill:
     name: Backfill history
     if: github.event_name == 'workflow_dispatch' && inputs.backfill == true
@@ -280,7 +427,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-      pull-requests: read
+      pull-requests: read   # gh pr view (for meta sidecars per snapshot)
 
     steps:
       - name: Checkout
@@ -305,9 +452,24 @@ jobs:
           fi
           echo "name=${name}" >> "$GITHUB_OUTPUT"
 
+      # ── Step: generate N historical snapshots in one Docker invocation ────
+      # The snapshot action's `history` mode walks `git log --first-parent
+      # --merges -n N`, and for each merge:
+      #   1. Computes stem (pr-NNN from "Merge pull request #NNN", or
+      #      merge-<sha>) and the commit date.
+      #   2. Runs `ccsh unifiedparser --commit=<sha>` to analyze the repo at
+      #      that historical commit (without checking it out).
+      #   3. Writes <project>-<date>-<stem>.cc.json.gz to a shared output dir.
+      #   4. For pr-NNN stems, fetches PR metadata via gh and writes the
+      #      <basename>.meta.json sidecar.
+      #
+      # NOTE: history mode does NOT run DependaCharta per snapshot (too
+      # expensive — JVM analysis per commit). Historical entries have no
+      # .cg.json files; only the latest live entry has one. This is a
+      # deliberate trade-off.
       - name: Generate historical snapshots
         id: history
-        uses: futuredapp/.github/.github/actions/universal-codecharta-snapshot@ci/codecharta-actions
+        uses: futuredapp/.github/.github/actions/universal-codecharta-snapshot@main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -320,8 +482,20 @@ jobs:
           history_limit: ${{ inputs.pr_limit }}
           dependacharta_image: ${{ env.DEPENDACHARTA_IMAGE_BASE }}:${{ inputs.dependacharta_image_tag }}
 
+      # ── Step: bulk-publish the N generated snapshots in one commit ────────
+      # `bulk-history` mode does:
+      #   1. ONE clone of the data repo.
+      #   2. For each <project>-<date>-<stem>.cc.json.gz in snapshots_dir:
+      #      - Skip if target already exists (idempotent re-runs).
+      #      - Copy into projects/<name>/history/<date>-<stem>.cc.json.gz.
+      #      - Copy meta sidecar if present.
+      #   3. ONE manifest rebuild.
+      #   4. ONE commit ("Backfill history snapshots for <name>").
+      #   5. ONE push, with retry-on-conflict.
+      #
+      # Replaces the previous loop-of-publishes which did N clones / N pushes.
       - name: Publish backfill batch
-        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@ci/codecharta-actions
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@main
         with:
           mode: bulk-history
           project_name: ${{ steps.project.outputs.name }}
@@ -329,8 +503,14 @@ jobs:
           data_repo_token: ${{ secrets.CODEBASE_ARCHITECTURES_TOKEN }}
           snapshots_dir: ${{ steps.history.outputs.snapshots_dir }}
 
+      # ── Step: refresh the latest.* pointers from the newest entry ─────────
+      # `set-latest` mode picks the lexicographically newest non-`latest`
+      # file in projects/<name>/history/ and copies it over
+      # latest.cc.json.gz (+ .cg.json + .meta.json if available). Separate
+      # commit from bulk-history so the history entries and the pointer
+      # refresh are easy to revert independently if something goes wrong.
       - name: Refresh latest pointer
-        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@ci/codecharta-actions
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@main
         with:
           mode: set-latest
           project_name: ${{ steps.project.outputs.name }}
