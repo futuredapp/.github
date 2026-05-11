@@ -11,8 +11,8 @@ name: CodeCharta + DependaCharta snapshot
 #
 # The pipeline produces "snapshots" — single .cc.json.gz files containing the
 # project's file tree, per-file complexity, LOC, churn, and dependency edges.
-# Snapshots are stored in the data repo (futuredapp/codebase-architectures) and
-# rendered by the picker UI at https://codebase-arch.futured.app/.
+# Snapshots are stored in a data repo (which the consumer specifies via the
+# `data_repo` input) and rendered by a picker UI (`picker_base_url` input).
 #
 # Four scenarios trigger this workflow, each handled by a different job:
 #
@@ -59,8 +59,22 @@ on:
         required: false
         description: >
           Override for the data-repo folder name. Defaults to the consumer's
-          repository name (`github.event.repository.name`) — e.g. a workflow
-          running in `smsticket-ios` publishes to `projects/smsticket-ios/`.
+          repository name (`github.event.repository.name`), so a workflow
+          running in a repo named `my-app` publishes to `projects/my-app/`.
+      data_repo:
+        type: string
+        required: true
+        description: >
+          `<owner>/<name>` of the data repository that stores published
+          snapshots and the manifest the picker reads. Provided by the
+          consumer so this public workflow doesn't hardcode a specific
+          (potentially private) repo name.
+      picker_base_url:
+        type: string
+        required: true
+        description: >
+          Base URL of the picker UI. Used to compose links in the PR comment
+          (CodeCharta studio, DependaCharta visualizer, delta view).
       file_extensions:
         type: string
         required: false
@@ -108,8 +122,8 @@ on:
         required: true
         description: >
           Fine-grained PAT or GitHub App token with `Contents: read+write` on
-          futuredapp/codebase-architectures. The publish jobs use it to clone
-          the data repo and push commits.
+          the data repo (see `data_repo` input). The publish jobs use it to
+          clone the data repo and push commits.
 
 # ── Concurrency ──────────────────────────────────────────────────────────────
 # Groups runs by (event_name, PR_number_or_ref):
@@ -123,13 +137,12 @@ concurrency:
   group: codecharta-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
-# ── Workflow-level env (org-wide constants) ──────────────────────────────────
-# These never vary per consumer. Hardcoded here rather than as inputs because
-# changing one of these would mean a coordinated migration across every
-# consumer repo, not a per-repo preference.
+# ── Workflow-level env ───────────────────────────────────────────────────────
+# Only the DependaCharta image base lives here — the fork is publicly hosted
+# and shared by all stacks. The data-repo and picker URL come from inputs so
+# this workflow can be reused without baking specific (often private) repo
+# names into a public file.
 env:
-  DATA_REPO: futuredapp/codebase-architectures
-  PICKER_BASE_URL: https://codebase-arch.futured.app
   DEPENDACHARTA_IMAGE_BASE: ghcr.io/futuredapp/dependacharta-swift
 
 jobs:
@@ -278,7 +291,7 @@ jobs:
         with:
           mode: preview
           project_name: ${{ steps.project.outputs.name }}
-          data_repo: ${{ env.DATA_REPO }}
+          data_repo: ${{ inputs.data_repo }}
           data_repo_token: ${{ secrets.CODEBASE_ARCHITECTURES_TOKEN }}
           pr_number: ${{ steps.ids.outputs.pr }}
           cc_path: ${{ steps.snapshot.outputs.cc_path }}
@@ -294,7 +307,7 @@ jobs:
         with:
           mode: history
           project_name: ${{ steps.project.outputs.name }}
-          data_repo: ${{ env.DATA_REPO }}
+          data_repo: ${{ inputs.data_repo }}
           data_repo_token: ${{ secrets.CODEBASE_ARCHITECTURES_TOKEN }}
           stem: ${{ steps.ids.outputs.stem }}
           date: ${{ steps.ids.outputs.date }}
@@ -317,7 +330,7 @@ jobs:
           set -euo pipefail
           pr="${{ steps.ids.outputs.pr }}"
           name="${{ steps.project.outputs.name }}"
-          base="${{ env.PICKER_BASE_URL }}"
+          base="${{ inputs.picker_base_url }}"
           ccPath="projects/${name}/previews/pr-${pr}.cc.json.gz"
           cgPath="projects/${name}/previews/pr-${pr}.cg.json"
           latestPath="projects/${name}/history/latest.cc.json.gz"
@@ -368,7 +381,7 @@ jobs:
             - [Open this PR in DependaCharta](${{ steps.links.outputs.cgVis }})
             - [Compare PR vs latest develop (CodeCharta delta view)](${{ steps.links.outputs.ccDelta }})
 
-            Snapshot is regenerated on every push. Picker: ${{ env.PICKER_BASE_URL }}/
+            Snapshot is regenerated on every push. Picker: ${{ inputs.picker_base_url }}/
 
   # ==========================================================================
   # JOB 2: cleanup
@@ -404,7 +417,7 @@ jobs:
         with:
           mode: delete-preview
           project_name: ${{ steps.project.outputs.name }}
-          data_repo: ${{ env.DATA_REPO }}
+          data_repo: ${{ inputs.data_repo }}
           data_repo_token: ${{ secrets.CODEBASE_ARCHITECTURES_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
 
@@ -499,7 +512,7 @@ jobs:
         with:
           mode: bulk-history
           project_name: ${{ steps.project.outputs.name }}
-          data_repo: ${{ env.DATA_REPO }}
+          data_repo: ${{ inputs.data_repo }}
           data_repo_token: ${{ secrets.CODEBASE_ARCHITECTURES_TOKEN }}
           snapshots_dir: ${{ steps.history.outputs.snapshots_dir }}
 
@@ -514,5 +527,5 @@ jobs:
         with:
           mode: set-latest
           project_name: ${{ steps.project.outputs.name }}
-          data_repo: ${{ env.DATA_REPO }}
+          data_repo: ${{ inputs.data_repo }}
           data_repo_token: ${{ secrets.CODEBASE_ARCHITECTURES_TOKEN }}

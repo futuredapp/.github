@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Publish CodeCharta snapshots to the data repo (default
-# `futuredapp/codebase-architectures`). Invoked by the
-# universal-codecharta-publish composite action.
+# Publish CodeCharta snapshots to the data repo specified via DATA_REPO env.
+# Invoked by the universal-codecharta-publish composite action.
 #
 # Inputs (env, set by action.yml from action inputs):
 #   CODECHARTA_PUBLISH_MODE     One of: preview, history, bulk-history,
 #                               delete-preview, set-latest.
 #   PROJECT_NAME                Folder name under `projects/`.
-#   DATA_REPO                   `<owner>/<name>`, e.g. `futuredapp/codebase-architectures`.
+#   DATA_REPO                   `<owner>/<name>` of the data repository.
 #   DATA_REPO_BRANCH            Branch to push to (default: main).
 #   CODEBASE_ARCHITECTURES_TOKEN
 #                               Write-scoped token for the data repo.

@@ -1,8 +1,8 @@
 name: CodeCharta publish
 description: >
-  Publishes a CodeCharta snapshot (or removes a preview) into a data repo —
-  `futuredapp/codebase-architectures` by default. Clones the data repo, copies
-  the artifacts into `projects/<project_name>/...`, rebuilds the manifest, and
+  Publishes a CodeCharta snapshot (or removes a preview) into the data repo
+  the consumer specifies via `data_repo`. Clones the data repo, copies the
+  artifacts into `projects/<project_name>/...`, rebuilds the manifest, and
   pushes back to the data repo's default branch. Handles concurrent commits
   via retry-on-conflict.
 
@@ -19,11 +19,11 @@ inputs:
     description: >
       Output folder name in the data repo (`projects/<project_name>/`).
   data_repo:
-    required: false
-    default: futuredapp/codebase-architectures
+    required: true
     description: >
       `<owner>/<name>` of the data repository that holds the published
-      snapshots and the manifest.
+      snapshots and the manifest. No default — supplied per consumer so this
+      public action doesn't bake in a specific (potentially private) repo.
   data_repo_branch:
     required: false
     default: main
