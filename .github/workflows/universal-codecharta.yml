@@ -5,9 +5,9 @@ name: CodeCharta + DependaCharta snapshot
 # ============================================================================
 #
 # This is a *reusable workflow* — consumer repos invoke it from their own
-# .github/workflows/codecharta.yml via `uses: futuredapp/.github/.github/workflows/universal-codecharta.yml@<ref>`.
-# The consumer-side YAML only declares WHEN to run; this file owns the actual
-# pipeline.
+# .github/workflows/codecharta.yml with a `uses:` line targeting this file at
+# a tagged ref. The consumer-side YAML only declares WHEN to run; this file
+# owns the actual pipeline.
 #
 # The pipeline produces "snapshots" — single .cc.json.gz files containing the
 # project's file tree, per-file complexity, LOC, churn, and dependency edges.
