@@ -111,9 +111,14 @@ on:
           When true (workflow_dispatch only), routes execution to the backfill
           job instead of the generate/cleanup pair.
       pr_limit:
-        type: number
+        # Kept as `string` (not `number`) for compatibility with the typical
+        # consumer pattern `pr_limit: ${{ inputs.pr_limit || '20' }}` which
+        # evaluates to a string and would be rejected by workflow_call's
+        # strict number-type validation at call time. Numeric coercion happens
+        # inside the snapshot script (`history` mode validates the value).
+        type: string
         required: false
-        default: 20
+        default: '20'
         description: >
           Max number of first-parent merges to walk in backfill mode. Larger
           values produce more historical snapshots at proportionally higher
