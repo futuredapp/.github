@@ -348,7 +348,14 @@ history() {
             # Use ASCII unit separator (\x1f) as field delimiter rather than `|`
             # — pipe characters are legal in commit subjects and would otherwise
             # split a single record across multiple fields.
-            sep=$'\x1f'
+            #
+            # NB: must use DOUBLE-quoted printf format inside this inner block
+            # because the whole block is wrapped in OUTER `bash -lc '…'`
+            # single quotes. Both ANSI-C quoting (`$'\x1f'`) and
+            # single-quoted printf (`printf '\x1f'`) would prematurely close
+            # the outer quote. printf interprets `\xNN` escapes in the format
+            # arg regardless of which quote style wraps it.
+            sep=$(printf "\x1f")
             log_args=(--first-parent --merges "--format=%H${sep}%cs${sep}%s")
             if [[ -n "${CC_PULL_REQUEST_LIMIT}" ]]; then
                 log_args=(-n "${CC_PULL_REQUEST_LIMIT}" "${log_args[@]}")
