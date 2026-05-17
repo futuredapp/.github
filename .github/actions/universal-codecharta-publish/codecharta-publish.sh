@@ -109,9 +109,16 @@ git config user.name "codecharta-bot"
 git remote set-url origin "https://x-access-token:${CODEBASE_ARCHITECTURES_TOKEN}@github.com/${DATA_REPO}.git"
 
 PROJECT_DIR="projects/${PROJECT_NAME}"
-mkdir -p "${PROJECT_DIR}/previews" "${PROJECT_DIR}/history"
 
 apply_change() {
+    # Re-create the destination directories on every call. Important on the
+    # retry path: `git reset --hard origin/<branch>` wipes any local-only
+    # directory that the remote winner didn't create. For example, a preview
+    # run that wins the race leaves `previews/` but not `history/` in the
+    # tree; a losing history run then resets to that state and would `cp`
+    # into a missing directory without this mkdir. `mkdir -p` is idempotent,
+    # so it costs nothing on the happy path.
+    mkdir -p "${PROJECT_DIR}/previews" "${PROJECT_DIR}/history"
     case "${MODE}" in
         preview)
             require_env SOURCE_CC_PATH
