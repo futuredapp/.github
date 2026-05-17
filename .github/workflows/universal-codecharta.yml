@@ -123,13 +123,27 @@ on:
           Max number of first-parent merges to walk in backfill mode. Larger
           values produce more historical snapshots at proportionally higher
           cost. The 60-min job timeout caps this in practice around ~100.
+      dependacharta_image_base:
+        type: string
+        required: false
+        default: ghcr.io/futuredapp/dependacharta-swift
+        description: >
+          Fully-qualified image reference *without* tag. Defaults to the
+          Futured fork (covers Swift + the upstream languages). Override to
+          `maibornwolff/dependacharta-analysis` (Docker Hub, public) when the
+          Swift parser isn't needed and a public registry is preferable —
+          e.g. consumer repos outside the futuredapp GHCR access boundary.
+          Pair with a matching `dependacharta_image_tag`.
       dependacharta_image_tag:
         type: string
         required: false
         default: fork-v0.2.1
         description: >
-          Tag on the Futured DependaCharta fork image. Pin per release of this
-          workflow; floating tags (e.g. `latest`) break reproducibility.
+          Tag on the DependaCharta image (paired with `dependacharta_image_base`).
+          Default targets the Futured fork; if you switch the base to upstream
+          `maibornwolff/dependacharta-analysis`, also set this to a matching
+          upstream tag (e.g. `0.25.0`). Pin per release of this workflow;
+          floating tags (e.g. `latest`) break reproducibility.
 
     # ── Secrets the consumer must pass through ───────────────────────────────
     secrets:
@@ -151,14 +165,6 @@ on:
 concurrency:
   group: codecharta-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
-
-# ── Workflow-level env ───────────────────────────────────────────────────────
-# Only the DependaCharta image base lives here — the fork is publicly hosted
-# and shared by all stacks. The data-repo and picker URL come from inputs so
-# this workflow can be reused without baking specific (often private) repo
-# names into a public file.
-env:
-  DEPENDACHARTA_IMAGE_BASE: ghcr.io/futuredapp/dependacharta-swift
 
 jobs:
   # ==========================================================================
@@ -231,7 +237,7 @@ jobs:
           file_extensions: ${{ inputs.file_extensions }}
           tokei_types: ${{ inputs.tokei_types }}
           extra_excludes: ${{ inputs.extra_excludes }}
-          dependacharta_image: ${{ env.DEPENDACHARTA_IMAGE_BASE }}:${{ inputs.dependacharta_image_tag }}
+          dependacharta_image: ${{ inputs.dependacharta_image_base }}:${{ inputs.dependacharta_image_tag }}
 
       # ── Step 5: decide whether this is a preview or a history snapshot ────
       # Branches the rest of the pipeline:
@@ -521,7 +527,7 @@ jobs:
           tokei_types: ${{ inputs.tokei_types }}
           extra_excludes: ${{ inputs.extra_excludes }}
           history_limit: ${{ inputs.pr_limit }}
-          dependacharta_image: ${{ env.DEPENDACHARTA_IMAGE_BASE }}:${{ inputs.dependacharta_image_tag }}
+          dependacharta_image: ${{ inputs.dependacharta_image_base }}:${{ inputs.dependacharta_image_tag }}
 
       # ── Step: bulk-publish the N generated snapshots in one commit ────────
       # `bulk-history` mode does:
