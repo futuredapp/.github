@@ -76,6 +76,10 @@ on:
         type: string
         required: false
         default: "24 hours"
+      CHANGELOG_CACHE_KEY_PREFIX:
+        description: "Custom prefix for cache keys used by changelog generation. If not provided, will use 'latest_builded_commit-'. If provided, format will be '{prefix}-latest_builded_commit-'."
+        type: string
+        required: false
       TIMEOUT_MINUTES:
         description: "Job timeout in minutes"
         required: false
@@ -118,6 +122,7 @@ jobs:
           checkout_depth: ${{ inputs.CHANGELOG_CHECKOUT_DEPTH }}
           debug: ${{ inputs.CHANGELOG_DEBUG }}
           fallback_lookback: ${{ inputs.CHANGELOG_FALLBACK_LOOKBACK }}
+          cache_key_prefix: ${{ inputs.CHANGELOG_CACHE_KEY_PREFIX }}
   build:
     name: Enterprise build
     runs-on: ubuntu-latest
