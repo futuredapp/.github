@@ -51,6 +51,11 @@ on:
         description: "Path to directory containing Fastfile. If not specified, uses iosApp. Example: iosApp/appA"
         type: string
         required: false
+      timeout_minutes:
+        description: 'Job timeout in minutes'
+        type: number
+        required: false
+        default: 30
 
     secrets:
       MATCH_PASSWORD:
@@ -77,7 +82,7 @@ on:
 jobs:
   release:
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: ${{ inputs.timeout_minutes }}
 
     steps:
     - name: Checkout
