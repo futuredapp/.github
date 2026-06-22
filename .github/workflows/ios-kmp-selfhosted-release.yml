@@ -91,7 +91,7 @@ jobs:
         lfs: ${{ inputs.use_git_lfs }}
     - name: Export secrets to .xcconfig file
       if: ${{ inputs.xcconfig_path != '' }}
-      uses: futuredapp/.github/.github/actions/ios-export-secrets@2.4.0
+      uses: futuredapp/.github/.github/actions/ios-export-secrets@2.4.1
       with:
         XCCONFIG_PATH: ${{ inputs.xcconfig_path }}
         SECRET_PROPERTIES: ${{ secrets.SECRET_PROPERTIES }}
@@ -114,7 +114,7 @@ jobs:
         cd ${{ inputs.kmp_swift_package_path }}
         make build
     - name: Fastlane Release
-      uses: futuredapp/.github/.github/actions/ios-fastlane-release@2.4.0
+      uses: futuredapp/.github/.github/actions/ios-fastlane-release@2.4.1
       with:
         match_password: ${{ secrets.MATCH_PASSWORD }}
         version_number: ${{ github.ref_name }}
