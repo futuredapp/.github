@@ -16,10 +16,6 @@ on:
         description: "Google Play applicationId"
         required: true
         type: string
-      GOOGLE_PLAY_WHATSNEW_DIRECTORY:
-        description: "Path to directory with changelog files according to documentation in https://github.com/r0adkll/upload-google-play"
-        required: true
-        type: string
 
       ## Optional Inputs
       USE_GIT_LFS:
@@ -52,6 +48,10 @@ on:
         required: false
         type: string
         default: 'draft'
+      GOOGLE_PLAY_WHATSNEW_DIRECTORY:
+        description: "Path to directory with changelog files according to documentation in https://github.com/r0adkll/upload-google-play"
+        required: false
+        type: string
       RELEASE_NAME:
         description: "Google Play release name. Defaults to VERSION_NAME if not set."
         required: false
