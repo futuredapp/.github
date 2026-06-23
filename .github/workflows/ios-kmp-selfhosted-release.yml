@@ -117,7 +117,7 @@ jobs:
       uses: futuredapp/.github/.github/actions/ios-fastlane-release@2.4.1
       with:
         match_password: ${{ secrets.MATCH_PASSWORD }}
-        version_number: ${{ github.ref_name }}
+        version_number: ${{ github.event.release.tag_name || github.ref_name }}
         app_store_connect_api_key_key: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
         app_store_connect_api_key_key_id: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
         app_store_connect_api_key_issuer_id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
