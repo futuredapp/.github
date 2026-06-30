@@ -55,12 +55,18 @@ inputs:
   secret_properties:
     required: false
     description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input."
+  build_env:
+    required: false
+    default: ""
+    description: "Environment variables (KEY=VALUE, one per line) exported to $GITHUB_ENV before the Gradle build. Use for secrets the build reads via System.getenv (e.g. API gateway keys)."
 
 runs:
   using: "composite"
   steps:
     - name: Prepare Environment
       shell: bash
+      env:
+        BUILD_ENV: ${{ inputs.build_env }}
       run: |
         {
           echo "ANDROID_BUILD_NUMBER=$((GITHUB_RUN_NUMBER + ${{ inputs.build_number_offset}} ))";
@@ -69,6 +75,10 @@ runs:
           } >> "$GITHUB_ENV"
 
         echo '${{ inputs.secret_properties }}' > ${{ inputs.secret_properties_file }}
+
+        if [ -n "$BUILD_ENV" ]; then
+          printf '%s\n' "$BUILD_ENV" >> "$GITHUB_ENV"
+        fi
     - name: Generate Artifacts (AAB)
       id: build_aab
       shell: bash

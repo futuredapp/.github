@@ -94,6 +94,9 @@ on:
       SECRET_PROPERTIES:
         required: false
         description: "Custom string that contains key-value properties as secrets. Contents of this secret will be placed into file specified by 'SECRET_PROPERTIES_FILE' input."
+      BUILD_ENV:
+        required: false
+        description: "Environment variables (KEY=VALUE, one per line) exported to $GITHUB_ENV before the Gradle bundle build. Use for secrets the build reads via System.getenv (e.g. API gateway keys)."
 
 jobs:
   build:
@@ -130,3 +133,4 @@ jobs:
           kmp_flavor: ${{ inputs.KMP_FLAVOR }}
           secret_properties_file: ${{ inputs.SECRET_PROPERTIES_FILE }}
           secret_properties: ${{ secrets.SECRET_PROPERTIES }}
+          build_env: ${{ secrets.BUILD_ENV }}
