@@ -1,0 +1,109 @@
+name: CodeCharta snapshot
+description: >
+  Runs the CodeCharta + DependaCharta analysis pipeline against the checked-out
+  repository. Produces a `${project_name}.cc.json.gz` map (and `.cg.json` graph
+  in snapshot mode). Supports a single snapshot of HEAD or N historical
+  snapshots over recent merge commits.
+
+inputs:
+  mode:
+    required: true
+    description: >
+      `snapshot` to analyze HEAD (produces map + graph); `history` to walk N
+      recent first-parent merges and produce one map per merge into
+      `build/codecharta/pull-requests/` (no `.cg.json` per snapshot).
+  project_name:
+    required: true
+    description: >
+      Used as the output file prefix. Conventionally equal to the consumer
+      repo's name; appears as the folder name in the data repo's
+      `projects/<project_name>/` tree.
+  stack:
+    required: false
+    default: multi
+    description: >
+      Stack profile that determines the default ccsh file-extension filter and
+      tokei language filter. One of: swift, kotlin, kmp, ft-fullstack, multi.
+      `multi` omits both filters and lets the analyzers consider every
+      recognized file.
+  file_extensions:
+    required: false
+    description: >
+      Optional override for the `-fe=` flag passed to ccsh unifiedparser.
+      Comma-separated list of file extensions, e.g. `kt,swift`. When unset,
+      defaults derived from `stack` apply.
+  tokei_types:
+    required: false
+    description: >
+      Optional override for the `--type` flag passed to tokei. Comma-separated
+      list of tokei language names, e.g. `Kotlin,Swift`. When unset, defaults
+      derived from `stack` apply.
+  extra_excludes:
+    required: false
+    description: >
+      Comma-separated regex patterns to exclude in addition to the analyzer
+      defaults. Applied to ccsh `-e=` and tokei `--exclude` uniformly.
+  history_limit:
+    required: false
+    default: '20'
+    description: >
+      Maximum number of first-parent merge commits to walk in `history` mode.
+      Ignored in `snapshot` mode.
+  dependacharta_image:
+    required: false
+    default: ghcr.io/futuredapp/dependacharta-swift:fork-v0.2.1
+    description: >
+      Fully-qualified DependaCharta image reference. The Futured fork covers
+      all upstream languages plus Swift; pin via this input if you need a
+      specific tag.
+  analysis_image:
+    required: false
+    default: codecharta/codecharta-analysis:1.143.0
+    description: >
+      Fully-qualified ccsh / tokei analysis image. Pinned to a specific
+      upstream release for reproducibility — bump intentionally when picking
+      up upstream changes. Consumers can override via this input.
+
+outputs:
+  cc_path:
+    description: >
+      Path to the `${project_name}.cc.json.gz` map produced in `snapshot` mode.
+      Empty in `history` mode.
+    value: ${{ steps.run.outputs.cc_path }}
+  cg_path:
+    description: >
+      Path to the `${project_name}.cg.json` DependaCharta graph produced in
+      `snapshot` mode. Empty in `history` mode.
+    value: ${{ steps.run.outputs.cg_path }}
+  snapshots_dir:
+    description: >
+      Path to the directory containing the historical `.cc.json.gz` files
+      produced in `history` mode. Empty in `snapshot` mode.
+    value: ${{ steps.run.outputs.snapshots_dir }}
+
+runs:
+  using: composite
+  steps:
+    - name: Pull DependaCharta image
+      # History mode doesn't run DependaCharta (it walks merge commits via
+      # ccsh unifiedparser --commit only). Skip the pull to avoid 100+ MB of
+      # wasted network traffic on backfill runs.
+      if: inputs.mode == 'snapshot'
+      shell: bash
+      run: docker pull "${{ inputs.dependacharta_image }}"
+
+    - name: Run codecharta analysis
+      id: run
+      shell: bash
+      run: ${{ github.action_path }}/codecharta.sh ${{ inputs.mode }}
+      env:
+        CODECHARTA_PROJECT_NAME: ${{ inputs.project_name }}
+        CODECHARTA_STACK: ${{ inputs.stack }}
+        CODECHARTA_FILE_EXTENSIONS: ${{ inputs.file_extensions }}
+        CODECHARTA_TOKEI_TYPES: ${{ inputs.tokei_types }}
+        CODECHARTA_EXTRA_EXCLUDES: ${{ inputs.extra_excludes }}
+        CODECHARTA_HISTORY_PULL_REQUEST_LIMIT: ${{ inputs.history_limit }}
+        CODECHARTA_ANALYSIS_IMAGE: ${{ inputs.analysis_image }}
+        DEPENDACHARTA_IMAGE: ${{ inputs.dependacharta_image }}
+        DEPENDACHARTA_RUNNER: docker
+        REPO_ROOT: ${{ github.workspace }}
