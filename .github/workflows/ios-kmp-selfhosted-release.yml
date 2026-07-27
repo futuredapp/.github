@@ -128,9 +128,15 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: Build.ipa
-        path: build_output/*.ipa
+        # Fastlane writes into <ios_root_path>/build_output (iosApp/build_output here, or the
+        # custom_build_path subdirectory), so the pattern must be root-agnostic — a bare
+        # build_output/*.ipa matches nothing and silently uploads no artifact. Mirrors the
+        # ios-kmp-build action.
+        path: ./**/build_output/*.ipa
+        if-no-files-found: error
     - name: Upload dSYM
       uses: actions/upload-artifact@v7
       with:
         name: Build.app.dSYM.zip
-        path: build_output/*.app.dSYM.zip
+        path: ./**/build_output/*.app.dSYM.zip
+        if-no-files-found: error
