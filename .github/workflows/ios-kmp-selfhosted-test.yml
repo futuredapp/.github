@@ -32,6 +32,11 @@ on:
         type: string
         default: dev
         required: false
+      kmp_build_mode:
+        description: "Which XCFramework slices to build, if the project's KMP Makefile supports the KMP_BUILD_MODE variable (forwarded as -PkmpBuildMode). Use 'simulator' to skip the unused device slice on PR test runs. Empty (default) keeps the project's default behavior."
+        type: string
+        required: false
+        default: ''
       java_version:
         description: "Java version to use"
         required: false
@@ -79,6 +84,9 @@ jobs:
         env:
           KMP_BUILD_FLAVOR: ${{ inputs.kmp_swift_package_flavor }}
           KMP_FRAMEWORK_BUILD_TYPE: debug
+          # Empty when the input is unset: GNU make's `ifdef` treats an empty variable as
+          # undefined, so Makefiles without KMP_BUILD_MODE support are unaffected.
+          KMP_BUILD_MODE: ${{ inputs.kmp_build_mode }}
         run: |
           cd ${{ inputs.kmp_swift_package_path }}
           make build
