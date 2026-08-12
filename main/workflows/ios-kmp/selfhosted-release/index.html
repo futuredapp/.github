@@ -2622,7 +2622,6 @@
 <span class="w">      </span><span class="nt">MATCH_PASSWORD</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.MATCH_PASSWORD }}</span>
 <span class="w">      </span><span class="nt">APP_STORE_CONNECT_API_KEY_KEY</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}</span>
 <span class="w">      </span><span class="nt">APP_STORE_CONNECT_API_KEY_KEY_ID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}</span>
-<span class="w">      </span><span class="nt">APP_STORE_CONNECT_API_KEY_ISSUER_ID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}</span>
 </code></pre></div>
 <h2 id="inputs">Inputs</h2>
 <table>
@@ -2757,8 +2756,8 @@
 </tr>
 <tr>
 <td><code>APP_STORE_CONNECT_API_KEY_ISSUER_ID</code></td>
-<td>Yes</td>
-<td>Private App Store Connect API issuer key for submitting build to App Store.</td>
+<td>No</td>
+<td>Private App Store Connect API issuer key for submitting build to App Store. Optional, because individual (user-based) API keys have no issuer ID.</td>
 </tr>
 <tr>
 <td></td>

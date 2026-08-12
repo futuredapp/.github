@@ -2579,7 +2579,6 @@
 <span class="w">    </span><span class="nt">match_password</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
 <span class="w">    </span><span class="nt">app_store_connect_api_key_key</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
 <span class="w">    </span><span class="nt">app_store_connect_api_key_key_id</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
-<span class="w">    </span><span class="nt">app_store_connect_api_key_issuer_id</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
 </code></pre></div>
 <h2 id="inputs">Inputs</h2>
 <table>
@@ -2617,9 +2616,9 @@
 <tr>
 <td><code>app_store_connect_api_key_issuer_id</code></td>
 <td><code>string</code></td>
-<td>Yes</td>
+<td>No</td>
 <td>—</td>
-<td>Private App Store Connect API issuer key for submitting build to App Store.</td>
+<td>Private App Store Connect API issuer key for submitting build to App Store. Optional, because individual (user-based) API keys have no issuer ID.</td>
 </tr>
 <tr>
 <td><code>secret_xcconfig_path</code></td>
