@@ -14,8 +14,8 @@ inputs:
     description: 'App Store Connect API Key ID'
     required: true
   app_store_connect_api_key_issuer_id:
-    description: 'App Store Connect API Key Issuer ID'
-    required: true
+    description: 'App Store Connect API Key Issuer ID. Optional, because individual (user-based) API keys have no issuer ID.'
+    required: false
   build_number:
     description: 'Custom build number. Skips auto-increment from TestFlight.'
     required: false
