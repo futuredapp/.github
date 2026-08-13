@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# Individual keys have no issuer ID, but an omitted secret arrives as "", which
+# is truthy in Ruby — fastlane would sign iss: "" instead of sub: "user".
+if [ -z "${APP_STORE_CONNECT_API_KEY_ISSUER_ID//[[:space:]]/}" ]; then
+  unset APP_STORE_CONNECT_API_KEY_ISSUER_ID
+fi
+
 # Change to iOS root for bundle install
 if [ -n "$IOS_ROOT_PATH" ]; then
   echo "Installing gems from: $IOS_ROOT_PATH"
