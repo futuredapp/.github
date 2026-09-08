@@ -39,6 +39,21 @@ on:
         required: false
         type: string
         default: ""
+      RUNS_ON:
+        description: "Runner label for the job, for example `ubuntu-latest` (default) or `self-hosted` to run the checks on the mac runners"
+        required: false
+        type: string
+        default: ubuntu-latest
+      ANDROID_SDK_PACKAGES:
+        description: "When set, installs the Android SDK in the job (android-actions/setup-android) with these sdkmanager packages, for runners whose image has no SDK, for example `platforms;android-36 build-tools;36.0.0 platform-tools`"
+        required: false
+        type: string
+        default: ""
+      KOTLIN_NATIVE_CACHE:
+        description: "Caches ~/.konan/dependencies (LLVM, libffi) between runs; for KMP projects checked on macOS, where the Kotlin/Native toolchain downloads them on every fresh runner"
+        required: false
+        type: boolean
+        default: false
 
     secrets:
       GRADLE_CACHE_ENCRYPTION_KEY:
@@ -51,7 +66,7 @@ on:
 jobs:
   test:
     name: Lint & Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.RUNS_ON }}
     timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
     env:
       GRADLE_OPTS: ${{ inputs.GRADLE_OPTS }}
@@ -66,6 +81,19 @@ jobs:
           java_version: ${{ inputs.JAVA_VERSION }}
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
+      - name: Set up Android SDK
+        if: ${{ inputs.ANDROID_SDK_PACKAGES != '' }}
+        uses: android-actions/setup-android@v3
+        with:
+          packages: ${{ inputs.ANDROID_SDK_PACKAGES }}
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: false
+      - name: Cache Kotlin/Native dependencies
+        if: ${{ inputs.KOTLIN_NATIVE_CACHE }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan/dependencies
+          key: konan-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/libs.versions.toml') }}
       - name: Run checks
         uses: futuredapp/.github/.github/actions/android-check@2.4.6
         with:
