@@ -2744,6 +2744,13 @@
 <td>The amount of time to look back for merge commits when no previous build commit is found. Default is 24 hours.</td>
 </tr>
 <tr>
+<td><code>CHANGELOG_CACHE_KEY_PREFIX</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td>—</td>
+<td>Custom prefix for cache keys used by changelog generation. If not provided, will use 'latest_builded_commit-'. If provided, format will be '{prefix}-latest_builded_commit-'.</td>
+</tr>
+<tr>
 <td><code>TIMEOUT_MINUTES</code></td>
 <td><code>number</code></td>
 <td>No</td>

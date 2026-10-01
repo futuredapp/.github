@@ -2622,7 +2622,6 @@
 <span class="w">      </span><span class="nt">VERSION_NAME</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
 <span class="w">      </span><span class="nt">BUNDLE_GRADLE_TASK</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
 <span class="w">      </span><span class="nt">GOOGLE_PLAY_APPLICATION_ID</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
-<span class="w">      </span><span class="nt">GOOGLE_PLAY_WHATSNEW_DIRECTORY</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
 <span class="w">    </span><span class="nt">secrets</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">SIGNING_KEYSTORE_PASSWORD</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.SIGNING_KEYSTORE_PASSWORD }}</span>
 <span class="w">      </span><span class="nt">SIGNING_KEY_ALIAS</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.SIGNING_KEY_ALIAS }}</span>
@@ -2661,13 +2660,6 @@
 <td>Yes</td>
 <td>—</td>
 <td>Google Play applicationId</td>
-</tr>
-<tr>
-<td><code>GOOGLE_PLAY_WHATSNEW_DIRECTORY</code></td>
-<td><code>string</code></td>
-<td>Yes</td>
-<td>—</td>
-<td>Path to directory with changelog files according to documentation in https://github.com/r0adkll/upload-google-play</td>
 </tr>
 <tr>
 <td><code>USE_GIT_LFS</code></td>
@@ -2710,6 +2702,13 @@
 <td>No</td>
 <td><code>draft</code></td>
 <td>Google Play release status (completed, draft, halted, inProgress)</td>
+</tr>
+<tr>
+<td><code>GOOGLE_PLAY_WHATSNEW_DIRECTORY</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td>—</td>
+<td>Path to directory with changelog files according to documentation in https://github.com/r0adkll/upload-google-play</td>
 </tr>
 <tr>
 <td><code>RELEASE_NAME</code></td>
