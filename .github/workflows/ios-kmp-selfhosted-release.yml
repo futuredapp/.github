@@ -111,6 +111,7 @@ jobs:
       env:
         KMP_BUILD_FLAVOR: ${{ inputs.kmp_swift_package_flavor }}
         KMP_FRAMEWORK_BUILD_TYPE: release
+        KMP_FRAMEWORK_TARGETS: device
       run: |
         cd ${{ inputs.kmp_swift_package_path }}
         make build
