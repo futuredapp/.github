@@ -2572,7 +2572,7 @@
 
 <h1 id="set-up-android-environment">Set up Android environment</h1>
 <p><strong>Source:</strong> <a href="https://github.com/futuredapp/.github/blob/main/.github/actions/android-setup-environment/action.yml"><code>actions/android-setup-environment/action.yml</code></a></p>
-<p>Sets up Java, Gradle and Ruby and other preconditions for CI runs at Futured Android workflows.</p>
+<p>Sets up Java, Gradle, Ruby, optionally the Android SDK and Kotlin/Native dependency cache, and other preconditions for CI runs at Futured Android workflows.</p>
 <h2 id="usage">Usage</h2>
 <div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">futuredapp/.github/.github/actions/android-setup-environment@main</span>
 </code></pre></div>
@@ -2636,6 +2636,20 @@
 <td>No</td>
 <td>—</td>
 <td>Configuration cache encryption key. Leave empty if you don't need cache.</td>
+</tr>
+<tr>
+<td><code>android_sdk_packages</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td>—</td>
+<td>sdkmanager packages to install, eg. 'platforms;android-36 build-tools;36.0.0 platform-tools'. Leave empty to skip the SDK setup (runner image already has the SDK).</td>
+</tr>
+<tr>
+<td><code>kotlin_native_cache</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td><code>false</code></td>
+<td>Whether to cache ~/.konan/dependencies (LLVM, libffi) between runs. Useful for KMP projects on fresh macOS runners.</td>
 </tr>
 </tbody>
 </table>
