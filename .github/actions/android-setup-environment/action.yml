@@ -1,5 +1,5 @@
 name: Set up Android environment
-description: Sets up Java, Gradle and Ruby and other preconditions for CI runs at Futured Android workflows.
+description: Sets up Java, Gradle, Ruby, optionally the Android SDK and Kotlin/Native dependency cache, and other preconditions for CI runs at Futured Android workflows.
 
 inputs:
   # Java
@@ -32,6 +32,16 @@ inputs:
   gradle_cache_encryption_key:
     description: "Configuration cache encryption key. Leave empty if you don't need cache."
     required: false
+  # Android SDK
+  android_sdk_packages:
+    description: "sdkmanager packages to install, eg. 'platforms;android-36 build-tools;36.0.0 platform-tools'. Leave empty to skip the SDK setup (runner image already has the SDK)."
+    required: false
+    default: ''
+  # Kotlin/Native
+  kotlin_native_cache:
+    description: "Whether to cache ~/.konan/dependencies (LLVM, libffi) between runs. Useful for KMP projects on fresh macOS runners."
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -47,8 +57,23 @@ runs:
       with:
         java-version: ${{ inputs.java_version }}
         distribution: ${{ inputs.java_distribution }}
+    - name: Setup Android SDK
+      if: ${{ inputs.android_sdk_packages != '' }}
+      uses: android-actions/setup-android@v3
+      with:
+        packages: ${{ inputs.android_sdk_packages }}
+        accept-android-sdk-licenses: true
+        log-accepted-android-sdk-licenses: false
     - name: Setup Gradle
       if: ${{ inputs.gradle == 'true' }}
       uses: gradle/actions/setup-gradle@v5
       with:
         cache-encryption-key: ${{ inputs.gradle_cache_encryption_key }}
+    - name: Cache Kotlin/Native dependencies
+      if: ${{ inputs.kotlin_native_cache == 'true' }}
+      uses: actions/cache@v4
+      with:
+        path: ~/.konan/dependencies
+        key: konan-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/libs.versions.toml') }}
+        restore-keys: |
+          konan-deps-${{ runner.os }}-${{ runner.arch }}-

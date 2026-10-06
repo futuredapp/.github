@@ -81,19 +81,8 @@ jobs:
           java_version: ${{ inputs.JAVA_VERSION }}
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
-      - name: Set up Android SDK
-        if: ${{ inputs.ANDROID_SDK_PACKAGES != '' }}
-        uses: android-actions/setup-android@v3
-        with:
-          packages: ${{ inputs.ANDROID_SDK_PACKAGES }}
-          accept-android-sdk-licenses: true
-          log-accepted-android-sdk-licenses: false
-      - name: Cache Kotlin/Native dependencies
-        if: ${{ inputs.KOTLIN_NATIVE_CACHE }}
-        uses: actions/cache@v4
-        with:
-          path: ~/.konan/dependencies
-          key: konan-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/libs.versions.toml') }}
+          android_sdk_packages: ${{ inputs.ANDROID_SDK_PACKAGES }}
+          kotlin_native_cache: ${{ inputs.KOTLIN_NATIVE_CACHE }}
       - name: Run checks
         uses: futuredapp/.github/.github/actions/android-check@2.4.6
         with:
