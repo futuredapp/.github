@@ -50,7 +50,7 @@ on:
         description: "Whether to cache the Kotlin/Native compiler caches of library dependencies (~/.konan/.../klib/cache) between runs. A debug framework link on a fresh runner otherwise rebuilds them every time, which can take several minutes for large dependency graphs like Compose Multiplatform."
         type: boolean
         required: false
-        default: false
+        default: true
 
     secrets:
       GRADLE_CACHE_ENCRYPTION_KEY:
