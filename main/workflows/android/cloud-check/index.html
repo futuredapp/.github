@@ -2691,6 +2691,13 @@
 <td>Runner label for the job, for example <code>ubuntu-latest</code> (default) or <code>self-hosted</code> to run the checks on the mac runners</td>
 </tr>
 <tr>
+<td><code>SETUP_RUBY</code></td>
+<td><code>boolean</code></td>
+<td>No</td>
+<td><code>True</code></td>
+<td>Whether to install Ruby with ruby/setup-ruby (default). Set to false on runners whose image already ships Ruby, for example the self-hosted mac runners, where setup-ruby cannot create its tool cache</td>
+</tr>
+<tr>
 <td><code>ANDROID_SDK_PACKAGES</code></td>
 <td><code>string</code></td>
 <td>No</td>
