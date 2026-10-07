@@ -44,6 +44,11 @@ on:
         required: false
         type: string
         default: ubuntu-latest
+      SETUP_RUBY:
+        description: "Whether to install Ruby with ruby/setup-ruby (default). Set to false on runners whose image already ships Ruby, for example the self-hosted mac runners, where setup-ruby cannot create its tool cache"
+        required: false
+        type: boolean
+        default: true
       ANDROID_SDK_PACKAGES:
         description: "When set, installs the Android SDK in the job (android-actions/setup-android) with these sdkmanager packages, for runners whose image has no SDK, for example `platforms;android-36 build-tools;36.0.0 platform-tools`"
         required: false
@@ -80,6 +85,7 @@ jobs:
         with:
           java_version: ${{ inputs.JAVA_VERSION }}
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
+          ruby: ${{ inputs.SETUP_RUBY }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
           android_sdk_packages: ${{ inputs.ANDROID_SDK_PACKAGES }}
           kotlin_native_cache: ${{ inputs.KOTLIN_NATIVE_CACHE }}
