@@ -2764,6 +2764,34 @@
 <td><code>Testing</code></td>
 <td>Jira transition to use for transitioning related issues after build</td>
 </tr>
+<tr>
+<td><code>BUILD_RUNS_ON</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td><code>ubuntu-latest</code></td>
+<td>Runner label for the build job, for example <code>ubuntu-latest</code> (default) or <code>self-hosted</code> to build on the mac runners. Other jobs in this workflow stay on <code>ubuntu-latest</code></td>
+</tr>
+<tr>
+<td><code>SETUP_RUBY</code></td>
+<td><code>boolean</code></td>
+<td>No</td>
+<td><code>True</code></td>
+<td>Whether to install Ruby with ruby/setup-ruby (default). Set to false on runners whose image already ships Ruby, for example the self-hosted mac runners, where setup-ruby cannot create its tool cache</td>
+</tr>
+<tr>
+<td><code>ANDROID_SDK_PACKAGES</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td>—</td>
+<td>When set, installs the Android SDK in the build job (android-actions/setup-android) with these sdkmanager packages, for runners whose image has no SDK, for example <code>platforms;android-36 build-tools;36.0.0 platform-tools</code></td>
+</tr>
+<tr>
+<td><code>KOTLIN_NATIVE_CACHE</code></td>
+<td><code>boolean</code></td>
+<td>No</td>
+<td><code>False</code></td>
+<td>Caches ~/.konan/dependencies (LLVM, libffi) between runs; for KMP projects built on macOS, where the Kotlin/Native toolchain downloads them on every fresh runner</td>
+</tr>
 </tbody>
 </table>
 <h2 id="secrets">Secrets</h2>
