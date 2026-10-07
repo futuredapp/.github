@@ -6,6 +6,11 @@ on:
       - '[0-9]+.[0-9]+.[0-9]+'
 
   workflow_dispatch:
+    inputs:
+      repos:
+        description: 'Only process these repos (space-separated org/name). Leave empty to discover all consumer repos.'
+        required: false
+        type: string
 
 jobs:
   notify:
@@ -21,6 +26,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
           NOTIFY_REPOS_WHITELIST: ${{ vars.NOTIFY_REPOS_WHITELIST }}
+          NOTIFY_REPOS: ${{ inputs.repos }}
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
             VERSION="${{ github.ref_name }}"
