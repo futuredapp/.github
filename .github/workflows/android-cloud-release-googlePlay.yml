@@ -129,7 +129,7 @@ jobs:
         with:
           lfs: ${{ inputs.USE_GIT_LFS }}
       - name: Set up environment
-        uses: futuredapp/.github/.github/actions/android-setup-environment@2.5.0
+        uses: futuredapp/.github/.github/actions/android-setup-environment@2.6.0
         with:
           java_version: ${{ inputs.JAVA_VERSION }}
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
@@ -137,7 +137,7 @@ jobs:
           android_sdk_packages: ${{ inputs.ANDROID_SDK_PACKAGES }}
           kotlin_native_cache: ${{ inputs.KOTLIN_NATIVE_CACHE }}
       - name: Build and release
-        uses: futuredapp/.github/.github/actions/android-build-googlePlay@2.5.0
+        uses: futuredapp/.github/.github/actions/android-build-googlePlay@2.6.0
         with:
           bundle_gradle_task: ${{ inputs.BUNDLE_GRADLE_TASK }}
           version_name: ${{ inputs.VERSION_NAME }}
