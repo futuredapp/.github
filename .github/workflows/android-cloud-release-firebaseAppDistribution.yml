@@ -72,6 +72,27 @@ on:
         type: number
         default: 30
 
+      BUILD_RUNS_ON:
+        description: "Runner label for the build job, for example `ubuntu-latest` (default) or `self-hosted` to build on the mac runners. Other jobs in this workflow stay on `ubuntu-latest`"
+        required: false
+        type: string
+        default: ubuntu-latest
+      SETUP_RUBY:
+        description: "Whether to install Ruby with ruby/setup-ruby (default). Set to false on runners whose image already ships Ruby, for example the self-hosted mac runners, where setup-ruby cannot create its tool cache"
+        required: false
+        type: boolean
+        default: true
+      ANDROID_SDK_PACKAGES:
+        description: "When set, installs the Android SDK in the build job (android-actions/setup-android) with these sdkmanager packages, for runners whose image has no SDK, for example `platforms;android-36 build-tools;36.0.0 platform-tools`"
+        required: false
+        type: string
+        default: ""
+      KOTLIN_NATIVE_CACHE:
+        description: "Caches ~/.konan/dependencies (LLVM, libffi) between runs; for KMP projects built on macOS, where the Kotlin/Native toolchain downloads them on every fresh runner"
+        required: false
+        type: boolean
+        default: false
+
     secrets:
       APP_DISTRIBUTION_SERVICE_ACCOUNT:
         required: true
@@ -86,7 +107,7 @@ on:
 jobs:
   build:
     name: Enterprise Build
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.BUILD_RUNS_ON }}
     timeout-minutes: ${{ inputs.TIMEOUT_MINUTES }}
     env:
       GRADLE_OPTS: ${{ inputs.GRADLE_OPTS }}
@@ -101,6 +122,9 @@ jobs:
           java_version: ${{ inputs.JAVA_VERSION }}
           java_distribution: ${{ inputs.JAVA_DISTRIBUTION }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
+          ruby: ${{ inputs.SETUP_RUBY }}
+          android_sdk_packages: ${{ inputs.ANDROID_SDK_PACKAGES }}
+          kotlin_native_cache: ${{ inputs.KOTLIN_NATIVE_CACHE }}
       - name: Build and upload to App Distribution
         uses: futuredapp/.github/.github/actions/android-build-firebase@2.5.0
         with:
