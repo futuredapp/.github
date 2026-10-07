@@ -46,6 +46,11 @@ on:
         description: "Path to directory containing Fastfile. If not specified, uses iosApp. Example: iosApp/appA"
         type: string
         required: false
+      kotlin_native_cache:
+        description: "Whether to cache the Kotlin/Native compiler caches of library dependencies (~/.konan/.../klib/cache) between runs. A debug framework link on a fresh runner otherwise rebuilds them every time, which can take several minutes for large dependency graphs like Compose Multiplatform."
+        type: boolean
+        required: false
+        default: true
 
     secrets:
       GRADLE_CACHE_ENCRYPTION_KEY:
@@ -74,6 +79,16 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
         with:
           cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
+      # Only the caches of library dependencies (`*-user*`) are built during the link; the compiler,
+      # platform klibs and their caches come with the Kotlin/Native distribution. Library caches live in
+      # per-version folders, so the key changes with libs.versions.toml and has no restore-keys fallback:
+      # a partial restore would carry outdated library versions into every new cache.
+      - name: Cache Kotlin/Native library caches
+        if: ${{ inputs.kotlin_native_cache }}
+        uses: actions/cache@v6
+        with:
+          path: ~/.konan/kotlin-native-prebuilt-*/klib/cache/*-user*
+          key: konan-klib-cache-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/libs.versions.toml') }}
       - name: Build KMP Package
         if: ${{ inputs.kmp_swift_package_integration }}
         env:
