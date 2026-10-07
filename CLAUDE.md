@@ -137,6 +137,9 @@ All iOS actions support:
 
 ## Important Conventions
 
+### Public Repository
+This repository is public and open source. Never mention internal or client projects (repository names, app names, bundle IDs, ticket keys), internal discussions or decisions, or private infrastructure details anywhere they end up public: code, comments, commit messages, PR titles and descriptions, issues and release notes. Describe the situation generically instead, e.g. "a Compose Multiplatform project with ~130 library dependencies" rather than the project's name.
+
 ### Secrets Management
 - iOS workflows require App Store Connect API keys and Match password
 - Android workflows require keystore passwords and Google Play service account JSON
