@@ -374,7 +374,7 @@ jobs:
           latestUrl="/api/map?path=${latestPath}"
 
           ccStudio="${base}/studio/?file=$(jq -rn --arg u "${ccUrl}" '$u | @uri')"
-          cgVis="${base}/dependacharta/?graph=$(jq -rn --arg u "${cgUrl}" '$u | @uri')"
+          cgVis="${base}/dependacharta/?file=$(jq -rn --arg u "${cgUrl}" '$u | @uri')"
           ccDelta="${base}/studio/?file=$(jq -rn --arg u "${ccUrl}" '$u | @uri')&file=$(jq -rn --arg u "${latestUrl}" '$u | @uri')"
 
           {
