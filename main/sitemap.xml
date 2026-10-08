@@ -77,6 +77,14 @@
          <lastmod>2026-10-08</lastmod>
     </url>
     <url>
+         <loc>https://futuredapp.github.io/.github/main/actions/universal/codecharta-publish/</loc>
+         <lastmod>2026-10-08</lastmod>
+    </url>
+    <url>
+         <loc>https://futuredapp.github.io/.github/main/actions/universal/codecharta-snapshot/</loc>
+         <lastmod>2026-10-08</lastmod>
+    </url>
+    <url>
          <loc>https://futuredapp.github.io/.github/main/actions/universal/detect-changes-and-generate-changelog/</loc>
          <lastmod>2026-10-08</lastmod>
     </url>
@@ -174,6 +182,10 @@
     </url>
     <url>
          <loc>https://futuredapp.github.io/.github/main/workflows/universal/cloud-backup/</loc>
+         <lastmod>2026-10-08</lastmod>
+    </url>
+    <url>
+         <loc>https://futuredapp.github.io/.github/main/workflows/universal/codecharta/</loc>
          <lastmod>2026-10-08</lastmod>
     </url>
     <url>

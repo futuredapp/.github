@@ -11,7 +11,7 @@
         <link rel="prev" href="../kmp/detect-changes/">
       
       
-        <link rel="next" href="detect-changes-and-generate-changelog/">
+        <link rel="next" href="codecharta-publish/">
       
       
         
@@ -1237,6 +1237,8 @@
       
         
       
+        
+      
     
     
     
@@ -1308,6 +1310,34 @@
     
   
     Cloud Backup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workflows/universal/codecharta/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CodeCharta + DependaCharta Snapshot
   
 
     
@@ -2199,6 +2229,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2254,6 +2288,62 @@
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
             
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="codecharta-publish/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CodeCharta Publish
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="codecharta-snapshot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CodeCharta Snapshot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
               
             
               
@@ -2481,6 +2571,22 @@
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><a href="codecharta-publish/">CodeCharta publish</a></td>
+<td>Publishes a CodeCharta snapshot (or removes a preview) into the data repo the consumer specifies via <code>data_repo</code>. Clones the data repo, copies the artifacts into <code>projects/&lt;project_name&gt;/...</code>, rebuilds the manifest, and pushes back to the data repo's default branch. Handles concurrent commits via retry-on-conflict.</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="codecharta-snapshot/">CodeCharta snapshot</a></td>
+<td>Runs the CodeCharta + DependaCharta analysis pipeline against the checked-out repository. Produces a <code>${project_name}.cc.json.gz</code> map (and <code>.cg.json</code> graph in snapshot mode). Supports a single snapshot of HEAD or N historical snapshots over recent merge commits.</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
 <tr>
 <td><a href="detect-changes-and-generate-changelog/">Detect changes and generate changelog</a></td>
 <td>Detects changes since the last built commit and generates a changelog.</td>
