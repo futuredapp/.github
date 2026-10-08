@@ -43,8 +43,8 @@ on:
         required: true
         description: 'Private App Store Connect API key for submitting build to App Store.'
       APP_STORE_CONNECT_API_KEY_ISSUER_ID:
-        required: true
-        description: 'Private App Store Connect API issuer key for submitting build to App Store.'
+        required: false
+        description: 'Private App Store Connect API issuer key for submitting build to App Store. Optional, because individual (user-based) API keys have no issuer ID.'
       SECRET_PROPERTIES:
         required: false
         description: 'Secrets in the format KEY = VALUE (one per line).'
@@ -62,14 +62,14 @@ jobs:
 
       - name: Export secrets
         if: ${{ inputs.xcconfig_path != '' }}
-        uses: futuredapp/.github/.github/actions/ios-export-secrets@2.3.3
+        uses: futuredapp/.github/.github/actions/ios-export-secrets@2.6.0
         with:
           XCCONFIG_PATH: ${{ inputs.xcconfig_path }}
           SECRET_PROPERTIES: ${{ secrets.SECRET_PROPERTIES }}
           REQUIRED_KEYS: ${{ inputs.required_keys }}
 
       - name: Fastlane Release
-        uses: futuredapp/.github/.github/actions/ios-fastlane-release@2.3.3
+        uses: futuredapp/.github/.github/actions/ios-fastlane-release@2.6.0
         with:
           match_password: ${{ secrets.MATCH_PASSWORD }}
           version_number: ${{ github.ref_name }}

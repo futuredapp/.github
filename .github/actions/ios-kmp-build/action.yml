@@ -12,10 +12,10 @@ inputs:
   app_store_connect_api_key_key_id:
     required: true
     description: "Private App Store Connect API key for submitting build to App Store."
-  app_store_connect_api_key_issuer_id:
-    required: true
-    description: "Private App Store Connect API issuer key for submitting build to App Store."
   # Optional
+  app_store_connect_api_key_issuer_id:
+    required: false
+    description: "Private App Store Connect API issuer key for submitting build to App Store. Optional, because individual (user-based) API keys have no issuer ID."
   secret_xcconfig_path:
     description: "Path to the .xcconfig file. Selected secret properties will be appended to the end of this file."
     required: false
@@ -48,7 +48,7 @@ runs:
   steps:
     - name: Export secrets to .xcconfig file
       if: ${{ inputs.secret_xcconfig_path != '' }}
-      uses: futuredapp/.github/.github/actions/ios-export-secrets@2.3.3
+      uses: futuredapp/.github/.github/actions/ios-export-secrets@2.6.0
       with:
         XCCONFIG_PATH: ${{ inputs.secret_xcconfig_path }}
         SECRET_PROPERTIES: ${{ inputs.secret_properties }}
@@ -58,12 +58,13 @@ runs:
       env:
         KMP_BUILD_FLAVOR: ${{ inputs.kmp_swift_package_flavor }}
         KMP_FRAMEWORK_BUILD_TYPE: release
+        KMP_FRAMEWORK_TARGETS: device
       shell: bash
       run: |
         cd ${{ inputs.kmp_swift_package_path }}
         make build
     - name: Fastlane Beta
-      uses: futuredapp/.github/.github/actions/ios-fastlane-beta@2.3.3
+      uses: futuredapp/.github/.github/actions/ios-fastlane-beta@2.6.0
       with:
         match_password: ${{ inputs.match_password }}
         testflight_changelog: ${{ inputs.testflight_changelog }}

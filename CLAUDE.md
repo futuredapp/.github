@@ -88,6 +88,19 @@ bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/down
 ./actionlint -color
 ```
 
+### Releasing a New Version
+Every internal `futuredapp/.github/.github/...@{version}` ref must point at the version being released. Use the scripts in `.github/scripts/`, not a manual sed: they also rewrite `@main` refs and cover both workflows and composite actions.
+
+```bash
+# Point all internal action/workflow refs at the new version
+.github/scripts/bump-action-refs.sh 2.6.0
+
+# Verify nothing was missed (also run by validate-release-tag.yml when the tag is pushed)
+.github/scripts/validate-action-refs.sh 2.6.0
+```
+
+Convention: branch `release/{version}`, commit `chore(release): bump internal action refs to {version}`, PR into `main`, then create the `{version}` tag on the merge commit. The tag push triggers `validate-release-tag.yml`, which fails if any ref does not match the tag.
+
 ### Android Actions
 Actions use Gradle tasks passed as inputs:
 - Lint: `./gradlew --continue {LINT_GRADLE_TASK}`
@@ -136,6 +149,9 @@ All iOS actions support:
 - `universal-selfhosted-backup`: Backup current ref to remote repository (self-hosted)
 
 ## Important Conventions
+
+### Public Repository
+This repository is public and open source. Never mention internal or client projects (repository names, app names, bundle IDs, ticket keys), internal discussions or decisions, or private infrastructure details anywhere they end up public: code, comments, commit messages, PR titles and descriptions, issues and release notes. Describe the situation generically instead, e.g. "a Compose Multiplatform project with ~130 library dependencies" rather than the project's name.
 
 ### Secrets Management
 - iOS workflows require App Store Connect API keys and Match password

@@ -48,8 +48,8 @@ on:
         required: true
         description: 'Private App Store Connect API key for submitting build to App Store.'
       APP_STORE_CONNECT_API_KEY_ISSUER_ID:
-        required: true
-        description: 'Private App Store Connect API issuer key for submitting build to App Store.'
+        required: false
+        description: 'Private App Store Connect API issuer key for submitting build to App Store. Optional, because individual (user-based) API keys have no issuer ID.'
       SECRET_PROPERTIES:
         required: false
         description: 'Secrets in the format KEY = VALUE (one per line).'
@@ -63,7 +63,7 @@ jobs:
           echo "::warning::This workflow ('ios-selfhosted-build.yml') is deprecated and will be removed in the future."
           echo "::warning::Please use 'ios-selfhosted-nightly-build.yml' instead."
   build:
-    uses: futuredapp/.github/.github/workflows/ios-selfhosted-nightly-build.yml@2.3.3
+    uses: futuredapp/.github/.github/workflows/ios-selfhosted-nightly-build.yml@2.6.0
     with:
       use_git_lfs: ${{ inputs.use_git_lfs }}
       custom_values: ${{ inputs.custom_values }}

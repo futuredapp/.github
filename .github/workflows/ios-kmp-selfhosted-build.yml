@@ -76,9 +76,10 @@ on:
         description: >
           Private App Store Connect API key for submitting build to App Store.
       APP_STORE_CONNECT_API_KEY_ISSUER_ID:
-        required: true
+        required: false
         description: >
           Private App Store Connect API issuer key for submitting build to App Store.
+          Optional, because individual (user-based) API keys have no issuer ID.
       GRADLE_CACHE_ENCRYPTION_KEY:
         required: false
         description: "Configuration cache encryption key"
@@ -97,14 +98,14 @@ jobs:
         with:
           lfs: ${{ inputs.use_git_lfs }}
       - name: Set up environment
-        uses: futuredapp/.github/.github/actions/android-setup-environment@2.3.3
+        uses: futuredapp/.github/.github/actions/android-setup-environment@2.6.0
         with:
           java_version: ${{ inputs.java_version }}
           java_distribution: ${{ inputs.java_distribution }}
           gradle_cache_encryption_key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
           ruby: 'false'
       - name: Build and upload to TestFlight
-        uses: futuredapp/.github/.github/actions/ios-kmp-build@2.3.3
+        uses: futuredapp/.github/.github/actions/ios-kmp-build@2.6.0
         with:
           match_password: ${{ secrets.MATCH_PASSWORD }}
           app_store_connect_api_key_key: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}

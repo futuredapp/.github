@@ -77,14 +77,16 @@ runs:
         path: ${{ steps.build_apk.outputs.universal_apk_file }}
     - name: Upload APK to Firebase App Distribution
       shell: bash
+      env:
+        RELEASE_NOTES: ${{ inputs.release_notes }}
       run: |
         echo '${{ inputs.app_distribution_service_account }}' > "firebase_credentials.json"
-        
+
         ./gradlew ${{ inputs.upload_gradle_task }} \
           --serviceCredentialsFile="firebase_credentials.json" \
           --groups="${{ inputs.app_distribution_groups }}" \
           --artifactType="APK" \
           --artifactPath="${{ steps.build_apk.outputs.universal_apk_file }}" \
-          --releaseNotes="${{ inputs.release_notes }}"
+          --releaseNotes="$RELEASE_NOTES"
         
         rm firebase_credentials.json
