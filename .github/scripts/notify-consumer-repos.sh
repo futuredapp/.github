@@ -317,7 +317,9 @@ process_repo() {
     pr_body=$(build_pr_body "${files_to_update[*]}")
 
     if [ -n "$existing_pr" ]; then
-        if ! gh_run pr edit "$existing_pr" --repo "$repo" --title "$pr_title" --body "$pr_body"; then
+        # REST PATCH on purpose: `gh pr edit` fetches org teams via GraphQL first,
+        # which needs the read:org scope the bot token does not have.
+        if ! gh_run api -X PATCH "repos/$repo/pulls/$existing_pr" -f title="$pr_title" -f body="$pr_body"; then
             report_failure "cannot edit PR #$existing_pr" "$repo"
             return
         fi
