@@ -1,0 +1,132 @@
+#!/bin/bash
+# Mock of the gh CLI used by test_notify-consumer-repos.bats.
+#
+# Every invocation is appended to $GH_MOCK_LOG (one line per call) so tests can
+# assert which API calls were made. Behaviour is driven by environment variables:
+#
+#   GH_MOCK_EXISTING_PR          number of an open PR on the bump branch (empty = none)
+#   GH_MOCK_PR_STATE             state returned by `gh pr view` (default OPEN)
+#   GH_MOCK_BRANCH_EXISTS        1 → creating the branch fails (already exists)
+#   GH_MOCK_MERGE_FAIL           1 → merging the default branch into the bump branch fails
+#   GH_MOCK_PUT_FAIL_TIMES       number of file PUTs that fail before succeeding (-1 = always)
+#   GH_MOCK_PUT_FAIL_REPO        limit PUT failures to this org/repo (default: every repo)
+#   GH_MOCK_PR_CREATE_FAIL       1 → `gh pr create` fails
+#   GH_MOCK_BRANCH_FILE_VERSION  shared-workflow version referenced by the file on the bump branch
+#   GH_MOCK_STATE_DIR            directory for counters that persist across invocations
+
+set -uo pipefail
+
+echo "$*" >> "$GH_MOCK_LOG"
+
+DEFAULT_BRANCH_VERSION="2.5.0"
+BRANCH_FILE_VERSION="${GH_MOCK_BRANCH_FILE_VERSION:-$DEFAULT_BRANCH_VERSION}"
+
+fail() {
+    echo "gh: $1" >&2
+    exit 1
+}
+
+respond() {
+    if [ -n "$jq_filter" ]; then
+        echo "$1" | jq -r "$jq_filter"
+    else
+        echo "$1"
+    fi
+}
+
+workflow_with_ref() {
+    printf 'jobs:\n  test:\n    uses: futuredapp/.github/.github/workflows/ios-selfhosted-test.yml@%s\n' "$1"
+}
+
+contents_json() {
+    local sha="$1" body="$2"
+    printf '{"sha":"%s","content":"%s"}' "$sha" "$(echo "$body" | base64 | tr -d '\n')"
+}
+
+cmd="$1"; shift
+
+method="GET"; path=""; jq_filter=""; has_body=0
+args=("$@")
+i=0
+while [ $i -lt ${#args[@]} ]; do
+    a="${args[$i]}"
+    case "$a" in
+        -X) i=$((i + 1)); method="${args[$i]}" ;;
+        -f|-F|-H) i=$((i + 1)); has_body=1 ;;
+        --jq|-q) i=$((i + 1)); jq_filter="${args[$i]}" ;;
+        --repo|--head|--base|--state|--json|--title|--body) i=$((i + 1)) ;;
+        -*) ;;
+        *) [ -z "$path" ] && path="$a" ;;
+    esac
+    i=$((i + 1))
+done
+if [ "$method" = "GET" ] && [ "$has_body" = 1 ]; then
+    method="POST"
+fi
+
+case "$cmd" in
+    api)
+        case "$method $path" in
+            "GET /search/code")
+                respond '{"items":[]}' ;;
+            "GET repos/"*"/contents/.github/workflows")
+                respond '[{"name":"ci.yml"},{"name":"lint.yml"}]' ;;
+            "GET repos/"*"/contents/.github/workflows/lint.yml"*)
+                respond "$(contents_json lintsha "$(printf 'jobs:\n  lint:\n    runs-on: ubuntu-latest\n')")" ;;
+            "GET repos/"*"/contents/.github/workflows/ci.yml?ref="*)
+                respond "$(contents_json branchsha "$(workflow_with_ref "$BRANCH_FILE_VERSION")")" ;;
+            "GET repos/"*"/contents/.github/workflows/ci.yml")
+                respond "$(contents_json basesha "$(workflow_with_ref "$DEFAULT_BRANCH_VERSION")")" ;;
+            "PUT repos/"*"/contents/.github/workflows/"*)
+                counter="$GH_MOCK_STATE_DIR/put_count"
+                count=$(cat "$counter" 2>/dev/null || echo 0)
+                echo $((count + 1)) > "$counter"
+                limit="${GH_MOCK_PUT_FAIL_TIMES:-0}"
+                if [ -n "${GH_MOCK_PUT_FAIL_REPO:-}" ] && [[ "$path" != "repos/${GH_MOCK_PUT_FAIL_REPO}/"* ]]; then
+                    limit=0
+                fi
+                if [ "$limit" = "-1" ] || [ "$count" -lt "$limit" ]; then
+                    fail "HTTP 502: Server Error (https://api.github.com/$path)"
+                fi
+                respond '{"commit":{"sha":"newsha"}}' ;;
+            "GET repos/"*"/git/refs/heads/"*)
+                respond '{"object":{"sha":"basesha123"}}' ;;
+            "PATCH repos/"*"/git/refs/heads/"*|"DELETE repos/"*"/git/refs/heads/"*)
+                respond '{}' ;;
+            "POST repos/"*"/git/refs")
+                if [ "${GH_MOCK_BRANCH_EXISTS:-0}" = 1 ]; then
+                    fail "HTTP 422: Reference already exists"
+                fi
+                respond '{"ref":"refs/heads/housekeep/bump-shared-workflows"}' ;;
+            "POST repos/"*"/merges")
+                if [ "${GH_MOCK_MERGE_FAIL:-0}" = 1 ]; then
+                    fail "HTTP 409: Merge conflict"
+                fi
+                respond '{"sha":"mergesha"}' ;;
+            "GET repos/"*)
+                respond '{"archived":false,"default_branch":"main"}' ;;
+            *)
+                fail "mock: unhandled api call: $method $path" ;;
+        esac ;;
+    pr)
+        sub="$1"
+        case "$sub" in
+            list)
+                if [ -n "${GH_MOCK_EXISTING_PR:-}" ]; then
+                    echo "$GH_MOCK_EXISTING_PR"
+                fi ;;
+            create)
+                if [ "${GH_MOCK_PR_CREATE_FAIL:-0}" = 1 ]; then
+                    fail "pull request create failed: GraphQL: Something went wrong"
+                fi
+                echo "https://github.com/futuredapp/demo-repo/pull/42" ;;
+            edit|ready)
+                : ;;
+            view)
+                respond "{\"state\":\"${GH_MOCK_PR_STATE:-OPEN}\"}" ;;
+            *)
+                fail "mock: unhandled pr subcommand: $sub" ;;
+        esac ;;
+    *)
+        fail "mock: unhandled command: $cmd" ;;
+esac
