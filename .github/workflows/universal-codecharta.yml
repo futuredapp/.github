@@ -229,7 +229,7 @@ jobs:
       # These outputs are consumed by the publish steps below.
       - name: Run CodeCharta snapshot
         id: snapshot
-        uses: futuredapp/.github/.github/actions/universal-codecharta-snapshot@2.6.0
+        uses: futuredapp/.github/.github/actions/universal-codecharta-snapshot@2.7.0
         with:
           mode: snapshot
           project_name: ${{ steps.project.outputs.name }}
@@ -313,7 +313,7 @@ jobs:
       # concurrent writers.
       - name: Publish (preview)
         if: steps.ids.outputs.kind == 'preview'
-        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@2.6.0
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@2.7.0
         with:
           mode: preview
           project_name: ${{ steps.project.outputs.name }}
@@ -330,7 +330,7 @@ jobs:
       # so the picker can offer a delta view against current develop.
       - name: Publish (history)
         if: steps.ids.outputs.kind == 'history'
-        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@2.6.0
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@2.7.0
         with:
           mode: history
           project_name: ${{ steps.project.outputs.name }}
@@ -447,7 +447,7 @@ jobs:
       # data repo, rebuilds manifest, commits ("Drop preview for <name> PR
       # #<N>"), pushes. Idempotent — no-op if the preview was never created.
       - name: Delete preview
-        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@2.6.0
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@2.7.0
         with:
           mode: delete-preview
           project_name: ${{ steps.project.outputs.name }}
@@ -516,7 +516,7 @@ jobs:
       # deliberate trade-off.
       - name: Generate historical snapshots
         id: history
-        uses: futuredapp/.github/.github/actions/universal-codecharta-snapshot@2.6.0
+        uses: futuredapp/.github/.github/actions/universal-codecharta-snapshot@2.7.0
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -542,7 +542,7 @@ jobs:
       #
       # Replaces the previous loop-of-publishes which did N clones / N pushes.
       - name: Publish backfill batch
-        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@2.6.0
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@2.7.0
         with:
           mode: bulk-history
           project_name: ${{ steps.project.outputs.name }}
@@ -557,7 +557,7 @@ jobs:
       # commit from bulk-history so the history entries and the pointer
       # refresh are easy to revert independently if something goes wrong.
       - name: Refresh latest pointer
-        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@2.6.0
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@2.7.0
         with:
           mode: set-latest
           project_name: ${{ steps.project.outputs.name }}
