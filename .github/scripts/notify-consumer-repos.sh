@@ -291,7 +291,7 @@ process_repo() {
         else
             echo "DRY RUN (create): $repo (${#files_to_update[@]} files: ${files_to_update[*]})"
         fi
-        RESULT="created"
+        if [ -n "$existing_pr" ]; then RESULT="updated"; else RESULT="created"; fi
         return
     fi
 

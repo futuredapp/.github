@@ -171,7 +171,18 @@ gh_called() {
 @test "dry run reports planned changes without writing anything" {
   run_script --dry-run
   [[ "$output" == *"DRY RUN (create): $REPO (1 files: ci.yml)"* ]]
+  [[ "$output" == *"Created: 1, Updated: 0, Skipped: 0, Failed: 0"* ]]
   ! gh_called "-X PUT"
   ! gh_called "pr create"
   ! gh_called "git/refs -f ref="
+}
+
+@test "dry run counts an open PR as an update and does not touch it" {
+  export GH_MOCK_EXISTING_PR=7
+  run_script --dry-run
+  [[ "$output" == *"DRY RUN (update PR #7): $REPO (1 files: ci.yml)"* ]]
+  [[ "$output" == *"Created: 0, Updated: 1, Skipped: 0, Failed: 0"* ]]
+  ! gh_called "merges"
+  ! gh_called "-X PUT"
+  ! gh_called "pulls/7"
 }
