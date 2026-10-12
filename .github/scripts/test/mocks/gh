@@ -11,6 +11,7 @@
 #   GH_MOCK_PUT_FAIL_TIMES       number of file PUTs that fail before succeeding (-1 = always)
 #   GH_MOCK_PUT_FAIL_REPO        limit PUT failures to this org/repo (default: every repo)
 #   GH_MOCK_PR_CREATE_FAIL       1 → `gh pr create` fails
+#   GH_MOCK_PR_EDIT_FAIL         1 → PATCH on the existing PR (title/body update) fails
 #   GH_MOCK_BRANCH_FILE_VERSION  shared-workflow version referenced by the file on the bump branch
 #   GH_MOCK_STATE_DIR            directory for counters that persist across invocations
 
@@ -93,6 +94,11 @@ case "$cmd" in
                 respond '{"object":{"sha":"basesha123"}}' ;;
             "PATCH repos/"*"/git/refs/heads/"*|"DELETE repos/"*"/git/refs/heads/"*)
                 respond '{}' ;;
+            "PATCH repos/"*"/pulls/"*)
+                if [ "${GH_MOCK_PR_EDIT_FAIL:-0}" = 1 ]; then
+                    fail "HTTP 403: Resource not accessible by personal access token"
+                fi
+                respond '{"number":7,"state":"open"}' ;;
             "POST repos/"*"/git/refs")
                 if [ "${GH_MOCK_BRANCH_EXISTS:-0}" = 1 ]; then
                     fail "HTTP 422: Reference already exists"
@@ -120,7 +126,7 @@ case "$cmd" in
                     fail "pull request create failed: GraphQL: Something went wrong"
                 fi
                 echo "https://github.com/futuredapp/demo-repo/pull/42" ;;
-            edit|ready)
+            ready)
                 : ;;
             view)
                 respond "{\"state\":\"${GH_MOCK_PR_STATE:-OPEN}\"}" ;;

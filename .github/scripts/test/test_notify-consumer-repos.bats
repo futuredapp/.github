@@ -16,7 +16,8 @@ setup() {
   export NOTIFY_RETRY_MAX_ATTEMPTS=3
   unset NOTIFY_REPOS_WHITELIST
   unset GH_MOCK_EXISTING_PR GH_MOCK_PR_STATE GH_MOCK_BRANCH_EXISTS GH_MOCK_MERGE_FAIL \
-        GH_MOCK_PUT_FAIL_TIMES GH_MOCK_PUT_FAIL_REPO GH_MOCK_PR_CREATE_FAIL GH_MOCK_BRANCH_FILE_VERSION
+        GH_MOCK_PUT_FAIL_TIMES GH_MOCK_PUT_FAIL_REPO GH_MOCK_PR_CREATE_FAIL GH_MOCK_PR_EDIT_FAIL \
+        GH_MOCK_BRANCH_FILE_VERSION
 }
 
 run_script() {
@@ -76,9 +77,19 @@ gh_called() {
   [[ "$output" == *"Created: 0, Updated: 1, Skipped: 0, Failed: 0"* ]]
   gh_called "api repos/$REPO/merges -f base=$BRANCH -f head=main"
   gh_called "contents/.github/workflows/ci.yml -X PUT"
-  gh_called "pr edit 7 --repo $REPO"
-  ! gh_called "-X PATCH"
+  gh_called "api -X PATCH repos/$REPO/pulls/7 -f title="
+  ! gh_called "pr edit"
+  ! gh_called "git/refs/heads/$BRANCH -X PATCH"
   ! gh_called "pr create"
+}
+
+@test "failed PR title/body update is reported as FAIL with the gh error message" {
+  export GH_MOCK_EXISTING_PR=7
+  export GH_MOCK_PR_EDIT_FAIL=1
+  run_script
+  [[ "$output" != *"UPDATED"* ]]
+  [[ "$output" == *"FAIL (cannot edit PR #7): $REPO — gh: HTTP 403"* ]]
+  [[ "$output" == *"Failed: 1"* ]]
 }
 
 @test "merge conflict recreates the branch and opens a fresh PR" {
@@ -91,7 +102,7 @@ gh_called() {
   gh_called "api -X DELETE repos/$REPO/git/refs/heads/$BRANCH"
   gh_called "api repos/$REPO/git/refs -f ref=refs/heads/$BRANCH -f sha=basesha123"
   gh_called "pr create"
-  ! gh_called "pr edit"
+  ! gh_called "pulls/7"
 }
 
 @test "update is a failure when the PR is no longer open" {
@@ -160,7 +171,18 @@ gh_called() {
 @test "dry run reports planned changes without writing anything" {
   run_script --dry-run
   [[ "$output" == *"DRY RUN (create): $REPO (1 files: ci.yml)"* ]]
+  [[ "$output" == *"Created: 1, Updated: 0, Skipped: 0, Failed: 0"* ]]
   ! gh_called "-X PUT"
   ! gh_called "pr create"
   ! gh_called "git/refs -f ref="
+}
+
+@test "dry run counts an open PR as an update and does not touch it" {
+  export GH_MOCK_EXISTING_PR=7
+  run_script --dry-run
+  [[ "$output" == *"DRY RUN (update PR #7): $REPO (1 files: ci.yml)"* ]]
+  [[ "$output" == *"Created: 0, Updated: 1, Skipped: 0, Failed: 0"* ]]
+  ! gh_called "merges"
+  ! gh_called "-X PUT"
+  ! gh_called "pulls/7"
 }
