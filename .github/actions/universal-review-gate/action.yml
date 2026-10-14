@@ -1,0 +1,42 @@
+name: Review gate
+description: Sets a commit status that turns green once the AI review has commented on the PR and, for PRs labeled for human review, a reviewer approved.
+
+inputs:
+  github_token:
+    description: 'Token with statuses:write and read access to pull requests and issues.'
+    required: true
+  pr_number:
+    description: 'Pull request number.'
+    required: true
+  head_sha:
+    description: 'Commit to set the status on. Defaults to the current PR head.'
+    required: false
+    default: ''
+  marker:
+    description: 'First line of the AI review comment. Its presence proves the review ran.'
+    required: false
+    default: '<!-- ai-pr-review -->'
+  human_review_label:
+    description: 'Label that requires an approving review before the gate turns green.'
+    required: false
+    default: 'needs-human'
+  status_context:
+    description: 'Commit status context. Add this name as a required status check in the branch ruleset.'
+    required: false
+    default: 'review-gate'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set review gate status
+      shell: bash
+      run: bash "${{ github.action_path }}/scripts/review-gate.sh"
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        REPOSITORY: ${{ github.repository }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+        HEAD_SHA: ${{ inputs.head_sha }}
+        MARKER: ${{ inputs.marker }}
+        HUMAN_REVIEW_LABEL: ${{ inputs.human_review_label }}
+        STATUS_CONTEXT: ${{ inputs.status_context }}
+        TARGET_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

@@ -1,0 +1,50 @@
+name: Publish AI PR review
+description: Posts or updates the single AI review comment on a PR, adds the human review label for high-risk results and requests the project reviewer.
+
+inputs:
+  github_token:
+    description: 'Token with write access to pull requests and issues.'
+    required: true
+  pr_number:
+    description: 'Pull request number.'
+    required: true
+  result_file:
+    description: 'Path to the JSON result of the review (needs a top-level risk.level of low or high).'
+    required: true
+  body_file:
+    description: 'Path to the rendered markdown comment. Its first line must be the marker.'
+    required: true
+  marker:
+    description: 'First line of the AI review comment, used to find and update it.'
+    required: false
+    default: '<!-- ai-pr-review -->'
+  human_review_label:
+    description: 'Label added when the review classifies the PR as high risk.'
+    required: false
+    default: 'needs-human'
+  feature_label:
+    description: 'Label for PRs that complete a functional whole. Created here so every reviewed repository has it.'
+    required: false
+    default: 'feature-complete'
+  reviewer:
+    description: 'GitHub login, or org/team slug, to request a review from on high-risk PRs. Empty requests nobody.'
+    required: false
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: Publish review
+      shell: bash
+      run: bash "${{ github.action_path }}/scripts/publish.sh"
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        REPOSITORY: ${{ github.repository }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+        RESULT_FILE: ${{ inputs.result_file }}
+        BODY_FILE: ${{ inputs.body_file }}
+        MARKER: ${{ inputs.marker }}
+        HUMAN_REVIEW_LABEL: ${{ inputs.human_review_label }}
+        FEATURE_LABEL: ${{ inputs.feature_label }}
+        REVIEWER: ${{ inputs.reviewer }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

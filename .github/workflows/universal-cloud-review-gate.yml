@@ -1,0 +1,34 @@
+name: Universal Cloud Review Gate
+
+on:
+  workflow_call:
+    inputs:
+      human_review_label:
+        description: 'Label that requires an approving review before the gate turns green.'
+        type: string
+        default: 'needs-human'
+      status_context:
+        description: 'Commit status context. Add this name as a required status check in the branch ruleset.'
+        type: string
+        default: 'review-gate'
+
+jobs:
+  gate:
+    name: Review gate
+    if: github.event.pull_request
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+      pull-requests: read
+      issues: read
+
+    steps:
+      - name: Update review gate
+        uses: futuredapp/.github/.github/actions/universal-review-gate@main
+        with:
+          github_token: ${{ github.token }}
+          pr_number: ${{ github.event.pull_request.number }}
+          head_sha: ${{ github.event.pull_request.head.sha }}
+          human_review_label: ${{ inputs.human_review_label }}
+          status_context: ${{ inputs.status_context }}

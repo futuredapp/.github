@@ -147,6 +147,11 @@ All iOS actions support:
 - `workflows-lint`: Lint all workflow files using actionlint
 - `universal-cloud-backup`: Backup current ref to remote repository (cloud runner)
 - `universal-selfhosted-backup`: Backup current ref to remote repository (self-hosted)
+- `universal-cloud-ai-pr-review`: Runs a Claude Code review skill from a plugin marketplace on a PR (on open and on a `/review` comment), posts one sticky comment, labels high-risk PRs `needs-human`
+- `universal-cloud-review-gate`: Sets the `review-gate` commit status — green once the AI review commented and, for `needs-human` PRs, a reviewer approved
+
+### Feature review
+- `ios-selfhosted-nightly-build` announces PRs labeled `feature-complete` on Slack after a successful build (`universal-feature-review-notify`, optional `SLACK_WEBHOOK_FEATURE_REVIEW` secret)
 
 ## Important Conventions
 

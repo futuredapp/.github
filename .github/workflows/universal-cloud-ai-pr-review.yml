@@ -1,0 +1,203 @@
+name: Universal Cloud AI PR Review
+
+on:
+  workflow_call:
+    inputs:
+      marketplace_repository:
+        description: 'Repository (owner/name) of the Claude Code plugin marketplace that holds the review skill.'
+        type: string
+        required: true
+      marketplace_ref:
+        description: 'Branch or tag of the marketplace to use.'
+        type: string
+        default: 'main'
+      plugin:
+        description: 'Plugin to install, as plugin-name@marketplace-name.'
+        type: string
+        required: true
+      skill:
+        description: 'Skill to run, as plugin-name:skill-name. It receives the PR number and optionally "deep".'
+        type: string
+        required: true
+      skill_path:
+        description: 'Path of the skill directory inside the marketplace. It must contain references/output-schema.json and scripts/render-comment.py.'
+        type: string
+        required: true
+      model:
+        description: 'Claude model alias or ID for the review session.'
+        type: string
+        default: 'sonnet'
+      reviewer:
+        description: 'GitHub login, or org/team slug, to request a review from when the PR is high risk. Empty requests nobody.'
+        type: string
+        default: ''
+      timeout_minutes:
+        description: 'Job timeout in minutes.'
+        type: number
+        default: 20
+
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: false
+        description: 'Anthropic API key. Provide this or CLAUDE_CODE_OAUTH_TOKEN.'
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: false
+        description: 'Claude Code OAuth token. Provide this or ANTHROPIC_API_KEY.'
+      CLAUDE_MARKETPLACE_TOKEN:
+        required: true
+        description: 'Token with read access to the marketplace repository.'
+
+jobs:
+  review:
+    name: AI review
+    # Runs on ready PRs, and on a "/review" or "/review deep" comment from someone with write access.
+    if: >-
+      (github.event_name == 'pull_request' && !github.event.pull_request.draft) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+       startsWith(github.event.comment.body, '/review') &&
+       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association))
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      statuses: write
+    concurrency:
+      group: ai-pr-review-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Resolve PR and mode
+        id: ctx
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_PR_NUMBER: ${{ github.event.pull_request.number }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          SKILL: ${{ inputs.skill }}
+        run: |
+          mode="standard"
+          pr="$EVENT_PR_NUMBER"
+          if [ "$EVENT_NAME" = "issue_comment" ]; then
+            first_line=$(printf '%s\n' "$COMMENT_BODY" | head -n 1 | tr -d '\r')
+            if [[ "$first_line" =~ ^/review[[:space:]]+deep[[:space:]]*$ ]]; then
+              mode="deep"
+            elif [[ ! "$first_line" =~ ^/review[[:space:]]*$ ]]; then
+              echo "Comment is not a review command, nothing to do."
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            pr="$ISSUE_NUMBER"
+            gh api --method POST "repos/$REPOSITORY/issues/comments/$COMMENT_ID/reactions" -f content=eyes > /dev/null || true
+          fi
+
+          argument="$pr"
+          if [ "$mode" = "deep" ]; then
+            argument="$pr deep"
+          fi
+          {
+            echo "run=true"
+            echo "pr=$pr"
+            echo "mode=$mode"
+            echo "head_sha=$(gh api "repos/$REPOSITORY/pulls/$pr" --jq '.head.sha')"
+            echo "prompt=Run /$SKILL $argument on this repository and return its JSON result."
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Checkout PR head
+        if: steps.ctx.outputs.run == 'true'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.ctx.outputs.head_sha }}
+          fetch-depth: 0
+
+      - name: Fetch marketplace
+        if: steps.ctx.outputs.run == 'true'
+        shell: bash
+        env:
+          MARKETPLACE_TOKEN: ${{ secrets.CLAUDE_MARKETPLACE_TOKEN }}
+          MARKETPLACE_REPOSITORY: ${{ inputs.marketplace_repository }}
+          MARKETPLACE_REF: ${{ inputs.marketplace_ref }}
+        run: |
+          git clone --quiet --depth 1 --branch "$MARKETPLACE_REF" \
+            "https://x-access-token:${MARKETPLACE_TOKEN}@github.com/${MARKETPLACE_REPOSITORY}.git" \
+            "$RUNNER_TEMP/claude-marketplace"
+
+      - name: Prepare Claude arguments
+        id: args
+        if: steps.ctx.outputs.run == 'true'
+        shell: bash
+        env:
+          SKILL_PATH: ${{ inputs.skill_path }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          schema=$(jq -c . "$RUNNER_TEMP/claude-marketplace/$SKILL_PATH/references/output-schema.json")
+          # claude_args is parsed shell-style: a quote or a dollar sign inside the schema would corrupt it.
+          if [[ "$schema" == *"'"* || "$schema" == *'$'* ]]; then
+            echo "::error::The output schema must not contain single quotes or dollar signs."
+            exit 1
+          fi
+          tools="Skill,Agent,Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(git fetch:*),Bash(git rev-parse:*),Bash(gh pr view:*),Bash(gh pr diff:*)"
+          # Fail closed: a run that could not load the skill or read the diff must not look like a clean PR.
+          guard="If you cannot run the review skill or cannot read the PR diff, return risk level high with zone Not reviewed and say why in not_covered."
+          echo "claude_args=--model $MODEL --allowedTools \"$tools\" --append-system-prompt \"$guard\" --json-schema '$schema'" >> "$GITHUB_OUTPUT"
+
+      - name: Run review
+        id: claude
+        if: steps.ctx.outputs.run == 'true'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.ctx.outputs.prompt }}
+          plugin_marketplaces: ${{ runner.temp }}/claude-marketplace
+          plugins: ${{ inputs.plugin }}
+          claude_args: ${{ steps.args.outputs.claude_args }}
+
+      - name: Render comment
+        if: steps.ctx.outputs.run == 'true'
+        shell: bash
+        env:
+          RESULT: ${{ steps.claude.outputs.structured_output }}
+          SKILL_PATH: ${{ inputs.skill_path }}
+          HEAD_SHA: ${{ steps.ctx.outputs.head_sha }}
+          MODE: ${{ steps.ctx.outputs.mode }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/ai-review"
+          result_file="$RUNNER_TEMP/ai-review/result.json"
+          body_file="$RUNNER_TEMP/ai-review/comment.md"
+          : > "$body_file"
+          if printf '%s' "$RESULT" | jq -e '.risk.level' > /dev/null 2>&1; then
+            printf '%s' "$RESULT" > "$result_file"
+            python3 -I "$RUNNER_TEMP/claude-marketplace/$SKILL_PATH/scripts/render-comment.py" "$result_file" \
+              --sha "$HEAD_SHA" --mode "$MODE" > "$body_file"
+          else
+            : > "$result_file"
+          fi
+          cat "$body_file" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish review
+        if: steps.ctx.outputs.run == 'true'
+        uses: futuredapp/.github/.github/actions/universal-ai-pr-review-publish@main
+        with:
+          github_token: ${{ github.token }}
+          pr_number: ${{ steps.ctx.outputs.pr }}
+          result_file: ${{ runner.temp }}/ai-review/result.json
+          body_file: ${{ runner.temp }}/ai-review/comment.md
+          reviewer: ${{ inputs.reviewer }}
+
+      - name: Update review gate
+        if: always() && steps.ctx.outputs.run == 'true'
+        uses: futuredapp/.github/.github/actions/universal-review-gate@main
+        with:
+          github_token: ${{ github.token }}
+          pr_number: ${{ steps.ctx.outputs.pr }}
+          head_sha: ${{ steps.ctx.outputs.head_sha }}
