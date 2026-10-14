@@ -142,7 +142,9 @@ jobs:
             exit 1
           fi
           tools="Skill,Agent,Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(git fetch:*),Bash(git rev-parse:*),Bash(gh pr view:*),Bash(gh pr diff:*)"
-          echo "claude_args=--model $MODEL --allowedTools \"$tools\" --json-schema '$schema'" >> "$GITHUB_OUTPUT"
+          # Fail closed: a run that could not load the skill or read the diff must not look like a clean PR.
+          guard="If you cannot run the review skill or cannot read the PR diff, return risk level high with zone Not reviewed and say why in not_covered."
+          echo "claude_args=--model $MODEL --allowedTools \"$tools\" --append-system-prompt \"$guard\" --json-schema '$schema'" >> "$GITHUB_OUTPUT"
 
       - name: Run review
         id: claude
