@@ -3,11 +3,14 @@
 # so the project's reviewer knows which finished features to try in the app.
 set -euo pipefail
 
-# extract_section <markdown> <heading>: text under "## <heading>" up to the next heading, blank edge lines removed.
+# extract_section <markdown> <heading>: text under "## <heading>" up to the next heading, outside code fences,
+# without template placeholder comments and blank edge lines. Reads the whole input (no early exit, no SIGPIPE).
 extract_section() {
-  tr -d '\r' <<< "$1" | awk -v heading="## $2" '
-    /^##? / { if (found) exit; if ($0 == heading) { found = 1; next } }
-    found { print }
+  tr -d '\r' <<< "$1" | HEADING="## $2" awk '
+    { line = $0; sub(/[ \t]+$/, "", line) }
+    /^```/ { fence = !fence }
+    !fence && /^##? / { if (found) done = 1; else if (line == ENVIRON["HEADING"]) { found = 1; next } }
+    found && !done && line !~ /^[ \t]*<!--.*-->$/ { print }
   ' | sed -e '/./,$!d' | sed -e ':a' -e '/^\n*$/{$d;N;ba' -e '}'
 }
 
@@ -37,6 +40,7 @@ build_payload() {
     title=$(slack_escape "$(jq -r '.title' <<< "$pr")")
     line="• <$(jq -r '.url' <<< "$pr")|#$(jq -r '.number' <<< "$pr") $title>"
     try=$(extract_section "$(jq -r '.body // ""' <<< "$pr")" "$heading")
+    try="${try:0:600}"
     if [ -n "$try" ]; then
       line+=$'\n'"$(slack_escape "$try" | sed 's/^/>/')"
     fi
@@ -47,10 +51,12 @@ build_payload() {
 }
 
 main() {
-  local range_shas prs matched payload
+  local range_shas since prs matched payload
 
-  range_shas=$(gh api "repos/$REPOSITORY/compare/$FROM_COMMIT...$TO_COMMIT" --jq '[.commits[].sha]')
-  prs=$(gh pr list --repo "$REPOSITORY" --state merged --label "$LABEL" --limit 100 \
+  range_shas=$(gh api --paginate "repos/$REPOSITORY/compare/$FROM_COMMIT...$TO_COMMIT?per_page=100" --jq '.commits[].sha' \
+    | jq -Rsc 'split("\n") | map(select(length > 0))')
+  since=$(gh api "repos/$REPOSITORY/commits/$FROM_COMMIT" --jq '.commit.committer.date')
+  prs=$(gh pr list --repo "$REPOSITORY" --state merged --label "$LABEL" --search "merged:>=$since" --limit 200 \
     --json number,title,url,body,mergeCommit)
   matched=$(prs_in_range "$prs" "$range_shas")
 
@@ -61,11 +67,11 @@ main() {
 
   payload=$(build_payload "$matched" "$BUILD_NAME" "$REVIEWER_MENTION" "$SECTION_HEADING")
   if [ -z "$SLACK_WEBHOOK_URL" ]; then
-    echo "::warning::No Slack webhook provided, printing the message instead."
+    echo "No Slack webhook provided, printing the message instead."
     jq -r '.text' <<< "$payload"
     exit 0
   fi
-  curl -sS -f -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL" > /dev/null
+  curl -sS -f -X POST -H 'Content-type: application/json' --data-binary @- "$SLACK_WEBHOOK_URL" <<< "$payload" > /dev/null
   echo "Notified about $(jq 'length' <<< "$matched") PR(s)."
 }
 

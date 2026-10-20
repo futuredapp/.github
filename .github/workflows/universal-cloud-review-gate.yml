@@ -1,16 +1,15 @@
 name: Universal Cloud Review Gate
 
+# Call it on pull_request_target (opened, synchronize, reopened, ready_for_review, labeled, unlabeled) and
+# pull_request_review (submitted, dismissed). pull_request_target runs from the base branch with a write token,
+# so the gate also works for bot-authored PRs; the job never checks out PR code.
 on:
   workflow_call:
     inputs:
-      human_review_label:
-        description: 'Label that requires an approving review before the gate turns green.'
+      review_base_branches:
+        description: 'JSON array of base branches whose PRs need the AI review. Must match the AI review workflow.'
         type: string
-        default: 'needs-human'
-      status_context:
-        description: 'Commit status context. Add this name as a required status check in the branch ruleset.'
-        type: string
-        default: 'review-gate'
+        default: '["develop"]'
 
 jobs:
   gate:
@@ -29,6 +28,4 @@ jobs:
         with:
           github_token: ${{ github.token }}
           pr_number: ${{ github.event.pull_request.number }}
-          head_sha: ${{ github.event.pull_request.head.sha }}
-          human_review_label: ${{ inputs.human_review_label }}
-          status_context: ${{ inputs.status_context }}
+          review_base_branches: ${{ inputs.review_base_branches }}

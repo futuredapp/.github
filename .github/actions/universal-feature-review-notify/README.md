@@ -2,11 +2,11 @@
 
 After a build, finds the PRs merged in its commit range that carry the `feature-complete` label and posts one Slack message listing them, each with the text of its `## What to try` section. The person mentioned in the message installs the build and looks at the finished feature as a whole.
 
-PRs are matched by their merge commit, so merge commits and squash merges both work. No labeled PR in the range means no message.
+PRs are matched by their merge commit, so merge commits and squash merges both work. No labeled PR in the range means no message. Template placeholder comments (`<!-- … -->`) are left out of the quoted text.
 
 ## Usage
 
-Use the `from_commit` and `to_commit` outputs of [`universal-detect-changes-and-generate-changelog`](../universal-detect-changes-and-generate-changelog):
+Most projects call the [`universal-cloud-feature-review-notify`](../../workflows/universal-cloud-feature-review-notify.yml) workflow as a second job after the build, with the build workflow's `from_commit` / `to_commit` outputs. As an action:
 
 ```yaml
 - uses: futuredapp/.github/.github/actions/universal-feature-review-notify@main

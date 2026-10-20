@@ -1,11 +1,18 @@
 #!/bin/bash
-# Sets the review gate commit status on the PR head: green once the AI review has commented on the PR
-# and, for PRs carrying the human-review label, a reviewer other than the author approved.
+# Sets the review gate commit status on the PR head. Green when the AI review bot reviewed exactly this commit
+# and, for high-risk results or PRs labeled for human review, a writer other than the author approved this commit.
+# An approval of the head commit alone also turns it green, so an AI outage or a bot-authored PR never blocks forever.
 set -euo pipefail
 
-# has_marker_comment <comments_json> <marker>: "true" when any comment body starts with the marker.
-has_marker_comment() {
-  jq -r --arg marker "$2" 'any(.[]; (.body // "") | startswith($marker))' <<< "$1"
+# review_meta <comments_json> <marker> <bot_login>: "sha risk" from the newest marker comment written by the bot, or empty.
+# The marker's first line looks like: <!-- ai-pr-review sha=<commit> risk=<low|high> -->
+review_meta() {
+  jq -r --arg marker "$2" --arg bot "$3" '
+    [ .[] | select(.user.login == $bot) | select((.body // "") | startswith($marker)) ]
+    | last | (.body // "") | split("\n")[0]
+    | (capture("sha=(?<sha>[0-9a-f]{7,40})") // {}) as $s
+    | (capture("risk=(?<risk>low|high)") // {}) as $r
+    | if $s.sha and $r.risk then "\($s.sha) \($r.risk)" else empty end' <<< "$1"
 }
 
 # has_label <labels_json> <label>: "true" when the PR carries the label.
@@ -13,54 +20,73 @@ has_label() {
   jq -r --arg label "$2" 'any(.[]; .name == $label)' <<< "$1"
 }
 
-# has_approval <reviews_json> <author>: "true" when the latest decisive review of any non-author reviewer is APPROVED.
-has_approval() {
-  jq -r --arg author "$2" '
+# has_head_approval <reviews_json> <author> <head_sha>: "true" when a reviewer with write access, other than the author,
+# has APPROVED as their latest decisive review and that review is on the head commit.
+has_head_approval() {
+  jq -r --arg author "$2" --arg head "$3" '
     [ .[]
-      | select(.user.login != $author)
+      | select(.user != null and .user.login != $author)
+      | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR")
       | select(.state == "APPROVED" or .state == "CHANGES_REQUESTED" or .state == "DISMISSED") ]
     | group_by(.user.login)
     | map(sort_by(.submitted_at) | last)
-    | any(.[]; .state == "APPROVED")' <<< "$1"
+    | any(.[]; .state == "APPROVED" and .commit_id == $head)' <<< "$1"
 }
 
-# decide <has_marker> <needs_human> <approved> <label>: prints "state|description" for the commit status.
-decide() {
-  local has_marker="$1" needs_human="$2" approved="$3" label="$4"
+# base_in_scope <base_ref> <branches_json>: "true" when PRs into this base branch need the AI review.
+base_in_scope() {
+  jq -rn --arg base "$1" --argjson branches "$2" '$branches | index($base) != null'
+}
 
-  if [ "$has_marker" != "true" ]; then
-    echo "pending|Waiting for the AI review. Comment /review on the PR to run it."
-  elif [ "$needs_human" = "true" ] && [ "$approved" != "true" ]; then
-    echo "pending|Labeled $label: waiting for an approving review."
-  elif [ "$needs_human" = "true" ]; then
-    echo "success|AI review done, human review approved."
+# decide <in_scope> <reviewed_sha> <risk> <head_sha> <labeled> <approved> <label>: prints "state|description".
+decide() {
+  local in_scope="$1" reviewed_sha="$2" risk="$3" head_sha="$4" labeled="$5" approved="$6" label="$7"
+
+  if [ "$in_scope" != "true" ]; then
+    echo "success|No AI review required for this base branch."
+  elif [ -z "$reviewed_sha" ] || [[ "$head_sha" != "$reviewed_sha"* ]]; then
+    if [ "$approved" = "true" ]; then
+      echo "success|Approved by a reviewer; no AI review of this commit."
+    else
+      echo "pending|Waiting for the AI review of ${head_sha:0:7}. Comment /review to run it."
+    fi
+  elif [ "$risk" = "high" ] || [ "$labeled" = "true" ]; then
+    if [ "$approved" = "true" ]; then
+      echo "success|AI review done, human review approved."
+    else
+      echo "pending|Needs a human review: waiting for an approval of this commit."
+    fi
   else
     echo "success|AI review done."
   fi
 }
 
 main() {
-  local pr_json comments reviews author sha labels has_marker needs_human approved decision state description
+  local pr_json head_sha author base labels comments reviews meta reviewed_sha="" risk="" in_scope labeled approved decision
 
   pr_json=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER")
+  head_sha=$(jq -r '.head.sha' <<< "$pr_json")
   author=$(jq -r '.user.login' <<< "$pr_json")
-  sha="${HEAD_SHA:-$(jq -r '.head.sha' <<< "$pr_json")}"
+  base=$(jq -r '.base.ref' <<< "$pr_json")
   labels=$(jq -c '.labels' <<< "$pr_json")
   comments=$(gh api --paginate --slurp "repos/$REPOSITORY/issues/$PR_NUMBER/comments" | jq -c 'add // []')
   reviews=$(gh api --paginate --slurp "repos/$REPOSITORY/pulls/$PR_NUMBER/reviews" | jq -c 'add // []')
 
-  has_marker=$(has_marker_comment "$comments" "$MARKER")
-  needs_human=$(has_label "$labels" "$HUMAN_REVIEW_LABEL")
-  approved=$(has_approval "$reviews" "$author")
-  decision=$(decide "$has_marker" "$needs_human" "$approved" "$HUMAN_REVIEW_LABEL")
-  state="${decision%%|*}"
-  description="${decision#*|}"
+  meta=$(review_meta "$comments" "$MARKER" "$BOT_LOGIN")
+  if [ -n "$meta" ]; then
+    reviewed_sha="${meta%% *}"
+    risk="${meta#* }"
+  fi
+  in_scope=$(base_in_scope "$base" "$REVIEW_BASE_BRANCHES")
+  labeled=$(has_label "$labels" "$HUMAN_REVIEW_LABEL")
+  approved=$(has_head_approval "$reviews" "$author" "$head_sha")
+  decision=$(decide "$in_scope" "$reviewed_sha" "$risk" "$head_sha" "$labeled" "$approved" "$HUMAN_REVIEW_LABEL")
 
-  echo "Review gate for #$PR_NUMBER at $sha: $state ($description)"
-  gh api --method POST "repos/$REPOSITORY/statuses/$sha" \
-    -f state="$state" \
+  echo "Review gate for #$PR_NUMBER at $head_sha: $decision"
+  gh api --method POST "repos/$REPOSITORY/statuses/$head_sha" \
+    -f state="${decision%%|*}" \
     -f context="$STATUS_CONTEXT" \
-    -f description="$description" \
+    -f description="${decision#*|}" \
     -f target_url="$TARGET_URL" > /dev/null
 }
 

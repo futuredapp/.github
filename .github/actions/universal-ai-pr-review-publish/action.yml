@@ -1,5 +1,5 @@
 name: Publish AI PR review
-description: Posts or updates the single AI review comment on a PR, adds the human review label for high-risk results and requests the project reviewer.
+description: Adds the human review label and requests the project reviewer for high-risk results, then posts or updates the single AI review comment on a PR.
 
 inputs:
   github_token:
@@ -12,12 +12,16 @@ inputs:
     description: 'Path to the JSON result of the review (needs a top-level risk.level of low or high).'
     required: true
   body_file:
-    description: 'Path to the rendered markdown comment. Its first line must be the marker.'
+    description: 'Path to the rendered markdown comment. Its first line must start with the marker.'
     required: true
   marker:
-    description: 'First line of the AI review comment, used to find and update it.'
+    description: 'Start of the first line of the AI review comment, used to find and update it.'
     required: false
-    default: '<!-- ai-pr-review -->'
+    default: '<!-- ai-pr-review sha='
+  bot_login:
+    description: 'Login of the account that posts the comment (the GITHUB_TOKEN identity). Only its comments are edited.'
+    required: false
+    default: 'github-actions[bot]'
   human_review_label:
     description: 'Label added when the review classifies the PR as high risk.'
     required: false
@@ -44,6 +48,7 @@ runs:
         RESULT_FILE: ${{ inputs.result_file }}
         BODY_FILE: ${{ inputs.body_file }}
         MARKER: ${{ inputs.marker }}
+        BOT_LOGIN: ${{ inputs.bot_login }}
         HUMAN_REVIEW_LABEL: ${{ inputs.human_review_label }}
         FEATURE_LABEL: ${{ inputs.feature_label }}
         REVIEWER: ${{ inputs.reviewer }}

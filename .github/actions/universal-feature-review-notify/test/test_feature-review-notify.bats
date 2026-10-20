@@ -25,6 +25,30 @@ setup() {
   [ "$(extract_section "$body" "What to try")" = "Open the cart." ]
 }
 
+@test "extract_section: tolerates a trailing space after the heading" {
+  [ "$(extract_section $'## What to try \nOpen the cart.' "What to try")" = "Open the cart." ]
+}
+
+@test "extract_section: a hash line inside a code fence does not end the section" {
+  body=$'## What to try\n```\n# not a heading\n```\nThen pay.\n## Notes'
+  [ "$(extract_section "$body" "What to try")" = $'```\n# not a heading\n```\nThen pay.' ]
+}
+
+@test "extract_section: drops the template placeholder comment" {
+  body=$'## What to try\n<!-- Only with the feature-complete label: 1-3 lines. -->\nOpen the cart.'
+  [ "$(extract_section "$body" "What to try")" = "Open the cart." ]
+}
+
+@test "extract_section: a heading with backslashes is matched literally" {
+  [ "$(extract_section $'## A\\nB\nText' 'A\nB')" = "Text" ]
+}
+
+@test "extract_section: a body larger than a pipe buffer is read without SIGPIPE" {
+  big=$(printf 'x%.0s' $(seq 1 300000))
+  body=$'## What to try\nOpen the cart.\n## Notes\n'"$big"
+  [ "$(extract_section "$body" "What to try")" = "Open the cart." ]
+}
+
 @test "extract_section: empty when the heading is missing" {
   [ "$(extract_section $'## Summary\nText' "What to try")" = "" ]
 }
