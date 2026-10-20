@@ -50,20 +50,51 @@ on:
         required: false
         description: 'Claude Code OAuth token. Provide this or ANTHROPIC_API_KEY.'
       CLAUDE_MARKETPLACE_TOKEN:
-        required: true
-        description: 'Fine-grained token with read-only Contents access to the marketplace repository only.'
+        required: false
+        description: 'Fine-grained token with read-only Contents access to the marketplace repository only. Required for a review to run.'
 
 jobs:
-  review:
-    name: AI review
-    # Ready, human-authored PRs on open and on every push; "/review" from someone with write access re-runs it.
+  trigger:
+    name: Check trigger
+    # Ready, human-authored PRs on open, on every push and when retargeted; "/review" on an open PR re-runs it.
+    # Kept outside the concurrency group, so a comment that does not qualify never cancels a running review.
     if: >-
       (github.event_name == 'pull_request' && !github.event.pull_request.draft &&
        github.event.pull_request.user.type != 'Bot' &&
-       contains(fromJSON(inputs.review_base_branches), github.event.pull_request.base.ref)) ||
+       (github.event.action != 'edited' || github.event.changes.base)) ||
       (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request &&
-       github.event.issue.state == 'open' && github.event.comment.body == '/review' &&
-       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association))
+       github.event.issue.state == 'open' && github.event.comment.body == '/review')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    outputs:
+      ok: ${{ steps.check.outputs.ok }}
+
+    steps:
+      - name: Check commenter permission
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+        run: |
+          if [ "$EVENT_NAME" != "issue_comment" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # author_association does not imply write access; the collaborator permission does.
+          permission=$(gh api "repos/$REPOSITORY/collaborators/$COMMENTER/permission" --jq '.permission' 2> /dev/null || echo none)
+          case "$permission" in
+            admin|maintain|write) echo "ok=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "$COMMENTER has $permission access; /review needs write access."; echo "ok=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+  review:
+    name: AI review
+    needs: trigger
+    if: needs.trigger.outputs.ok == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -75,6 +106,7 @@ jobs:
     outputs:
       run: ${{ steps.ctx.outputs.run }}
       pr: ${{ steps.ctx.outputs.pr }}
+      head_sha: ${{ steps.ctx.outputs.head_sha }}
     env:
       CONTEXT_DIR: .ai-review-context
 
@@ -141,6 +173,10 @@ jobs:
           MARKETPLACE_REPOSITORY: ${{ inputs.marketplace_repository }}
           MARKETPLACE_REF: ${{ inputs.marketplace_ref }}
         run: |
+          if [ -z "$MARKETPLACE_TOKEN" ]; then
+            echo "::error::CLAUDE_MARKETPLACE_TOKEN is not available to this run."
+            exit 1
+          fi
           # The token travels in a one-off header, so it is never written to .git/config.
           auth=$(printf 'x-access-token:%s' "$MARKETPLACE_TOKEN" | base64 | tr -d '\n')
           echo "::add-mask::$auth"
@@ -199,7 +235,7 @@ jobs:
           claude_args: ${{ steps.args.outputs.claude_args }}
 
       - name: Render comment
-        if: always() && steps.ctx.outputs.run == 'true'
+        if: ${{ !cancelled() && steps.ctx.outputs.run == 'true' }}
         env:
           RESULT: ${{ steps.claude.outputs.structured_output }}
           SKILL_PATH: ${{ inputs.skill_path }}
@@ -217,17 +253,21 @@ jobs:
           jq -c '{risk: .risk.level, zones: [.risk.zones[]?.zone], findings: (.findings | length), drift: (.drift | length)}' "$out/result.json" 2> /dev/null || echo "no valid result"
 
       - name: Upload result
-        if: always() && steps.ctx.outputs.run == 'true'
+        if: ${{ !cancelled() && steps.ctx.outputs.run == 'true' }}
         uses: actions/upload-artifact@v7
         with:
           name: ai-pr-review
           path: ${{ runner.temp }}/ai-review-out
           retention-days: 7
+          overwrite: true
 
   publish:
     name: Publish AI review
     needs: review
-    if: always() && needs.review.result != 'cancelled' && needs.review.result != 'skipped' && needs.review.outputs.run == 'true'
+    # Also after a review job that failed before resolving the PR, so the failure note is still posted.
+    if: >-
+      always() && needs.review.result != 'cancelled' && needs.review.result != 'skipped' &&
+      (needs.review.outputs.run == 'true' || needs.review.result == 'failure')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -247,7 +287,8 @@ jobs:
         uses: futuredapp/.github/.github/actions/universal-ai-pr-review-publish@main
         with:
           github_token: ${{ github.token }}
-          pr_number: ${{ needs.review.outputs.pr }}
+          pr_number: ${{ needs.review.outputs.pr || github.event.pull_request.number || github.event.issue.number }}
+          reviewed_sha: ${{ needs.review.outputs.head_sha }}
           result_file: ${{ runner.temp }}/ai-review-out/result.json
           body_file: ${{ runner.temp }}/ai-review-out/comment.md
           reviewer: ${{ inputs.reviewer }}
@@ -257,5 +298,5 @@ jobs:
         uses: futuredapp/.github/.github/actions/universal-review-gate@main
         with:
           github_token: ${{ github.token }}
-          pr_number: ${{ needs.review.outputs.pr }}
+          pr_number: ${{ needs.review.outputs.pr || github.event.pull_request.number || github.event.issue.number }}
           review_base_branches: ${{ inputs.review_base_branches }}

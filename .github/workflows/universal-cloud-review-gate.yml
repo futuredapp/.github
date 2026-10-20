@@ -1,6 +1,6 @@
 name: Universal Cloud Review Gate
 
-# Call it on pull_request_target (opened, synchronize, reopened, ready_for_review, labeled, unlabeled) and
+# Call it on pull_request_target (opened, synchronize, reopened, ready_for_review, edited, labeled, unlabeled) and
 # pull_request_review (submitted, dismissed). pull_request_target runs from the base branch with a write token,
 # so the gate also works for bot-authored PRs; the job never checks out PR code.
 on:

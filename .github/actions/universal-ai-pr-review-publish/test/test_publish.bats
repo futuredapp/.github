@@ -14,6 +14,7 @@ case "$*" in
   *"--slurp"*"/comments"*) echo "[$GH_COMMENTS]" ;;
   "api --method POST repos/acme/app/issues/7/labels"*) [ -n "$GH_FAIL_LABEL_POST" ] && exit 1; echo '{}' ;;
   "api repos/acme/app/pulls/7 --jq .user.login") echo author ;;
+  "api repos/acme/app/pulls/7 --jq .head.sha") echo "${GH_HEAD_SHA:-abc}" ;;
   "api repos/acme/app/labels/"*) echo '{}' ;;
   *) echo '{}' ;;
 esac
@@ -73,4 +74,13 @@ teardown() {
   printf 'something else\n' > "$BODY_FILE"
   run bash "$BATS_TEST_DIRNAME/../scripts/publish.sh"
   [ "$status" -eq 1 ]
+}
+
+@test "main: a result for an older head is not published" {
+  export REVIEWED_SHA=old GH_HEAD_SHA=new
+  echo '{"risk":{"level":"high"}}' > "$RESULT_FILE"
+  printf '<!-- ai-pr-review sha=old risk=high -->\nbody\n' > "$BODY_FILE"
+  run bash "$BATS_TEST_DIRNAME/../scripts/publish.sh"
+  [ "$status" -eq 0 ]
+  ! grep -q "issues/7/labels\|issues/7/comments" "$GH_LOG"
 }

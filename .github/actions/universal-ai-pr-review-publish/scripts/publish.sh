@@ -65,6 +65,13 @@ flag_for_human_review() {
 }
 
 main() {
+  local head_sha
+  head_sha=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')
+  if [ -n "${REVIEWED_SHA:-}" ] && [ "$head_sha" != "$REVIEWED_SHA" ]; then
+    echo "PR head moved from $REVIEWED_SHA to $head_sha; the newer run publishes its own result."
+    exit 0
+  fi
+
   ensure_label "$HUMAN_REVIEW_LABEL" "B60205" "Needs a human code review before merge"
   ensure_label "$FEATURE_LABEL" "0E8A16" "Completes a functional whole worth trying in the app"
 

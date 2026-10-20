@@ -20,17 +20,35 @@ has_label() {
   jq -r --arg label "$2" 'any(.[]; .name == $label)' <<< "$1"
 }
 
-# has_head_approval <reviews_json> <author> <head_sha>: "true" when a reviewer with write access, other than the author,
-# has APPROVED as their latest decisive review and that review is on the head commit.
-has_head_approval() {
+# head_approvers <reviews_json> <author> <head_sha>: logins, other than the author, whose latest decisive review
+# is an APPROVED review of the head commit.
+head_approvers() {
   jq -r --arg author "$2" --arg head "$3" '
     [ .[]
       | select(.user != null and .user.login != $author)
-      | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR")
       | select(.state == "APPROVED" or .state == "CHANGES_REQUESTED" or .state == "DISMISSED") ]
     | group_by(.user.login)
     | map(sort_by(.submitted_at) | last)
-    | any(.[]; .state == "APPROVED" and .commit_id == $head)' <<< "$1"
+    | .[] | select(.state == "APPROVED" and .commit_id == $head) | .user.login' <<< "$1"
+}
+
+# has_write_access <login>: author_association does not imply write access, the collaborator permission does.
+has_write_access() {
+  local permission
+  permission=$(gh api "repos/$REPOSITORY/collaborators/$1/permission" --jq '.permission' 2> /dev/null || echo none)
+  [[ "$permission" == "admin" || "$permission" == "maintain" || "$permission" == "write" ]]
+}
+
+# has_head_approval <reviews_json> <author> <head_sha>: "true" when a writer other than the author approved the head.
+has_head_approval() {
+  local login
+  while IFS= read -r login; do
+    if [ -n "$login" ] && has_write_access "$login"; then
+      echo "true"
+      return
+    fi
+  done < <(head_approvers "$1" "$2" "$3")
+  echo "false"
 }
 
 # base_in_scope <base_ref> <branches_json>: "true" when PRs into this base branch need the AI review.

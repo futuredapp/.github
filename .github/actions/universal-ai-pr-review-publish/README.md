@@ -2,6 +2,7 @@
 
 Publishes the result of an AI PR review run by [`universal-cloud-ai-pr-review`](../../workflows/universal-cloud-ai-pr-review.yml). It runs in a job that holds the write token and never checks out PR code.
 
+0. Does nothing when the PR head has moved past `reviewed_sha`: the run for the newer commit publishes instead.
 1. Creates the `needs-human` and `feature-complete` labels when the repository does not have them yet.
 2. When `risk.level` in the result JSON is `high`, adds `needs-human` and requests a review from `reviewer` first, so a failure there cannot leave a fresh review comment behind.
 3. Creates or updates **one** PR comment written by `github-actions[bot]`, whose first line starts with `<!-- ai-pr-review sha=`. Comments from anyone else are never touched.

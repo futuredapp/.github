@@ -39,38 +39,66 @@ review() {
   printf '{"user":{"login":"%s"},"author_association":"%s","state":"%s","commit_id":"%s","submitted_at":"%s"}' "$@"
 }
 
-@test "has_head_approval: approval of the head by a member counts" {
+@test "head_approvers: approval of the head counts" {
+  reviews="[$(review bob MEMBER APPROVED head 2026-10-01T10:00:00Z)]"
+  [ "$(head_approvers "$reviews" alice head)" = "bob" ]
+}
+
+@test "head_approvers: approval of an older commit does not count" {
+  reviews="[$(review bob MEMBER APPROVED old 2026-10-01T10:00:00Z)]"
+  [ "$(head_approvers "$reviews" alice head)" = "" ]
+}
+
+@test "head_approvers: the author's own approval does not count" {
+  reviews="[$(review alice MEMBER APPROVED head 2026-10-01T10:00:00Z)]"
+  [ "$(head_approvers "$reviews" alice head)" = "" ]
+}
+
+@test "head_approvers: a later change request replaces the approval" {
+  reviews="[$(review bob MEMBER APPROVED head 2026-10-01T10:00:00Z),$(review bob MEMBER CHANGES_REQUESTED head 2026-10-01T11:00:00Z)]"
+  [ "$(head_approvers "$reviews" alice head)" = "" ]
+}
+
+@test "head_approvers: a comment after an approval keeps it" {
+  reviews="[$(review bob MEMBER APPROVED head 2026-10-01T10:00:00Z),$(review bob MEMBER COMMENTED head 2026-10-01T11:00:00Z)]"
+  [ "$(head_approvers "$reviews" alice head)" = "bob" ]
+}
+
+@test "head_approvers: a deleted (ghost) reviewer is ignored" {
+  reviews='[{"user":null,"author_association":"MEMBER","state":"APPROVED","commit_id":"head","submitted_at":"2026-10-01T10:00:00Z"}]'
+  [ "$(head_approvers "$reviews" alice head)" = "" ]
+}
+
+mock_permissions() {
+  mkdir -p "$BATS_TEST_TMPDIR/bin"
+  cat > "$BATS_TEST_TMPDIR/bin/gh" <<'MOCK'
+#!/usr/bin/env bash
+case "$*" in
+  *collaborators/bob/permission*) echo write ;;
+  *collaborators/rita/permission*) echo read ;;
+  *) exit 1 ;;
+esac
+MOCK
+  chmod +x "$BATS_TEST_TMPDIR/bin/gh"
+  PATH="$BATS_TEST_TMPDIR/bin:$PATH"
+  REPOSITORY=acme/app
+}
+
+@test "has_head_approval: a writer's approval of the head counts" {
+  mock_permissions
   reviews="[$(review bob MEMBER APPROVED head 2026-10-01T10:00:00Z)]"
   [ "$(has_head_approval "$reviews" alice head)" = "true" ]
 }
 
-@test "has_head_approval: approval of an older commit does not count" {
-  reviews="[$(review bob MEMBER APPROVED old 2026-10-01T10:00:00Z)]"
+@test "has_head_approval: a member with read access does not count" {
+  mock_permissions
+  reviews="[$(review rita MEMBER APPROVED head 2026-10-01T10:00:00Z)]"
   [ "$(has_head_approval "$reviews" alice head)" = "false" ]
 }
 
-@test "has_head_approval: the author's own approval does not count" {
-  reviews="[$(review alice MEMBER APPROVED head 2026-10-01T10:00:00Z)]"
-  [ "$(has_head_approval "$reviews" alice head)" = "false" ]
-}
-
-@test "has_head_approval: approval from someone without write access does not count" {
+@test "has_head_approval: an unknown user does not count" {
+  mock_permissions
   reviews="[$(review eve NONE APPROVED head 2026-10-01T10:00:00Z)]"
-  [ "$(has_head_approval "$reviews" alice head)" = "false" ]
-}
-
-@test "has_head_approval: a later change request replaces the approval" {
-  reviews="[$(review bob MEMBER APPROVED head 2026-10-01T10:00:00Z),$(review bob MEMBER CHANGES_REQUESTED head 2026-10-01T11:00:00Z)]"
-  [ "$(has_head_approval "$reviews" alice head)" = "false" ]
-}
-
-@test "has_head_approval: a comment after an approval keeps it" {
-  reviews="[$(review bob MEMBER APPROVED head 2026-10-01T10:00:00Z),$(review bob MEMBER COMMENTED head 2026-10-01T11:00:00Z)]"
-  [ "$(has_head_approval "$reviews" alice head)" = "true" ]
-}
-
-@test "has_head_approval: a deleted (ghost) reviewer is ignored" {
-  reviews='[{"user":null,"author_association":"MEMBER","state":"APPROVED","commit_id":"head","submitted_at":"2026-10-01T10:00:00Z"}]'
   [ "$(has_head_approval "$reviews" alice head)" = "false" ]
 }
 

@@ -3,13 +3,13 @@
 Sets a commit status (default context `review-gate`) on the current PR head. Make it a required status check in the branch ruleset to replace a mandatory approval. It is green when one of these holds:
 
 1. **The AI review bot reviewed exactly this commit and found low risk.** The bot's comment (written by `github-actions[bot]`, first line `<!-- ai-pr-review sha=<commit> risk=<low|high> -->`) must name the head commit. Comments from anyone else are ignored, and every push needs a new review.
-2. **High risk, or the `needs-human` label, plus an approval of this commit.** The approval must come from someone other than the author with write access (`OWNER`, `MEMBER`, `COLLABORATOR`), as their latest decisive review, on the head commit. Removing the label does not lower a high-risk result.
+2. **High risk, or the `needs-human` label, plus an approval of this commit.** The approval must come from someone other than the author whose repository permission is write, maintain or admin, as their latest decisive review, on the head commit. Removing the label does not lower a high-risk result.
 3. **An approval of the head commit without any AI review.** This is the escape hatch for an AI outage and for bot-authored PRs.
 4. **The PR targets a branch outside `review_base_branches`** (default `["develop"]`), e.g. a release PR into `main`.
 
 Otherwise it is `pending`, with a description saying what is missing.
 
-It runs from [`universal-cloud-review-gate`](../../workflows/universal-cloud-review-gate.yml) on PR and review events, and at the end of every AI review run. The AI review run is needed because a comment created with `GITHUB_TOKEN` does not trigger other workflows.
+It runs from [`universal-cloud-review-gate`](../../workflows/universal-cloud-review-gate.yml) on PR events (including `edited`, so a retargeted PR is re-evaluated) and review events, and at the end of every AI review run. The AI review run is needed because a comment created with `GITHUB_TOKEN` does not trigger other workflows.
 
 ## Usage
 
