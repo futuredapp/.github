@@ -95,9 +95,11 @@ runs:
       id: resolve_range
       shell: bash
       if: steps.determine_skip.outputs.skip == 'false' && steps.determine_range.outputs.from_commit != ''
+      # Best effort: the fallback range start (a parent commit) can lie outside a shallow clone.
+      # An unresolvable range leaves the outputs empty instead of failing the build.
       run: |
-        echo "from_sha=$(git rev-parse "$FROM_COMMIT")" >> "$GITHUB_OUTPUT"
-        echo "to_sha=$(git rev-parse "$TO_COMMIT")" >> "$GITHUB_OUTPUT"
+        echo "from_sha=$(git rev-parse --verify --quiet "${FROM_COMMIT}^{commit}" || true)" >> "$GITHUB_OUTPUT"
+        echo "to_sha=$(git rev-parse --verify --quiet "${TO_COMMIT}^{commit}" || true)" >> "$GITHUB_OUTPUT"
       env:
         FROM_COMMIT: ${{ steps.determine_range.outputs.from_commit }}
         TO_COMMIT: ${{ steps.determine_range.outputs.to_commit }}
