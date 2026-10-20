@@ -167,12 +167,16 @@ jobs:
           disallowed="Bash,WebFetch,WebSearch,Write,Edit,NotebookEdit,ScheduleWakeup,CronCreate,CronDelete,Monitor,RemoteTrigger"
           guard="Review only the files in .ai-review-context and the repository. If you cannot run the review skill or cannot read the PR diff, return risk level high with zone Not reviewed and say why in not_covered."
           {
-            echo "claude_args=--model \"$MODEL\" --permission-mode dontAsk --allowedTools \"$allowed\" --disallowedTools \"$disallowed\" --append-system-prompt \"$guard\" --json-schema '$schema'"
+            echo "claude_args=--model \"$MODEL\" --permission-mode dontAsk --strict-mcp-config --setting-sources user --allowedTools \"$allowed\" --disallowedTools \"$disallowed\" --append-system-prompt \"$guard\" --json-schema '$schema'"
             echo "prompt=Run /$SKILL $PR_NUMBER on this repository and return its JSON result."
           } >> "$GITHUB_OUTPUT"
-          # Tokens the action writes to .git/config and the process environment stay unreadable for the Read tool.
+          # Read stays usable for the repository and the installed skill, but not for anything holding credentials:
+          # the token the action writes to .git/config, the process environment, and the usual credential stores.
           jq -cn '{permissions: {deny: [
-            "Read(**/.git/**)", "Read(//proc/**)", "Read(~/.git-credentials)", "Read(~/.config/gh/**)"
+            "Read(**/.git/**)", "Read(//proc/**)", "Read(//etc/**)", "Read(//root/**)",
+            "Read(~/.git-credentials)", "Read(~/.config/**)", "Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.docker/**)",
+            "Read(~/.gnupg/**)", "Read(~/.kube/**)", "Read(~/.netrc)", "Read(~/.npmrc)", "Read(~/.gem/**)",
+            "Read(~/.claude.json)", "Read(~/.claude/.credentials.json)"
           ]}}' > "$RUNNER_TEMP/claude-settings.json"
           echo "settings=$RUNNER_TEMP/claude-settings.json" >> "$GITHUB_OUTPUT"
 
