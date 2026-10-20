@@ -151,7 +151,7 @@ All iOS actions support:
 - `universal-cloud-review-gate`: Sets the `review-gate` commit status — green once the AI review commented and, for `needs-human` PRs, a reviewer approved
 
 ### Feature review
-- `ios-selfhosted-nightly-build` announces PRs labeled `feature-complete` on Slack after a successful build (`universal-feature-review-notify`, optional `SLACK_WEBHOOK_FEATURE_REVIEW` secret)
+- `ios-selfhosted-nightly-build` and `ios-selfhosted-on-demand-build` announce PRs labeled `feature-complete` on Slack after a successful build (`universal-feature-review-notify`, optional `SLACK_WEBHOOK_FEATURE_REVIEW` secret)
 
 ## Important Conventions
 
