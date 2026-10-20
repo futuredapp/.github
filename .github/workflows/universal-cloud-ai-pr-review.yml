@@ -159,10 +159,19 @@ jobs:
           gh pr view "$PR_NUMBER" --json number,title,body,labels,baseRefName,headRefName,author,files,commits > "$CONTEXT_DIR/pr.json"
           git diff "origin/$BASE_REF...HEAD" > "$CONTEXT_DIR/diff.patch"
           git diff --name-status "origin/$BASE_REF...HEAD" > "$CONTEXT_DIR/changed-files.txt"
-          # Rules come from the base branch, so a PR cannot rewrite the rules it is judged by.
-          git ls-tree -r --name-only "origin/$BASE_REF" | { grep -E '(^|/)(AGENTS|CLAUDE)\.md$' || true; } | while IFS= read -r path; do
+          # Rules come from the base branch, so a PR cannot rewrite the rules it is judged by: the PR's own
+          # AGENTS.md / CLAUDE.md / .claude are replaced in the working tree, which also keeps Claude Code
+          # from loading them as project memory. The diff above still shows the PR's changes to them.
+          rules='(^|/)(AGENTS|CLAUDE|CLAUDE\.local)\.md$|^\.claude/'
+          git ls-files | { grep -E "$rules" || true; } | while IFS= read -r path; do rm -f "./$path"; done
+          rm -rf ./.claude
+          git ls-tree -r --name-only "origin/$BASE_REF" | { grep -E "$rules" || true; } > "$RUNNER_TEMP/base-rules.txt"
+          if [ -s "$RUNNER_TEMP/base-rules.txt" ]; then
+            git restore --source "origin/$BASE_REF" --worktree --pathspec-from-file="$RUNNER_TEMP/base-rules.txt"
+          fi
+          { grep -E '\.md$' "$RUNNER_TEMP/base-rules.txt" || true; } | while IFS= read -r path; do
             mkdir -p "$CONTEXT_DIR/base/$(dirname "$path")"
-            git show "origin/$BASE_REF:$path" > "$CONTEXT_DIR/base/$path" || true
+            cp -L "$path" "$CONTEXT_DIR/base/$path" 2> /dev/null || true
           done
           wc -l "$CONTEXT_DIR/diff.patch"
 
@@ -200,7 +209,7 @@ jobs:
           fi
           # No shell, no network, no writes: PR content can steer the model, so the model gets nothing to act with.
           allowed="Skill,Agent,Read,Grep,Glob"
-          disallowed="Bash,WebFetch,WebSearch,Write,Edit,NotebookEdit,ScheduleWakeup,CronCreate,CronDelete,Monitor,RemoteTrigger"
+          disallowed="Bash,WebFetch,WebSearch,Write,Edit,NotebookEdit,ScheduleWakeup,CronCreate,CronDelete,CronList,Monitor,RemoteTrigger,Workflow,EnterWorktree,ExitWorktree,PushNotification,DesignSync,SendMessage,TaskStop"
           guard="Review only the files in .ai-review-context and the repository. If you cannot run the review skill or cannot read the PR diff, return risk level high with zone Not reviewed and say why in not_covered."
           {
             echo "claude_args=--model \"$MODEL\" --permission-mode dontAsk --strict-mcp-config --setting-sources user --allowedTools \"$allowed\" --disallowedTools \"$disallowed\" --append-system-prompt \"$guard\" --json-schema '$schema'"
@@ -222,8 +231,6 @@ jobs:
         continue-on-error: true
         timeout-minutes: ${{ inputs.timeout_minutes }}
         uses: anthropics/claude-code-action@1d6de8cb0c237e7c15e9e1bdf973826ebae490cc # v1.0.248
-        env:
-          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
