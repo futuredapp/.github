@@ -11,17 +11,24 @@ bot_comment() {
 }
 
 @test "review_meta: reads sha and risk from the newest bot comment" {
-  comments="[$(bot_comment "$BOT" '<!-- ai-pr-review sha=aaaaaaa risk=low -->'),$(bot_comment "$BOT" '<!-- ai-pr-review sha=bbbbbbb risk=high -->')]"
-  [ "$(review_meta "$comments" "$MARK" "$BOT")" = "bbbbbbb high" ]
+  comments="[$(bot_comment "$BOT" '<!-- ai-pr-review sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa risk=low -->'),$(bot_comment "$BOT" '<!-- ai-pr-review sha=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb risk=high -->')]"
+  [ "$(review_meta "$comments" "$MARK" "$BOT")" = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb high" ]
 }
 
 @test "review_meta: a marker comment from anyone else is ignored" {
-  comments="[$(bot_comment mallory '<!-- ai-pr-review sha=bbbbbbb risk=low -->')]"
+  comments="[$(bot_comment mallory '<!-- ai-pr-review sha=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb risk=low -->')]"
   [ "$(review_meta "$comments" "$MARK" "$BOT")" = "" ]
 }
 
 @test "review_meta: a bot comment without sha or risk does not count" {
   comments="[$(bot_comment "$BOT" '<!-- ai-pr-review -->')]"
+  [ "$(review_meta "$comments" "$MARK" "$BOT")" = "" ]
+}
+
+@test "review_meta: a short sha or extra text on the marker line does not count" {
+  comments="[$(bot_comment "$BOT" '<!-- ai-pr-review sha=0123456 risk=low -->')]"
+  [ "$(review_meta "$comments" "$MARK" "$BOT")" = "" ]
+  comments="[$(bot_comment "$BOT" '<!-- ai-pr-review sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa risk=low --> risk=high')]"
   [ "$(review_meta "$comments" "$MARK" "$BOT")" = "" ]
 }
 
@@ -116,8 +123,9 @@ MOCK
   [ "$(decide true oldsha low 0123456789 false false needs-human)" = "pending|Waiting for the AI review of 0123456. Comment /review to run it." ]
 }
 
-@test "decide: a short reviewed sha matches the head" {
-  [ "$(decide true 0123456 low 0123456789 false false needs-human)" = "success|AI review done." ]
+@test "decide: only the exact head sha counts as reviewed" {
+  [ "$(decide true 0123456789aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa low 0123456789aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa false false needs-human)" = "success|AI review done." ]
+  [ "$(decide true 0123456789 low 0123456789aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa false false needs-human)" = "pending|Waiting for the AI review of 0123456. Comment /review to run it." ]
 }
 
 @test "decide: an approval of the head passes without the bot (outage, bot PRs)" {
@@ -125,13 +133,25 @@ MOCK
 }
 
 @test "decide: high risk waits for an approval even if the label was removed" {
-  [ "$(decide true 0123456 high 0123456789 false false needs-human)" = "pending|Needs a human review: waiting for an approval of this commit." ]
+  [ "$(decide true 0123456789aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa high 0123456789aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa false false needs-human)" = "pending|Needs a human review: waiting for an approval of this commit." ]
 }
 
 @test "decide: the label asks for a human even on low risk" {
-  [ "$(decide true 0123456 low 0123456789 true false needs-human)" = "pending|Needs a human review: waiting for an approval of this commit." ]
+  [ "$(decide true 0123456789aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa low 0123456789aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa true false needs-human)" = "pending|Needs a human review: waiting for an approval of this commit." ]
 }
 
 @test "decide: high risk with an approval of the head passes" {
-  [ "$(decide true 0123456 high 0123456789 false true needs-human)" = "success|AI review done, human review approved." ]
+  [ "$(decide true 0123456789aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa high 0123456789aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa false true needs-human)" = "success|AI review done, human review approved." ]
+}
+
+pull() {
+  printf '{"state":"%s","head":{"sha":"%s"},"base":{"ref":"%s"}}' "$@"
+}
+
+@test "shared_with_reviewed_pr: a hotfix commit also open into develop is left to that PR" {
+  [ "$(shared_with_reviewed_pr "[$(pull open abc main),$(pull open abc develop)]" abc '["develop"]')" = "true" ]
+}
+
+@test "shared_with_reviewed_pr: a closed PR or another head does not count" {
+  [ "$(shared_with_reviewed_pr "[$(pull open abc main),$(pull closed abc develop),$(pull open def develop)]" abc '["develop"]')" = "false" ]
 }

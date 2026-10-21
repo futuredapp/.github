@@ -64,6 +64,15 @@ flag_for_human_review() {
   fi
 }
 
+# fail <message>: keeps one sticky failure note on the PR, so a missing review is visible there, then fails the job.
+fail() {
+  printf '%s\nAI review did not produce a result for this commit ([run log](%s)). Comment `/review` to try again, or get an approval.\n' \
+    "$FAILURE_MARKER" "$RUN_URL" > "$RUNNER_TEMP/ai-review-failure.md"
+  upsert_comment "$FAILURE_MARKER" "$RUNNER_TEMP/ai-review-failure.md"
+  echo "::error::$1"
+  exit 1
+}
+
 main() {
   local head_sha
   head_sha=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')
@@ -78,18 +87,14 @@ main() {
   local first_line=""
   [ -s "$BODY_FILE" ] && { IFS= read -r first_line < "$BODY_FILE" || true; }
   if [ ! -s "$RESULT_FILE" ] || [[ "$first_line" != "$MARKER"* ]]; then
-    printf '%s\nAI review did not produce a result for this commit ([run log](%s)). Comment `/review` to try again, or get an approval.\n' \
-      "$FAILURE_MARKER" "$RUN_URL" > "$RUNNER_TEMP/ai-review-failure.md"
-    upsert_comment "$FAILURE_MARKER" "$RUNNER_TEMP/ai-review-failure.md"
-    echo "::error::AI review produced no result."
-    exit 1
+    fail "AI review produced no result."
   fi
 
   # Label before comment: if labeling fails, no fresh review comment can turn the gate green.
   if [ "$(jq -r '.risk.level' "$RESULT_FILE")" = "high" ]; then
     flag_for_human_review
   fi
-  upsert_comment "$MARKER" "$BODY_FILE"
+  upsert_comment "$MARKER" "$BODY_FILE" || fail "The review comment could not be posted."
   delete_failure_note
 }
 

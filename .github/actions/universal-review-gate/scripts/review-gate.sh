@@ -5,14 +5,13 @@
 set -euo pipefail
 
 # review_meta <comments_json> <marker> <bot_login>: "sha risk" from the newest marker comment written by the bot, or empty.
-# The marker's first line looks like: <!-- ai-pr-review sha=<commit> risk=<low|high> -->
+# The first line must be exactly: <!-- ai-pr-review sha=<40-character commit> risk=<low|high> -->
 review_meta() {
   jq -r --arg marker "$2" --arg bot "$3" '
     [ .[] | select(.user.login == $bot) | select((.body // "") | startswith($marker)) ]
-    | last | (.body // "") | split("\n")[0]
-    | (capture("sha=(?<sha>[0-9a-f]{7,40})") // {}) as $s
-    | (capture("risk=(?<risk>low|high)") // {}) as $r
-    | if $s.sha and $r.risk then "\($s.sha) \($r.risk)" else empty end' <<< "$1"
+    | last | (.body // "") | split("\n")[0] | rtrimstr("\r")
+    | (capture("^<!-- ai-pr-review sha=(?<sha>[0-9a-f]{40}) risk=(?<risk>low|high) -->$") // empty)
+    | "\(.sha) \(.risk)"' <<< "$1"
 }
 
 # has_label <labels_json> <label>: "true" when the PR carries the label.
@@ -56,13 +55,21 @@ base_in_scope() {
   jq -rn --arg base "$1" --argjson branches "$2" '$branches | index($base) != null'
 }
 
+# shared_with_reviewed_pr <pulls_json> <head_sha> <branches_json>: "true" when another open PR with this head commit
+# goes into a reviewed base branch. A commit status belongs to the commit, so a green status set for a PR into main
+# would also pass the same commit's PR into develop (the usual hotfix pair).
+shared_with_reviewed_pr() {
+  jq -r --arg head "$2" --argjson branches "$3" '
+    any(.[]; .base.ref as $base | .state == "open" and .head.sha == $head and ($branches | index($base) != null))' <<< "$1"
+}
+
 # decide <in_scope> <reviewed_sha> <risk> <head_sha> <labeled> <approved> <label>: prints "state|description".
 decide() {
   local in_scope="$1" reviewed_sha="$2" risk="$3" head_sha="$4" labeled="$5" approved="$6" label="$7"
 
   if [ "$in_scope" != "true" ]; then
     echo "success|No AI review required for this base branch."
-  elif [ -z "$reviewed_sha" ] || [[ "$head_sha" != "$reviewed_sha"* ]]; then
+  elif [ -z "$reviewed_sha" ] || [ "$head_sha" != "$reviewed_sha" ]; then
     if [ "$approved" = "true" ]; then
       echo "success|Approved by a reviewer; no AI review of this commit."
     else
@@ -80,7 +87,7 @@ decide() {
 }
 
 main() {
-  local pr_json head_sha author base labels comments reviews meta reviewed_sha="" risk="" in_scope labeled approved decision
+  local pr_json head_sha author base labels comments reviews pulls meta reviewed_sha="" risk="" in_scope labeled approved decision
 
   pr_json=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER")
   head_sha=$(jq -r '.head.sha' <<< "$pr_json")
@@ -96,6 +103,13 @@ main() {
     risk="${meta#* }"
   fi
   in_scope=$(base_in_scope "$base" "$REVIEW_BASE_BRANCHES")
+  if [ "$in_scope" != "true" ]; then
+    pulls=$(gh api "repos/$REPOSITORY/commits/$head_sha/pulls")
+    if [ "$(shared_with_reviewed_pr "$pulls" "$head_sha" "$REVIEW_BASE_BRANCHES")" = "true" ]; then
+      echo "Review gate for #$PR_NUMBER at $head_sha: left to the open PR with this commit into a reviewed branch."
+      return
+    fi
+  fi
   labeled=$(has_label "$labels" "$HUMAN_REVIEW_LABEL")
   approved=$(has_head_approval "$reviews" "$author" "$head_sha")
   decision=$(decide "$in_scope" "$reviewed_sha" "$risk" "$head_sha" "$labeled" "$approved" "$HUMAN_REVIEW_LABEL")

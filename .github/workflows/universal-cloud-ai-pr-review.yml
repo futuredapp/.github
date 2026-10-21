@@ -41,6 +41,10 @@ on:
         description: 'Timeout of the Claude run in minutes (keep it under 25: the review job stops at 30).'
         type: number
         default: 15
+      protected_paths:
+        description: 'Extended regex of changed paths that make the PR high risk whatever the model says. Empty turns it off.'
+        type: string
+        default: '(^|/)(AGENTS|CLAUDE|CLAUDE\.local)\.md$|(^|/)\.claude/|^\.github/|(^|/)\.gitattributes$|(^|/)fastlane/|(^|/)(Gemfile|Podfile|Cartfile)(\.lock|\.resolved)?$|(^|/)Package\.resolved$|\.entitlements$|(^|/)PrivacyInfo\.xcprivacy$|\.xcconfig$'
 
     secrets:
       ANTHROPIC_API_KEY:
@@ -157,21 +161,36 @@ jobs:
           rm -rf "$CONTEXT_DIR"
           mkdir -p "$CONTEXT_DIR/base"
           gh pr view "$PR_NUMBER" --json number,title,body,labels,baseRefName,headRefName,author,files,commits > "$CONTEXT_DIR/pr.json"
-          git diff "origin/$BASE_REF...HEAD" > "$CONTEXT_DIR/diff.patch"
+          # Attributes come from an empty tree, not from the PR: a PR's .gitattributes could otherwise mark its
+          # own code as binary (hiding it from the diff) or re-encode the base rules restored below.
+          empty_tree=$(git hash-object -t tree /dev/null)
+          git --attr-source="$empty_tree" diff --no-textconv --no-ext-diff "origin/$BASE_REF...HEAD" > "$CONTEXT_DIR/diff.patch"
           git diff --name-status "origin/$BASE_REF...HEAD" > "$CONTEXT_DIR/changed-files.txt"
+          git diff --name-only -z "origin/$BASE_REF...HEAD" > "$RUNNER_TEMP/changed-paths"
           # Rules come from the base branch, so a PR cannot rewrite the rules it is judged by: the PR's own
           # AGENTS.md / CLAUDE.md / .claude are replaced in the working tree, which also keeps Claude Code
           # from loading them as project memory. The diff above still shows the PR's changes to them.
-          rules='(^|/)(AGENTS|CLAUDE|CLAUDE\.local)\.md$|^\.claude/'
-          git ls-files | { grep -E "$rules" || true; } | while IFS= read -r path; do rm -f "./$path"; done
-          rm -rf ./.claude
-          git ls-tree -r --name-only "origin/$BASE_REF" | { grep -E "$rules" || true; } > "$RUNNER_TEMP/base-rules.txt"
+          # Paths are NUL-separated: git quotes non-ASCII and unusual names otherwise, and they would slip through.
+          rules='(^|/)(AGENTS|CLAUDE|CLAUDE\.local)\.md$|(^|/)\.claude/'
+          git ls-files -z | { grep -zE "$rules" || true; } | xargs -0 -r rm -f --
+          find . -path ./.git -prune -o -type d -name .claude -print0 | xargs -0 -r rm -rf --
+          git ls-tree -r -z --name-only "origin/$BASE_REF" | { grep -zE "$rules" || true; } > "$RUNNER_TEMP/base-rules.txt"
           if [ -s "$RUNNER_TEMP/base-rules.txt" ]; then
-            git restore --source "origin/$BASE_REF" --worktree --pathspec-from-file="$RUNNER_TEMP/base-rules.txt"
+            git --attr-source="$empty_tree" --literal-pathspecs restore --source "origin/$BASE_REF" --worktree \
+              --pathspec-from-file="$RUNNER_TEMP/base-rules.txt" --pathspec-file-nul
           fi
-          { grep -E '\.md$' "$RUNNER_TEMP/base-rules.txt" || true; } | while IFS= read -r path; do
+          while IFS= read -r -d '' path; do
+            case "$path" in *.md) ;; *) continue ;; esac
             mkdir -p "$CONTEXT_DIR/base/$(dirname "$path")"
             cp -L "$path" "$CONTEXT_DIR/base/$path" 2> /dev/null || true
+          done < "$RUNNER_TEMP/base-rules.txt"
+          # The model may read only the checkout: symlinks that lead out of it or into .git are removed.
+          find . -path ./.git -prune -o -type l -print0 | while IFS= read -r -d '' link; do
+            case "$(realpath -m -- "$link")" in
+              "$PWD/.git" | "$PWD/.git/"*) rm -f -- "$link" ;;
+              "$PWD/"*) ;;
+              *) rm -f -- "$link" ;;
+            esac
           done
           wc -l "$CONTEXT_DIR/diff.patch"
 
@@ -208,17 +227,19 @@ jobs:
             exit 1
           fi
           # No shell, no network, no writes: PR content can steer the model, so the model gets nothing to act with.
-          allowed="Skill,Agent,Read,Grep,Glob"
+          # Read, Grep and Glob are not allowed outright: they work inside the checkout only (anything else would ask,
+          # and dontAsk denies it), plus the installed plugin's own files.
+          allowed="Skill,Agent,Read(~/.claude/plugins/**)"
           disallowed="Bash,WebFetch,WebSearch,Write,Edit,NotebookEdit,ScheduleWakeup,CronCreate,CronDelete,CronList,Monitor,RemoteTrigger,Workflow,EnterWorktree,ExitWorktree,PushNotification,DesignSync,SendMessage,TaskStop"
           guard="Review only the files in .ai-review-context and the repository. If you cannot run the review skill or cannot read the PR diff, return risk level high with zone Not reviewed and say why in not_covered."
           {
             echo "claude_args=--model \"$MODEL\" --permission-mode dontAsk --strict-mcp-config --setting-sources user --allowedTools \"$allowed\" --disallowedTools \"$disallowed\" --append-system-prompt \"$guard\" --json-schema '$schema'"
             echo "prompt=Run /$SKILL $PR_NUMBER on this repository and return its JSON result."
           } >> "$GITHUB_OUTPUT"
-          # Read stays usable for the repository and the installed skill, but not for anything holding credentials:
-          # the token the action writes to .git/config, the process environment, and the usual credential stores.
-          jq -cn '{permissions: {deny: [
-            "Read(**/.git/**)", "Read(//proc/**)", "Read(//etc/**)", "Read(//root/**)",
+          # Defense in depth on top of the checkout-only reads: never anything holding credentials, such as the token
+          # the action writes to .git/config, the process environment, the runner temp dir and credential stores.
+          jq -cn --arg temp "Read(/$RUNNER_TEMP/**)" '{permissions: {deny: [
+            "Read(**/.git/**)", "Read(//proc/**)", "Read(//etc/**)", "Read(//root/**)", $temp,
             "Read(~/.git-credentials)", "Read(~/.config/**)", "Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.docker/**)",
             "Read(~/.gnupg/**)", "Read(~/.kube/**)", "Read(~/.netrc)", "Read(~/.npmrc)", "Read(~/.gem/**)",
             "Read(~/.claude.json)", "Read(~/.claude/.credentials.json)"
@@ -247,12 +268,22 @@ jobs:
           RESULT: ${{ steps.claude.outputs.structured_output }}
           SKILL_PATH: ${{ inputs.skill_path }}
           HEAD_SHA: ${{ steps.ctx.outputs.head_sha }}
+          PROTECTED_PATHS: ${{ inputs.protected_paths }}
         run: |
           out="$RUNNER_TEMP/ai-review-out"
           mkdir -p "$out"
           : > "$out/result.json"
           : > "$out/comment.md"
           if printf '%s' "$RESULT" | jq -e '(.risk.level == "low" or .risk.level == "high") and (.findings | type == "array") and (.summary | type == "string")' > /dev/null 2>&1; then
+            protected=""
+            if [ -n "$PROTECTED_PATHS" ] && [ -s "$RUNNER_TEMP/changed-paths" ]; then
+              protected=$(tr '\0' '\n' < "$RUNNER_TEMP/changed-paths" | { grep -E "$PROTECTED_PATHS" || true; } | head -n 3 | paste -sd ' ' -)
+            fi
+            # Changes to CI, rules, dependencies and signing always get a human, whatever the PR talked the model into.
+            if [ -n "$protected" ]; then
+              RESULT=$(printf '%s' "$RESULT" | jq -c --arg files "$protected" '
+                if .risk.level == "low" then .risk = {level: "high", zones: [{zone: "Protected paths", reason: ("Changes " + $files)}], look_at: []} else . end')
+            fi
             printf '%s' "$RESULT" > "$out/result.json"
             python3 -I "$RUNNER_TEMP/claude-marketplace/$SKILL_PATH/scripts/render-comment.py" "$out/result.json" \
               --sha "$HEAD_SHA" > "$out/comment.md" || : > "$out/comment.md"
@@ -280,7 +311,6 @@ jobs:
     permissions:
       pull-requests: write
       issues: write
-      statuses: write
 
     steps:
       - name: Download result
@@ -300,8 +330,24 @@ jobs:
           body_file: ${{ runner.temp }}/ai-review-out/comment.md
           reviewer: ${{ inputs.reviewer }}
 
+  gate:
+    name: Review gate
+    needs: [review, publish]
+    # The comment posted with GITHUB_TOKEN triggers no workflow, so the gate is re-evaluated here.
+    if: always() && needs.review.result != 'skipped' && needs.publish.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+      pull-requests: read
+      issues: read
+    # Same group as the gate workflow: evaluations of one PR run one at a time, so an older one never lands last.
+    concurrency:
+      group: review-gate-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: false
+
+    steps:
       - name: Update review gate
-        if: always()
         uses: futuredapp/.github/.github/actions/universal-review-gate@main
         with:
           github_token: ${{ github.token }}

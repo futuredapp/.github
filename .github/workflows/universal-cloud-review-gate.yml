@@ -21,6 +21,10 @@ jobs:
       statuses: write
       pull-requests: read
       issues: read
+    # Evaluations of one PR run one at a time, so an older one never lands last. The AI review workflow uses the same group.
+    concurrency:
+      group: review-gate-${{ github.repository }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
 
     steps:
       - name: Update review gate
