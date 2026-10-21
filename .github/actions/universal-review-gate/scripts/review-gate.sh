@@ -10,7 +10,7 @@ review_meta() {
   jq -r --arg marker "$2" --arg bot "$3" '
     [ .[] | select(.user.login == $bot) | select((.body // "") | startswith($marker)) ]
     | last | (.body // "") | split("\n")[0] | rtrimstr("\r")
-    | (capture("^<!-- ai-pr-review sha=(?<sha>[0-9a-f]{40}) risk=(?<risk>low|high) -->$") // empty)
+    | capture("^<!-- ai-pr-review sha=(?<sha>[0-9a-f]{40}) risk=(?<risk>low|high) -->$")
     | "\(.sha) \(.risk)"' <<< "$1"
 }
 
@@ -104,7 +104,7 @@ main() {
   fi
   in_scope=$(base_in_scope "$base" "$REVIEW_BASE_BRANCHES")
   if [ "$in_scope" != "true" ]; then
-    pulls=$(gh api "repos/$REPOSITORY/commits/$head_sha/pulls")
+    pulls=$(gh api --paginate --slurp "repos/$REPOSITORY/pulls?state=open&per_page=100" | jq -c 'add // []')
     if [ "$(shared_with_reviewed_pr "$pulls" "$head_sha" "$REVIEW_BASE_BRANCHES")" = "true" ]; then
       echo "Review gate for #$PR_NUMBER at $head_sha: left to the open PR with this commit into a reviewed branch."
       return

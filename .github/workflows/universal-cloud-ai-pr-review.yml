@@ -42,9 +42,9 @@ on:
         type: number
         default: 15
       protected_paths:
-        description: 'Extended regex of changed paths that make the PR high risk whatever the model says. Empty turns it off.'
+        description: 'Extended regex (case-insensitive) of changed paths that make the PR high risk whatever the model says. Empty turns it off.'
         type: string
-        default: '(^|/)(AGENTS|CLAUDE|CLAUDE\.local)\.md$|(^|/)\.claude/|^\.github/|(^|/)\.gitattributes$|(^|/)fastlane/|(^|/)(Gemfile|Podfile|Cartfile)(\.lock|\.resolved)?$|(^|/)Package\.resolved$|\.entitlements$|(^|/)PrivacyInfo\.xcprivacy$|\.xcconfig$'
+        default: '(^|/)(AGENTS|CLAUDE|CLAUDE\.local)\.md$|(^|/)\.claude/|^\.github/|(^|/)\.gitattributes$|(^|/)\.gitmodules$|(^|/)fastlane/|(^|/)(Gemfile|Podfile|Cartfile)(\.lock|\.resolved)?$|(^|/)Package\.resolved$|\.entitlements$|(^|/)PrivacyInfo\.xcprivacy$|\.xcconfig$'
 
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
@@ -153,6 +153,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ steps.ctx.outputs.pr }}
           BASE_REF: ${{ steps.ctx.outputs.base_ref }}
+          PROTECTED_PATHS: ${{ inputs.protected_paths }}
         run: |
           # The skill reads only these files: no shell access is needed during the review.
           rm -rf "$CONTEXT_DIR"
@@ -163,7 +164,6 @@ jobs:
           empty_tree=$(git hash-object -t tree /dev/null)
           git --attr-source="$empty_tree" diff --no-textconv --no-ext-diff "origin/$BASE_REF...HEAD" > "$CONTEXT_DIR/diff.patch"
           git diff --name-status "origin/$BASE_REF...HEAD" > "$CONTEXT_DIR/changed-files.txt"
-          git diff --name-only -z "origin/$BASE_REF...HEAD" > "$RUNNER_TEMP/changed-paths"
           # Rules come from the base branch, so a PR cannot rewrite the rules it is judged by: the PR's own
           # AGENTS.md / CLAUDE.md / .claude are replaced in the working tree, which also keeps Claude Code
           # from loading them as project memory. The diff above still shows the PR's changes to them.
@@ -189,7 +189,22 @@ jobs:
               *) rm -f -- "$link" ;;
             esac
           done
-          wc -l "$CONTEXT_DIR/diff.patch"
+          # Changes that make the PR high risk whatever the PR talks the model into, one reason per line. Renames count
+          # with both paths; a source file git shows as binary (a NUL byte hides it from the diff) counts too.
+          text_files='\.(swift|m|mm|h|c|cc|cpp|kt|kts|java|js|ts|py|rb|sh|ya?ml|json|plist|pbxproj|xcconfig|strings|stringsdict|xcstrings|entitlements|md|gradle|toml)$'
+          {
+            if [ -n "$PROTECTED_PATHS" ]; then
+              git diff --name-only -z --no-renames "origin/$BASE_REF...HEAD" | tr '\0' '\n' \
+                | { grep -Ei "$PROTECTED_PATHS" || true; } | head -n 3 | sed 's/^/Changes /'
+            fi
+            git --attr-source="$empty_tree" diff --numstat -z --no-renames "origin/$BASE_REF...HEAD" | tr '\0' '\n' \
+              | awk -F'\t' '$1 == "-" && $2 == "-" { print $3 }' | { grep -Ei "$text_files" || true; } | head -n 3 \
+              | sed 's/^/Shows as binary: /'
+            if grep -qE '^\+[[:space:]]*shellScript = ' "$CONTEXT_DIR/diff.patch"; then
+              echo "Adds or changes a build script phase"
+            fi
+          } > "$RUNNER_TEMP/forced-high.txt"
+          wc -l "$CONTEXT_DIR/diff.patch" "$RUNNER_TEMP/forced-high.txt"
 
       - name: Fetch marketplace
         if: steps.ctx.outputs.run == 'true'
@@ -264,21 +279,18 @@ jobs:
           RESULT: ${{ steps.claude.outputs.structured_output }}
           SKILL_PATH: ${{ inputs.skill_path }}
           HEAD_SHA: ${{ steps.ctx.outputs.head_sha }}
-          PROTECTED_PATHS: ${{ inputs.protected_paths }}
         run: |
           out="$RUNNER_TEMP/ai-review-out"
           mkdir -p "$out"
           : > "$out/result.json"
           : > "$out/comment.md"
           if printf '%s' "$RESULT" | jq -e '(.risk.level == "low" or .risk.level == "high") and (.findings | type == "array") and (.summary | type == "string")' > /dev/null 2>&1; then
-            protected=""
-            if [ -n "$PROTECTED_PATHS" ] && [ -s "$RUNNER_TEMP/changed-paths" ]; then
-              protected=$(tr '\0' '\n' < "$RUNNER_TEMP/changed-paths" | { grep -E "$PROTECTED_PATHS" || true; } | head -n 3 | paste -sd ' ' -)
-            fi
-            # Changes to CI, rules, dependencies and signing always get a human, whatever the PR talked the model into.
-            if [ -n "$protected" ]; then
-              RESULT=$(printf '%s' "$RESULT" | jq -c --arg files "$protected" '
-                if .risk.level == "low" then .risk = {level: "high", zones: [{zone: "Protected paths", reason: ("Changes " + $files)}], look_at: []} else . end')
+            # Changes to CI, rules, dependencies, signing and build scripts always get a human.
+            if [ -s "$RUNNER_TEMP/forced-high.txt" ]; then
+              RESULT=$(printf '%s' "$RESULT" | jq -c --rawfile reasons "$RUNNER_TEMP/forced-high.txt" '
+                if .risk.level == "low" then .risk = {level: "high", look_at: [],
+                  zones: [{zone: "Protected change", reason: ($reasons | split("\n") | map(select(length > 0)) | join("; "))}]}
+                else . end')
             fi
             printf '%s' "$RESULT" > "$out/result.json"
             python3 -I "$RUNNER_TEMP/claude-marketplace/$SKILL_PATH/scripts/render-comment.py" "$out/result.json" \
