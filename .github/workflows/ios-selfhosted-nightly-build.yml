@@ -89,8 +89,12 @@ jobs:
       - name: Set changelog
         if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
         id: set_changelog
+        env:
+          CHANGELOG: ${{ steps.detect_changes.outputs.changelog }}
         run: |
-          echo "changelog=${{ steps.detect_changes.outputs.changelog }}" >> "$GITHUB_OUTPUT"
+          # The changelog is built from PR titles: it goes through env, never into the script text.
+          delimiter="changelog_$(uuidgen)"
+          printf 'changelog<<%s\n%s\n%s\n' "$delimiter" "$CHANGELOG" "$delimiter" >> "$GITHUB_OUTPUT"
 
       - name: Export secrets
         if: ${{ steps.detect_changes.outputs.skip_build == 'false' && inputs.xcconfig_path != '' }}
