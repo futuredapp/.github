@@ -39,6 +39,12 @@ outputs:
   merged_branches:
     description: 'List of merged branch names'
     value: ${{ steps.generate_changelog.outputs.merged_branches }}
+  from_commit:
+    description: 'SHA of the commit the build range starts after (empty when the build is skipped)'
+    value: ${{ steps.resolve_range.outputs.from_sha }}
+  to_commit:
+    description: 'SHA of the last commit in the build range (empty when the build is skipped)'
+    value: ${{ steps.resolve_range.outputs.to_sha }}
   cache_key:
     description: 'Cache key to store latest built commit for this branch'
     value: ${{ steps.cache_keys.outputs.cache_key_prefix }}-${{ github.sha }}
@@ -84,6 +90,19 @@ runs:
       run: |
         # Set composite action output based on previous step's result.
         echo "skip=${{ steps.determine_range.outputs.build_should_skip }}" >> $GITHUB_OUTPUT
+
+    - name: Resolve commit range
+      id: resolve_range
+      shell: bash
+      if: steps.determine_skip.outputs.skip == 'false' && steps.determine_range.outputs.from_commit != ''
+      # Best effort: the fallback range start (a parent commit) can lie outside a shallow clone.
+      # An unresolvable range leaves the outputs empty instead of failing the build.
+      run: |
+        echo "from_sha=$(git rev-parse --verify --quiet "${FROM_COMMIT}^{commit}" || true)" >> "$GITHUB_OUTPUT"
+        echo "to_sha=$(git rev-parse --verify --quiet "${TO_COMMIT}^{commit}" || true)" >> "$GITHUB_OUTPUT"
+      env:
+        FROM_COMMIT: ${{ steps.determine_range.outputs.from_commit }}
+        TO_COMMIT: ${{ steps.determine_range.outputs.to_commit }}
 
     - name: Generate changelog
       id: generate_changelog

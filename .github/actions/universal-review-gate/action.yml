@@ -1,0 +1,47 @@
+name: Review gate
+description: Sets a commit status on the PR head that turns green once the AI review bot reviewed exactly that commit and, for high-risk results, a writer approved it. An approval of the head commit alone also turns it green.
+
+inputs:
+  github_token:
+    description: 'Token with statuses:write and read access to pull requests and issues.'
+    required: true
+  pr_number:
+    description: 'Pull request number. The status is always set on the current PR head.'
+    required: true
+  review_base_branches:
+    description: 'JSON array of base branches whose PRs need the AI review. PRs into other branches get a green status.'
+    required: false
+    default: '["develop"]'
+  marker:
+    description: 'Start of the first line of the AI review comment.'
+    required: false
+    default: '<!-- ai-pr-review sha='
+  bot_login:
+    description: 'Login of the account that posts the AI review comment. Comments from anyone else are ignored.'
+    required: false
+    default: 'github-actions[bot]'
+  human_review_label:
+    description: 'Label that requires an approving review, in addition to high-risk AI results.'
+    required: false
+    default: 'needs-human'
+  status_context:
+    description: 'Commit status context. Add this name as a required status check in the branch ruleset.'
+    required: false
+    default: 'review-gate'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set review gate status
+      shell: bash
+      run: bash "${{ github.action_path }}/scripts/review-gate.sh"
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        REPOSITORY: ${{ github.repository }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+        REVIEW_BASE_BRANCHES: ${{ inputs.review_base_branches }}
+        MARKER: ${{ inputs.marker }}
+        BOT_LOGIN: ${{ inputs.bot_login }}
+        HUMAN_REVIEW_LABEL: ${{ inputs.human_review_label }}
+        STATUS_CONTEXT: ${{ inputs.status_context }}
+        TARGET_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

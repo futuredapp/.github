@@ -1,0 +1,35 @@
+name: Universal Cloud Review Gate
+
+# Call it on pull_request_target (opened, synchronize, reopened, ready_for_review, edited, labeled, unlabeled) and
+# pull_request_review (submitted, dismissed). pull_request_target runs from the base branch with a write token,
+# so the gate also works for bot-authored PRs; the job never checks out PR code.
+on:
+  workflow_call:
+    inputs:
+      review_base_branches:
+        description: 'JSON array of base branches whose PRs need the AI review. Must match the AI review workflow.'
+        type: string
+        default: '["develop"]'
+
+jobs:
+  gate:
+    name: Review gate
+    if: github.event.pull_request
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+      pull-requests: read
+      issues: read
+    # Evaluations of one PR run one at a time, so an older one never lands last. The AI review workflow uses the same group.
+    concurrency:
+      group: review-gate-${{ github.repository }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Update review gate
+        uses: futuredapp/.github/.github/actions/universal-review-gate@main
+        with:
+          github_token: ${{ github.token }}
+          pr_number: ${{ github.event.pull_request.number }}
+          review_base_branches: ${{ inputs.review_base_branches }}

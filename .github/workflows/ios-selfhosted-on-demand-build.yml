@@ -55,6 +55,14 @@ on:
         type: string
         required: false
 
+    outputs:
+      from_commit:
+        description: 'First commit of the build range (exclusive), empty when a custom changelog is passed or nothing new was built. Feed it to universal-cloud-feature-review-notify.'
+        value: ${{ jobs.build.outputs.from_commit }}
+      to_commit:
+        description: 'Last commit of the build range, empty when a custom changelog is passed or nothing new was built.'
+        value: ${{ jobs.build.outputs.to_commit }}
+
     secrets:
       MATCH_PASSWORD:
         required: true
@@ -76,6 +84,9 @@ jobs:
   build:
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', inputs.runner_label)) }}
     timeout-minutes: ${{ inputs.timeout_minutes }}
+    outputs:
+      from_commit: ${{ steps.detect_changes.outputs.from_commit }}
+      to_commit: ${{ steps.detect_changes.outputs.to_commit }}
 
     steps:
       - name: Generate changelog if not provided
