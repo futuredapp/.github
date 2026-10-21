@@ -47,12 +47,9 @@ on:
         default: '(^|/)(AGENTS|CLAUDE|CLAUDE\.local)\.md$|(^|/)\.claude/|^\.github/|(^|/)\.gitattributes$|(^|/)fastlane/|(^|/)(Gemfile|Podfile|Cartfile)(\.lock|\.resolved)?$|(^|/)Package\.resolved$|\.entitlements$|(^|/)PrivacyInfo\.xcprivacy$|\.xcconfig$'
 
     secrets:
-      ANTHROPIC_API_KEY:
-        required: false
-        description: 'Anthropic API key. Provide this or CLAUDE_CODE_OAUTH_TOKEN.'
       CLAUDE_CODE_OAUTH_TOKEN:
-        required: false
-        description: 'Claude Code OAuth token. Provide this or ANTHROPIC_API_KEY.'
+        required: true
+        description: 'OAuth token of the Claude subscription account the reviews run on, created with `claude setup-token`.'
       CLAUDE_MARKETPLACE_TOKEN:
         required: false
         description: 'Fine-grained token with read-only Contents access to the marketplace repository only. Required for a review to run.'
@@ -253,7 +250,6 @@ jobs:
         timeout-minutes: ${{ inputs.timeout_minutes }}
         uses: anthropics/claude-code-action@1d6de8cb0c237e7c15e9e1bdf973826ebae490cc # v1.0.248
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ github.token }}
           prompt: ${{ steps.args.outputs.prompt }}
