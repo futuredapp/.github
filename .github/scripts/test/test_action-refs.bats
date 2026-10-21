@@ -1,15 +1,19 @@
 #!/usr/bin/env bats
 
-SCRIPTS_DIR="$BATS_TEST_DIRNAME/.."
+REPO_GITHUB_DIR="$BATS_TEST_DIRNAME/../.."
 
 setup() {
+  # The scripts rewrite files in place: run them on a copy so the repository is never touched.
+  WORK_DIR=$(mktemp -d)
+  mkdir -p "$WORK_DIR/.github"
+  cp -R "$REPO_GITHUB_DIR/scripts" "$REPO_GITHUB_DIR/workflows" "$REPO_GITHUB_DIR/actions" "$WORK_DIR/.github/"
+  SCRIPTS_DIR="$WORK_DIR/.github/scripts"
   # Ensure refs start at main
   bash "$SCRIPTS_DIR/bump-action-refs.sh" main >/dev/null
 }
 
 teardown() {
-  # Always revert to main
-  bash "$SCRIPTS_DIR/bump-action-refs.sh" main >/dev/null
+  rm -rf "$WORK_DIR"
 }
 
 @test "find-action-refs returns files" {
