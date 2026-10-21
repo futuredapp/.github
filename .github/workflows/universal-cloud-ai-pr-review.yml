@@ -232,6 +232,16 @@ jobs:
           MODEL: ${{ inputs.model }}
           PR_NUMBER: ${{ steps.ctx.outputs.pr }}
         run: |
+          # A skill's allowed-tools grant applies to the turn that invokes it, so an unscoped Read, Grep or Glob
+          # there would lift the checkout-only reads below. Refuse such a skill instead of running it.
+          frontmatter=$(awk 'NR == 1 && /^---$/ { inside = 1; next } inside && /^---$/ { exit } inside' \
+            "$RUNNER_TEMP/claude-marketplace/$SKILL_PATH/SKILL.md")
+          tools=$(awk '/^allowed-tools:/ { grab = 1; sub(/^allowed-tools:/, ""); print; next }
+            grab && /^[[:space:]]+-/ { print; next } { grab = 0 }' <<< "$frontmatter")
+          if grep -qE '(^|[[:space:],"'"'"'-])(Read|Grep|Glob)([[:space:],"'"'"']|$)' <<< "$tools"; then
+            echo "::error::The review skill pre-approves an unscoped Read, Grep or Glob; scope it, e.g. Read(~/.claude/plugins/**)."
+            exit 1
+          fi
           schema=$(jq -c . "$RUNNER_TEMP/claude-marketplace/$SKILL_PATH/references/output-schema.json")
           # claude_args is parsed shell-style: a quote or a dollar sign inside the schema would corrupt it.
           if [[ "$schema" == *"'"* || "$schema" == *'$'* ]]; then
