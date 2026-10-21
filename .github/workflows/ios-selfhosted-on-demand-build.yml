@@ -57,10 +57,10 @@ on:
 
     outputs:
       from_commit:
-        description: 'First commit of the build range (exclusive), empty when nothing new was built. Feed it to universal-cloud-feature-review-notify.'
+        description: 'First commit of the build range (exclusive), empty when a custom changelog is passed or nothing new was built. Feed it to universal-cloud-feature-review-notify.'
         value: ${{ jobs.build.outputs.from_commit }}
       to_commit:
-        description: 'Last commit of the build range, empty when nothing new was built.'
+        description: 'Last commit of the build range, empty when a custom changelog is passed or nothing new was built.'
         value: ${{ jobs.build.outputs.to_commit }}
 
     secrets:

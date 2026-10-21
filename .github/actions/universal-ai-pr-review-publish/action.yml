@@ -35,7 +35,7 @@ inputs:
     required: false
     default: 'feature-complete'
   reviewer:
-    description: 'GitHub login, or org/team slug, to request a review from on high-risk PRs. Empty requests nobody.'
+    description: 'GitHub login to request a review from on high-risk PRs (a team needs a token that can read org members, which GITHUB_TOKEN cannot). Empty requests nobody.'
     required: false
     default: ''
 

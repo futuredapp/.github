@@ -79,6 +79,9 @@ bats test_generate-changelog.bats
 # Run release action version tag parsing tests
 cd .github/actions/ios-fastlane-release/test
 bats test_parse-version-tag.bats
+
+# Run AI review, review gate and feature review notify tests
+bats .github/actions/universal-review-gate/test .github/actions/universal-ai-pr-review-publish/test .github/actions/universal-feature-review-notify/test
 ```
 
 ### Linting Workflows
@@ -147,7 +150,7 @@ All iOS actions support:
 - `workflows-lint`: Lint all workflow files using actionlint
 - `universal-cloud-backup`: Backup current ref to remote repository (cloud runner)
 - `universal-selfhosted-backup`: Backup current ref to remote repository (self-hosted)
-- `universal-cloud-ai-pr-review`: Runs a Claude Code review skill from a plugin marketplace on every push of a ready PR and on a `/review` comment. A read-only `review` job (no shell for the model, PR context written to files) and a `publish` job that posts one sticky comment and labels high-risk PRs `needs-human`
+- `universal-cloud-ai-pr-review`: Runs a Claude Code review skill from a plugin marketplace when a ready, human-authored PR into `review_base_branches` (default `["develop"]`) is opened, pushed, reopened or retargeted, and on an exact `/review` from a writer. A read-only `review` job (no shell for the model, PR context written to files) and a `publish` job that posts one sticky comment and labels high-risk PRs `needs-human`
 - `universal-cloud-review-gate`: Sets the `review-gate` commit status — green once the bot reviewed the head commit and, for high risk, a writer approved it; an approval alone is the outage escape hatch
 - `universal-cloud-feature-review-notify`: Opt-in job after `ios-selfhosted-nightly-build` / `ios-selfhosted-on-demand-build` (their `from_commit` / `to_commit` outputs) that announces PRs labeled `feature-complete` on Slack
 
