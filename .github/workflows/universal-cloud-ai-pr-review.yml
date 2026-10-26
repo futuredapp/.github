@@ -206,31 +206,31 @@ jobs:
           } > "$RUNNER_TEMP/forced-high.txt"
           wc -l "$CONTEXT_DIR/diff.patch" "$RUNNER_TEMP/forced-high.txt"
 
-      - name: Fetch marketplace
+      - name: Check marketplace key
         if: steps.ctx.outputs.run == 'true'
         env:
           MARKETPLACE_SSH_KEY: ${{ secrets.CLAUDE_MARKETPLACE_SSH_KEY }}
-          MARKETPLACE_REPOSITORY: ${{ inputs.marketplace_repository }}
-          MARKETPLACE_REF: ${{ inputs.marketplace_ref }}
         run: |
           if [ -z "$MARKETPLACE_SSH_KEY" ]; then
             echo "::error::CLAUDE_MARKETPLACE_SSH_KEY is not available to this run."
             exit 1
           fi
-          # A deploy key belongs to the marketplace repository, not to a person. It lives only for the clone,
-          # and GitHub's published host keys are pinned, so the clone never trusts a key on first use.
-          ssh_dir=$(mktemp -d "$RUNNER_TEMP/marketplace-ssh.XXXXXX")
-          trap 'rm -rf "$ssh_dir"' EXIT
-          printf '%s\n' "$MARKETPLACE_SSH_KEY" > "$ssh_dir/key"
-          chmod 600 "$ssh_dir/key"
-          cat > "$ssh_dir/known_hosts" << 'EOF'
-          github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
-          github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
-          github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
-          EOF
-          GIT_SSH_COMMAND="ssh -F /dev/null -i $ssh_dir/key -o IdentitiesOnly=yes -o UserKnownHostsFile=$ssh_dir/known_hosts -o StrictHostKeyChecking=yes" \
-            git clone --quiet --depth 1 --branch "$MARKETPLACE_REF" \
-            "git@github.com:${MARKETPLACE_REPOSITORY}.git" "$RUNNER_TEMP/claude-marketplace"
+
+      # A deploy key belongs to the marketplace repository, not to a person. Checkout pins GitHub's host key
+      # and, without persisted credentials, removes the key once the clone is done.
+      - name: Fetch marketplace
+        if: steps.ctx.outputs.run == 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.marketplace_repository }}
+          ref: ${{ inputs.marketplace_ref }}
+          ssh-key: ${{ secrets.CLAUDE_MARKETPLACE_SSH_KEY }}
+          persist-credentials: false
+          path: .ai-review-marketplace
+
+      - name: Move marketplace out of the checkout
+        if: steps.ctx.outputs.run == 'true'
+        run: mv .ai-review-marketplace "$RUNNER_TEMP/claude-marketplace"
 
       - name: Prepare Claude arguments
         id: args
