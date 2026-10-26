@@ -141,7 +141,7 @@ jobs:
 
       - name: Checkout PR head
         if: steps.ctx.outputs.run == 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ steps.ctx.outputs.head_sha }}
           fetch-depth: 0
@@ -220,7 +220,7 @@ jobs:
       # and, without persisted credentials, removes the key once the clone is done.
       - name: Fetch marketplace
         if: steps.ctx.outputs.run == 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: ${{ inputs.marketplace_repository }}
           ref: ${{ inputs.marketplace_ref }}
@@ -282,7 +282,7 @@ jobs:
         if: steps.ctx.outputs.run == 'true'
         continue-on-error: true
         timeout-minutes: ${{ inputs.timeout_minutes }}
-        uses: anthropics/claude-code-action@1d6de8cb0c237e7c15e9e1bdf973826ebae490cc # v1.0.248
+        uses: anthropics/claude-code-action@925afb53776cf1a2b738c6bdbed37b4d4000ef13 # v1.0.262
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ github.token }}
