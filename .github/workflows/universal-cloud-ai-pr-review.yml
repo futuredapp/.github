@@ -348,7 +348,7 @@ jobs:
           path: ${{ runner.temp }}/ai-review-out
 
       - name: Publish review
-        uses: futuredapp/.github/.github/actions/universal-ai-pr-review-publish@main
+        uses: futuredapp/.github/.github/actions/universal-ai-pr-review-publish@2.8.0
         with:
           github_token: ${{ github.token }}
           pr_number: ${{ needs.review.outputs.pr || github.event.pull_request.number || github.event.issue.number }}
@@ -375,7 +375,7 @@ jobs:
 
     steps:
       - name: Update review gate
-        uses: futuredapp/.github/.github/actions/universal-review-gate@main
+        uses: futuredapp/.github/.github/actions/universal-review-gate@2.8.0
         with:
           github_token: ${{ github.token }}
           pr_number: ${{ needs.review.outputs.pr || github.event.pull_request.number || github.event.issue.number }}

@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Update review gate
-        uses: futuredapp/.github/.github/actions/universal-review-gate@main
+        uses: futuredapp/.github/.github/actions/universal-review-gate@2.8.0
         with:
           github_token: ${{ github.token }}
           pr_number: ${{ github.event.pull_request.number }}
