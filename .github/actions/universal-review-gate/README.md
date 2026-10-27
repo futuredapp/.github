@@ -9,7 +9,7 @@ Sets a commit status (default context `review-gate`) on the current PR head. Mak
 
 Otherwise it is `pending`, with a description saying what is missing.
 
-It runs from [`universal-cloud-review-gate`](../../workflows/universal-cloud-review-gate.yml) on PR events (including `edited`, so a retargeted PR is re-evaluated) and review events, and at the end of every AI review run. The AI review run is needed because a comment created with `GITHUB_TOKEN` does not trigger other workflows. Both use the concurrency group `review-gate-<repository>-<PR>`, so evaluations of one PR never overlap.
+It runs from [`universal-cloud-ai-pr-review`](../../workflows/universal-cloud-ai-pr-review.yml) on PR events (including `edited`, so a retargeted PR is re-evaluated) and review events, and at the end of every AI review run. The AI review run is needed because a comment created with `GITHUB_TOKEN` does not trigger other workflows. Both jobs use the concurrency group `review-gate-<repository>-<PR>`, so evaluations of one PR never overlap.
 
 ## Usage
 

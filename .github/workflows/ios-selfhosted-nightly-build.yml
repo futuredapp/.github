@@ -51,7 +51,7 @@ on:
 
     outputs:
       from_commit:
-        description: 'First commit of the build range (exclusive), empty when nothing new was built. Feed it to universal-cloud-feature-review-notify.'
+        description: 'First commit of the build range (exclusive), empty when nothing new was built. The feature review message uses it.'
         value: ${{ jobs.build.outputs.from_commit }}
       to_commit:
         description: 'Last commit of the build range, empty when nothing new was built.'
@@ -76,6 +76,9 @@ on:
       JIRA_CONTEXT:
         required: false
         description: 'JIRA context for transitioning tickets.'
+      SLACK_WEBHOOK_FEATURE_REVIEW:
+        required: false
+        description: 'Slack incoming webhook for the feature review message. Without it no message is sent.'
 
 jobs:
   build:
@@ -177,3 +180,51 @@ jobs:
           jira_context: ${{ secrets.JIRA_CONTEXT }}
           transition: ${{ inputs.jira_transition }}
           merged_branches: ${{ needs.build.outputs.merged_branches }}
+
+  notify_feature_review:
+    name: Notify feature review
+    runs-on: ubuntu-latest
+    needs: build
+    # Opt-in: announces the PRs labeled feature-complete in this build when the caller passes the Slack webhook.
+    if: success() && needs.build.outputs.from_commit != '' && needs.build.outputs.to_commit != ''
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check Slack webhook
+        id: check
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_FEATURE_REVIEW }}
+          SLACK_USER_IDS: ${{ vars.SLACK_USER_IDS }}
+          REVIEWER: ${{ vars.PROJECT_REVIEWER }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ Feature review message skipped - no SLACK_WEBHOOK_FEATURE_REVIEW secret."
+            exit 0
+          fi
+          # SLACK_USER_IDS maps GitHub logins to Slack member IDs, e.g. {"some-login": "U0123456"}.
+          id=$(jq -r --arg login "$REVIEWER" '.[$login]? // empty' <<< "${SLACK_USER_IDS:-null}" 2> /dev/null || true)
+          mention=""
+          if [[ "$id" =~ ^[A-Z0-9]+$ ]]; then
+            mention="<@$id>"
+          elif [ -n "$REVIEWER" ]; then
+            echo "::warning::No Slack ID for $REVIEWER in SLACK_USER_IDS; the message mentions nobody."
+          fi
+          {
+            echo "enabled=true"
+            echo "mention=$mention"
+          } >> "$GITHUB_OUTPUT"
+      - name: Notify feature review
+        if: steps.check.outputs.enabled == 'true'
+        # A failed Slack message must not turn a successful build red.
+        continue-on-error: true
+        uses: futuredapp/.github/.github/actions/universal-feature-review-notify@2.8.0
+        with:
+          github_token: ${{ github.token }}
+          from_commit: ${{ needs.build.outputs.from_commit }}
+          to_commit: ${{ needs.build.outputs.to_commit }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_FEATURE_REVIEW }}
+          reviewer_mention: ${{ steps.check.outputs.mention }}
+          build_name: 'iOS nightly build'

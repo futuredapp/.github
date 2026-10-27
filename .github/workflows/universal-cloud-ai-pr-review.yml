@@ -1,7 +1,13 @@
 name: Universal Cloud AI PR Review
 
-# Two jobs on purpose: "review" runs Claude on untrusted PR content with a read-only token and no shell;
-# "publish" holds the write token and never checks out PR code.
+# The whole code review in one call: the AI review and the required "review-gate" status. Call it from one job on
+# pull_request (opened, synchronize, reopened, ready_for_review, edited), pull_request_target (the same plus labeled,
+# unlabeled), pull_request_review (submitted, dismissed) and issue_comment (created), with secrets: inherit and the
+# caller granting contents: read and pull-requests, issues and statuses: write. Each job picks its own events.
+# The review runs on pull_request and "/review"; the gate is re-evaluated on pull_request_target and review events,
+# which run from the base branch with a write token, so it also works for bot-authored PRs.
+# Claude runs in "review" on untrusted PR content with a read-only token and no shell; "publish" and the gate
+# jobs hold the write token and never check out PR code.
 on:
   workflow_call:
     inputs:
@@ -13,18 +19,18 @@ on:
         description: 'Branch or tag of the marketplace to use. Pin a tag to roll out skill changes deliberately.'
         type: string
         default: 'main'
-      plugin:
-        description: 'Plugin to install, as plugin-name@marketplace-name.'
-        type: string
-        required: true
       skill:
         description: 'Skill to run, as plugin-name:skill-name. It receives the PR number.'
         type: string
         required: true
-      skill_path:
-        description: 'Path of the skill directory inside the marketplace. It must contain references/output-schema.json and scripts/render-comment.py.'
+      plugin:
+        description: 'Plugin to install, as plugin-name@marketplace-name. Empty takes the skill''s plugin from the marketplace manifest.'
         type: string
-        required: true
+        default: ''
+      skill_path:
+        description: 'Path of the skill directory inside the marketplace, with references/output-schema.json and scripts/render-comment.py. Empty uses skills/<skill-name> in the plugin''s directory.'
+        type: string
+        default: ''
       model:
         description: 'Claude model alias or ID for the review session.'
         type: string
@@ -34,7 +40,7 @@ on:
         type: string
         default: '["develop"]'
       reviewer:
-        description: 'GitHub login to request a review from when the PR is high risk. Empty requests nobody.'
+        description: 'GitHub login to request a review from when the PR is high risk. Empty uses the PROJECT_REVIEWER variable; without it nobody is requested.'
         type: string
         default: ''
       timeout_minutes:
@@ -48,8 +54,8 @@ on:
 
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
-        required: true
-        description: 'OAuth token of the Claude subscription account the reviews run on, created with `claude setup-token`.'
+        required: false
+        description: 'OAuth token of the Claude subscription account the reviews run on, created with `claude setup-token`. Required for a review to run.'
       CLAUDE_MARKETPLACE_SSH_KEY:
         required: false
         description: 'Private half of a read-only deploy key on the marketplace repository. Required for a review to run.'
@@ -206,15 +212,22 @@ jobs:
           } > "$RUNNER_TEMP/forced-high.txt"
           wc -l "$CONTEXT_DIR/diff.patch" "$RUNNER_TEMP/forced-high.txt"
 
-      - name: Check marketplace key
+      - name: Check secrets
         if: steps.ctx.outputs.run == 'true'
         env:
+          OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           MARKETPLACE_SSH_KEY: ${{ secrets.CLAUDE_MARKETPLACE_SSH_KEY }}
         run: |
+          missing=0
+          if [ -z "$OAUTH_TOKEN" ]; then
+            echo "::error::CLAUDE_CODE_OAUTH_TOKEN is not available to this run."
+            missing=1
+          fi
           if [ -z "$MARKETPLACE_SSH_KEY" ]; then
             echo "::error::CLAUDE_MARKETPLACE_SSH_KEY is not available to this run."
-            exit 1
+            missing=1
           fi
+          exit "$missing"
 
       # A deploy key belongs to the marketplace repository, not to a person. Checkout pins GitHub's host key
       # and, without persisted credentials, removes the key once the clone is done.
@@ -239,12 +252,46 @@ jobs:
           mv .ai-review-marketplace "$dir"
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve skill
+        id: skill
+        if: steps.ctx.outputs.run == 'true'
+        env:
+          SKILL: ${{ inputs.skill }}
+          PLUGIN: ${{ inputs.plugin }}
+          SKILL_PATH: ${{ inputs.skill_path }}
+          MARKETPLACE_DIR: ${{ steps.marketplace.outputs.dir }}
+        run: |
+          if [[ "$SKILL" != *:* ]]; then
+            echo "::error::skill must be plugin-name:skill-name, got \"$SKILL\"."
+            exit 1
+          fi
+          plugin_name="${SKILL%%:*}"
+          manifest="$MARKETPLACE_DIR/.claude-plugin/marketplace.json"
+          plugin="$PLUGIN"
+          if [ -z "$plugin" ]; then
+            plugin="$plugin_name@$(jq -r '.name' "$manifest")"
+          fi
+          skill_path="$SKILL_PATH"
+          if [ -z "$skill_path" ]; then
+            # Only a relative source has the plugin inside this checkout.
+            source=$(jq -r --arg name "$plugin_name" '.plugins[] | select(.name == $name) | .source | strings' "$manifest")
+            skill_path="${source#./}/skills/${SKILL#*:}"
+          fi
+          if [ ! -f "$MARKETPLACE_DIR/$skill_path/SKILL.md" ]; then
+            echo "::error::No SKILL.md at $skill_path in the marketplace; set skill_path."
+            exit 1
+          fi
+          {
+            echo "plugin=$plugin"
+            echo "path=$skill_path"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Prepare Claude arguments
         id: args
         if: steps.ctx.outputs.run == 'true'
         env:
           SKILL: ${{ inputs.skill }}
-          SKILL_PATH: ${{ inputs.skill_path }}
+          SKILL_PATH: ${{ steps.skill.outputs.path }}
           MODEL: ${{ inputs.model }}
           PR_NUMBER: ${{ steps.ctx.outputs.pr }}
           MARKETPLACE_DIR: ${{ steps.marketplace.outputs.dir }}
@@ -297,14 +344,14 @@ jobs:
           prompt: ${{ steps.args.outputs.prompt }}
           settings: ${{ steps.args.outputs.settings }}
           plugin_marketplaces: ${{ steps.marketplace.outputs.dir }}
-          plugins: ${{ inputs.plugin }}
+          plugins: ${{ steps.skill.outputs.plugin }}
           claude_args: ${{ steps.args.outputs.claude_args }}
 
       - name: Render comment
         if: ${{ !cancelled() && steps.ctx.outputs.run == 'true' }}
         env:
           RESULT: ${{ steps.claude.outputs.structured_output }}
-          SKILL_PATH: ${{ inputs.skill_path }}
+          SKILL_PATH: ${{ steps.skill.outputs.path }}
           HEAD_SHA: ${{ steps.ctx.outputs.head_sha }}
           MARKETPLACE_DIR: ${{ steps.marketplace.outputs.dir }}
         run: |
@@ -364,7 +411,7 @@ jobs:
           reviewed_sha: ${{ needs.review.outputs.head_sha }}
           result_file: ${{ runner.temp }}/ai-review-out/result.json
           body_file: ${{ runner.temp }}/ai-review-out/comment.md
-          reviewer: ${{ inputs.reviewer }}
+          reviewer: ${{ inputs.reviewer || vars.PROJECT_REVIEWER }}
 
   gate:
     name: Review gate
@@ -377,7 +424,7 @@ jobs:
       statuses: write
       pull-requests: read
       issues: read
-    # Same group as the gate workflow: evaluations of one PR run one at a time, so an older one never lands last.
+    # Same group as event-gate: evaluations of one PR run one at a time, so an older one never lands last.
     concurrency:
       group: review-gate-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number }}
       cancel-in-progress: false
@@ -388,4 +435,27 @@ jobs:
         with:
           github_token: ${{ github.token }}
           pr_number: ${{ needs.review.outputs.pr || github.event.pull_request.number || github.event.issue.number }}
+          review_base_branches: ${{ inputs.review_base_branches }}
+
+  event-gate:
+    name: Review gate
+    # Labels, retargeting and reviews change the gate without a new review. pull_request_target runs from the base
+    # branch with a write token, so this works for bot-authored PRs too; it never checks out PR code.
+    if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+      pull-requests: read
+      issues: read
+    concurrency:
+      group: review-gate-${{ github.repository }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Update review gate
+        uses: futuredapp/.github/.github/actions/universal-review-gate@2.8.0
+        with:
+          github_token: ${{ github.token }}
+          pr_number: ${{ github.event.pull_request.number }}
           review_base_branches: ${{ inputs.review_base_branches }}

@@ -128,6 +128,7 @@ All iOS actions support:
 - `ios-selfhosted-test`: Lint and test PRs
 - `ios-selfhosted-nightly-build`: Automated nightly builds with changelog generation
 - `ios-selfhosted-on-demand-build`: Manual builds triggered on-demand
+  - Both announce PRs labeled `feature-complete` in the build on Slack when the caller passes `SLACK_WEBHOOK_FEATURE_REVIEW`, mentioning the `PROJECT_REVIEWER` variable's Slack ID from the `SLACK_USER_IDS` variable
 - `ios-selfhosted-release`: Release builds for App Store submission
 
 ### iOS KMP (Self-hosted)
@@ -150,9 +151,7 @@ All iOS actions support:
 - `workflows-lint`: Lint all workflow files using actionlint
 - `universal-cloud-backup`: Backup current ref to remote repository (cloud runner)
 - `universal-selfhosted-backup`: Backup current ref to remote repository (self-hosted)
-- `universal-cloud-ai-pr-review`: Runs a Claude Code review skill from a plugin marketplace when a ready, human-authored PR into `review_base_branches` (default `["develop"]`) is opened, pushed, reopened or retargeted, and on an exact `/review` from a writer. A read-only `review` job (no shell for the model, PR context written to files) and a `publish` job that posts one sticky comment and labels high-risk PRs `needs-human`
-- `universal-cloud-review-gate`: Sets the `review-gate` commit status — green once the bot reviewed the head commit and, for high risk, a writer approved it; an approval alone is the outage escape hatch
-- `universal-cloud-feature-review-notify`: Opt-in job after `ios-selfhosted-nightly-build` / `ios-selfhosted-on-demand-build` (their `from_commit` / `to_commit` outputs) that announces PRs labeled `feature-complete` on Slack
+- `universal-cloud-ai-pr-review`: The whole code review from one caller job. Runs a Claude Code review skill from a plugin marketplace when a ready, human-authored PR into `review_base_branches` (default `["develop"]`) is opened, pushed, reopened or retargeted, and on an exact `/review` from a writer: a read-only `review` job (no shell for the model, PR context written to files) and a `publish` job that posts one sticky comment and labels high-risk PRs `needs-human`. Also sets the `review-gate` commit status after each review and on `pull_request_target` / `pull_request_review` events — green once the bot reviewed the head commit and, for high risk, a writer approved it; an approval alone is the outage escape hatch
 
 ## Important Conventions
 
