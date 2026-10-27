@@ -1,0 +1,382 @@
+name: Universal Cloud AI PR Review
+
+# Two jobs on purpose: "review" runs Claude on untrusted PR content with a read-only token and no shell;
+# "publish" holds the write token and never checks out PR code.
+on:
+  workflow_call:
+    inputs:
+      marketplace_repository:
+        description: 'Repository (owner/name) of the Claude Code plugin marketplace that holds the review skill.'
+        type: string
+        required: true
+      marketplace_ref:
+        description: 'Branch or tag of the marketplace to use. Pin a tag to roll out skill changes deliberately.'
+        type: string
+        default: 'main'
+      plugin:
+        description: 'Plugin to install, as plugin-name@marketplace-name.'
+        type: string
+        required: true
+      skill:
+        description: 'Skill to run, as plugin-name:skill-name. It receives the PR number.'
+        type: string
+        required: true
+      skill_path:
+        description: 'Path of the skill directory inside the marketplace. It must contain references/output-schema.json and scripts/render-comment.py.'
+        type: string
+        required: true
+      model:
+        description: 'Claude model alias or ID for the review session.'
+        type: string
+        default: 'sonnet'
+      review_base_branches:
+        description: 'JSON array of base branches whose PRs get the AI review, e.g. ["develop"]. Release PRs into other branches are skipped.'
+        type: string
+        default: '["develop"]'
+      reviewer:
+        description: 'GitHub login to request a review from when the PR is high risk. Empty requests nobody.'
+        type: string
+        default: ''
+      timeout_minutes:
+        description: 'Timeout of the Claude run in minutes (keep it under 25: the review job stops at 30).'
+        type: number
+        default: 15
+      protected_paths:
+        description: 'Extended regex (case-insensitive) of changed paths that make the PR high risk whatever the model says. Empty turns it off.'
+        type: string
+        default: '(^|/)(AGENTS|CLAUDE|CLAUDE\.local)\.md$|(^|/)\.claude/|^\.github/|(^|/)\.gitattributes$|(^|/)\.gitmodules$|(^|/)fastlane/[^/]+$|(^|/)(Gemfile|Podfile|Cartfile)(\.lock|\.resolved)?$|(^|/)Package\.resolved$|\.entitlements$|(^|/)PrivacyInfo\.xcprivacy$|\.xcconfig$'
+
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: true
+        description: 'OAuth token of the Claude subscription account the reviews run on, created with `claude setup-token`.'
+      CLAUDE_MARKETPLACE_SSH_KEY:
+        required: false
+        description: 'Private half of a read-only deploy key on the marketplace repository. Required for a review to run.'
+
+jobs:
+  trigger:
+    name: Check trigger
+    # Ready, human-authored PRs on open, on every push and when retargeted; "/review" on an open PR re-runs it.
+    # Kept outside the concurrency group, so a comment that does not qualify never cancels a running review.
+    if: >-
+      (github.event_name == 'pull_request' && !github.event.pull_request.draft &&
+       github.event.pull_request.user.type != 'Bot' &&
+       (github.event.action != 'edited' || github.event.changes.base)) ||
+      (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request &&
+       github.event.issue.state == 'open' && github.event.comment.body == '/review')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    outputs:
+      ok: ${{ steps.check.outputs.ok }}
+
+    steps:
+      - name: Check commenter permission
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+        run: |
+          if [ "$EVENT_NAME" != "issue_comment" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # author_association does not imply write access; the collaborator permission does.
+          permission=$(gh api "repos/$REPOSITORY/collaborators/$COMMENTER/permission" --jq '.permission' 2> /dev/null || echo none)
+          case "$permission" in
+            admin|maintain|write) echo "ok=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "$COMMENTER has $permission access; /review needs write access."; echo "ok=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+  review:
+    name: AI review
+    needs: trigger
+    if: needs.trigger.outputs.ok == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: read
+    concurrency:
+      group: ai-pr-review-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: true
+    outputs:
+      run: ${{ steps.ctx.outputs.run }}
+      pr: ${{ steps.ctx.outputs.pr }}
+      head_sha: ${{ steps.ctx.outputs.head_sha }}
+    env:
+      CONTEXT_DIR: .ai-review-context
+
+    steps:
+      - name: Resolve PR
+        id: ctx
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          REVIEW_BASE_BRANCHES: ${{ inputs.review_base_branches }}
+        run: |
+          pr_json=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER")
+          head_sha=$(jq -r '.head.sha // empty' <<< "$pr_json")
+          base_ref=$(jq -r '.base.ref // empty' <<< "$pr_json")
+          if [ -z "$head_sha" ] || [ -z "$base_ref" ]; then
+            echo "::error::Could not resolve PR #$PR_NUMBER."
+            exit 1
+          fi
+          if ! jq -e --arg base "$base_ref" 'index($base) != null' <<< "$REVIEW_BASE_BRANCHES" > /dev/null; then
+            echo "PRs into $base_ref are not reviewed."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          {
+            echo "run=true"
+            echo "pr=$PR_NUMBER"
+            echo "head_sha=$head_sha"
+            echo "base_ref=$base_ref"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Checkout PR head
+        if: steps.ctx.outputs.run == 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.ctx.outputs.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Write PR context
+        if: steps.ctx.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.ctx.outputs.pr }}
+          BASE_REF: ${{ steps.ctx.outputs.base_ref }}
+          PROTECTED_PATHS: ${{ inputs.protected_paths }}
+        run: |
+          # The skill reads only these files: no shell access is needed during the review.
+          rm -rf "$CONTEXT_DIR"
+          mkdir -p "$CONTEXT_DIR/base"
+          gh pr view "$PR_NUMBER" --json number,title,body,labels,baseRefName,headRefName,author,files,commits > "$CONTEXT_DIR/pr.json"
+          # Attributes come from an empty tree, not from the PR: a PR's .gitattributes could otherwise mark its
+          # own code as binary (hiding it from the diff) or re-encode the base rules restored below.
+          empty_tree=$(git hash-object -t tree /dev/null)
+          git --attr-source="$empty_tree" diff --no-textconv --no-ext-diff "origin/$BASE_REF...HEAD" > "$CONTEXT_DIR/diff.patch"
+          git diff --name-status "origin/$BASE_REF...HEAD" > "$CONTEXT_DIR/changed-files.txt"
+          # Rules come from the base branch, so a PR cannot rewrite the rules it is judged by: the PR's own
+          # AGENTS.md / CLAUDE.md / .claude are replaced in the working tree, which also keeps Claude Code
+          # from loading them as project memory. The diff above still shows the PR's changes to them.
+          # Paths are NUL-separated: git quotes non-ASCII and unusual names otherwise, and they would slip through.
+          rules='(^|/)(AGENTS|CLAUDE|CLAUDE\.local)\.md$|(^|/)\.claude/'
+          git ls-files -z | { grep -zE "$rules" || true; } | xargs -0 -r rm -f --
+          find . -path ./.git -prune -o -type d -name .claude -print0 | xargs -0 -r rm -rf --
+          git ls-tree -r -z --name-only "origin/$BASE_REF" | { grep -zE "$rules" || true; } > "$RUNNER_TEMP/base-rules.txt"
+          if [ -s "$RUNNER_TEMP/base-rules.txt" ]; then
+            git --attr-source="$empty_tree" --literal-pathspecs restore --source "origin/$BASE_REF" --worktree \
+              --pathspec-from-file="$RUNNER_TEMP/base-rules.txt" --pathspec-file-nul
+          fi
+          while IFS= read -r -d '' path; do
+            case "$path" in *.md) ;; *) continue ;; esac
+            mkdir -p "$CONTEXT_DIR/base/$(dirname "$path")"
+            cp -L "$path" "$CONTEXT_DIR/base/$path" 2> /dev/null || true
+          done < "$RUNNER_TEMP/base-rules.txt"
+          # The model may read only the checkout: symlinks that lead out of it or into .git are removed.
+          find . -path ./.git -prune -o -type l -print0 | while IFS= read -r -d '' link; do
+            case "$(realpath -m -- "$link")" in
+              "$PWD/.git" | "$PWD/.git/"*) rm -f -- "$link" ;;
+              "$PWD/"*) ;;
+              *) rm -f -- "$link" ;;
+            esac
+          done
+          # Changes that make the PR high risk whatever the PR talks the model into, one reason per line. Renames count
+          # with both paths; a source file git shows as binary (a NUL byte hides it from the diff) counts too.
+          text_files='\.(swift|m|mm|h|c|cc|cpp|kt|kts|java|js|ts|py|rb|sh|ya?ml|json|plist|pbxproj|xcconfig|strings|stringsdict|xcstrings|entitlements|md|gradle|toml)$'
+          {
+            if [ -n "$PROTECTED_PATHS" ]; then
+              git diff --name-only -z --no-renames "origin/$BASE_REF...HEAD" | tr '\0' '\n' \
+                | { grep -Ei "$PROTECTED_PATHS" || true; } | head -n 3 | sed 's/^/Changes /'
+            fi
+            git --attr-source="$empty_tree" diff --numstat -z --no-renames "origin/$BASE_REF...HEAD" | tr '\0' '\n' \
+              | awk -F'\t' '$1 == "-" && $2 == "-" { print $3 }' | { grep -Ei "$text_files" || true; } | head -n 3 \
+              | sed 's/^/Shows as binary: /'
+            if grep -qE '^\+[[:space:]]*shellScript = ' "$CONTEXT_DIR/diff.patch"; then
+              echo "Adds or changes a build script phase"
+            fi
+          } > "$RUNNER_TEMP/forced-high.txt"
+          wc -l "$CONTEXT_DIR/diff.patch" "$RUNNER_TEMP/forced-high.txt"
+
+      - name: Check marketplace key
+        if: steps.ctx.outputs.run == 'true'
+        env:
+          MARKETPLACE_SSH_KEY: ${{ secrets.CLAUDE_MARKETPLACE_SSH_KEY }}
+        run: |
+          if [ -z "$MARKETPLACE_SSH_KEY" ]; then
+            echo "::error::CLAUDE_MARKETPLACE_SSH_KEY is not available to this run."
+            exit 1
+          fi
+
+      # A deploy key belongs to the marketplace repository, not to a person. Checkout pins GitHub's host key
+      # and, without persisted credentials, removes the key once the clone is done.
+      - name: Fetch marketplace
+        if: steps.ctx.outputs.run == 'true'
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ inputs.marketplace_repository }}
+          ref: ${{ inputs.marketplace_ref }}
+          ssh-key: ${{ secrets.CLAUDE_MARKETPLACE_SSH_KEY }}
+          persist-credentials: false
+          path: .ai-review-marketplace
+
+      - name: Move marketplace out of the checkout
+        if: steps.ctx.outputs.run == 'true'
+        run: mv .ai-review-marketplace "$RUNNER_TEMP/claude-marketplace"
+
+      - name: Prepare Claude arguments
+        id: args
+        if: steps.ctx.outputs.run == 'true'
+        env:
+          SKILL: ${{ inputs.skill }}
+          SKILL_PATH: ${{ inputs.skill_path }}
+          MODEL: ${{ inputs.model }}
+          PR_NUMBER: ${{ steps.ctx.outputs.pr }}
+        run: |
+          # A skill's allowed-tools grant applies to the turn that invokes it, so an unscoped Read, Grep or Glob
+          # there would lift the checkout-only reads below. Refuse such a skill instead of running it.
+          frontmatter=$(awk 'NR == 1 && /^---$/ { inside = 1; next } inside && /^---$/ { exit } inside' \
+            "$RUNNER_TEMP/claude-marketplace/$SKILL_PATH/SKILL.md")
+          tools=$(awk '/^allowed-tools:/ { grab = 1; sub(/^allowed-tools:/, ""); print; next }
+            grab && /^[[:space:]]+-/ { print; next } { grab = 0 }' <<< "$frontmatter")
+          if grep -qE '(^|[[:space:],"'"'"'-])(Read|Grep|Glob)([[:space:],"'"'"']|$)' <<< "$tools"; then
+            echo "::error::The review skill pre-approves an unscoped Read, Grep or Glob; scope it, e.g. Read(~/.claude/plugins/**)."
+            exit 1
+          fi
+          schema=$(jq -c . "$RUNNER_TEMP/claude-marketplace/$SKILL_PATH/references/output-schema.json")
+          # claude_args is parsed shell-style: a quote or a dollar sign inside the schema would corrupt it.
+          if [[ "$schema" == *"'"* || "$schema" == *'$'* ]]; then
+            echo "::error::The output schema must not contain single quotes or dollar signs."
+            exit 1
+          fi
+          # No shell, no network, no writes: PR content can steer the model, so the model gets nothing to act with.
+          # Read, Grep and Glob are not allowed outright: they work inside the checkout only (anything else would ask,
+          # and dontAsk denies it), plus the installed plugin's own files.
+          allowed="Skill,Agent,Read(~/.claude/plugins/**)"
+          disallowed="Bash,WebFetch,WebSearch,Write,Edit,NotebookEdit,ScheduleWakeup,CronCreate,CronDelete,CronList,Monitor,RemoteTrigger,Workflow,EnterWorktree,ExitWorktree,PushNotification,DesignSync,SendMessage,TaskStop"
+          guard="Review only the files in .ai-review-context and the repository. If you cannot run the review skill or cannot read the PR diff, return risk level high with zone Not reviewed and say why in not_covered."
+          {
+            echo "claude_args=--model \"$MODEL\" --permission-mode dontAsk --strict-mcp-config --setting-sources user --allowedTools \"$allowed\" --disallowedTools \"$disallowed\" --append-system-prompt \"$guard\" --json-schema '$schema'"
+            echo "prompt=Run /$SKILL $PR_NUMBER on this repository and return its JSON result."
+          } >> "$GITHUB_OUTPUT"
+          # Defense in depth on top of the checkout-only reads: never anything holding credentials, such as the token
+          # the action writes to .git/config, the process environment, the runner temp dir and credential stores.
+          jq -cn --arg temp "Read(/$RUNNER_TEMP/**)" '{permissions: {deny: [
+            "Read(**/.git/**)", "Read(//proc/**)", "Read(//etc/**)", "Read(//root/**)", $temp,
+            "Read(~/.git-credentials)", "Read(~/.config/**)", "Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.docker/**)",
+            "Read(~/.gnupg/**)", "Read(~/.kube/**)", "Read(~/.netrc)", "Read(~/.npmrc)", "Read(~/.gem/**)",
+            "Read(~/.claude.json)", "Read(~/.claude/.credentials.json)"
+          ]}}' > "$RUNNER_TEMP/claude-settings.json"
+          echo "settings=$RUNNER_TEMP/claude-settings.json" >> "$GITHUB_OUTPUT"
+
+      - name: Run review
+        id: claude
+        if: steps.ctx.outputs.run == 'true'
+        continue-on-error: true
+        timeout-minutes: ${{ inputs.timeout_minutes }}
+        uses: anthropics/claude-code-action@925afb53776cf1a2b738c6bdbed37b4d4000ef13 # v1.0.262
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.args.outputs.prompt }}
+          settings: ${{ steps.args.outputs.settings }}
+          plugin_marketplaces: ${{ runner.temp }}/claude-marketplace
+          plugins: ${{ inputs.plugin }}
+          claude_args: ${{ steps.args.outputs.claude_args }}
+
+      - name: Render comment
+        if: ${{ !cancelled() && steps.ctx.outputs.run == 'true' }}
+        env:
+          RESULT: ${{ steps.claude.outputs.structured_output }}
+          SKILL_PATH: ${{ inputs.skill_path }}
+          HEAD_SHA: ${{ steps.ctx.outputs.head_sha }}
+        run: |
+          out="$RUNNER_TEMP/ai-review-out"
+          mkdir -p "$out"
+          : > "$out/result.json"
+          : > "$out/comment.md"
+          if printf '%s' "$RESULT" | jq -e '(.risk.level == "low" or .risk.level == "high") and (.findings | type == "array") and (.summary | type == "string")' > /dev/null 2>&1; then
+            # Changes to CI, rules, dependencies, signing and build scripts always get a human.
+            if [ -s "$RUNNER_TEMP/forced-high.txt" ]; then
+              RESULT=$(printf '%s' "$RESULT" | jq -c --rawfile reasons "$RUNNER_TEMP/forced-high.txt" '
+                if .risk.level == "low" then .risk = {level: "high", look_at: [],
+                  zones: [{zone: "Protected change", reason: ($reasons | split("\n") | map(select(length > 0)) | join("; "))}]}
+                else . end')
+            fi
+            printf '%s' "$RESULT" > "$out/result.json"
+            python3 -I "$RUNNER_TEMP/claude-marketplace/$SKILL_PATH/scripts/render-comment.py" "$out/result.json" \
+              --sha "$HEAD_SHA" > "$out/comment.md" || : > "$out/comment.md"
+          fi
+          jq -c '{risk: .risk.level, zones: [.risk.zones[]?.zone], findings: (.findings | length), drift: (.drift | length)}' "$out/result.json" 2> /dev/null || echo "no valid result"
+
+      - name: Upload result
+        if: ${{ !cancelled() && steps.ctx.outputs.run == 'true' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ai-pr-review
+          path: ${{ runner.temp }}/ai-review-out
+          retention-days: 7
+          overwrite: true
+
+  publish:
+    name: Publish AI review
+    needs: review
+    # Also after a review job that failed before resolving the PR, so the failure note is still posted.
+    if: >-
+      always() && needs.review.result != 'cancelled' && needs.review.result != 'skipped' &&
+      (needs.review.outputs.run == 'true' || needs.review.result == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Download result
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: ai-pr-review
+          path: ${{ runner.temp }}/ai-review-out
+
+      - name: Publish review
+        uses: futuredapp/.github/.github/actions/universal-ai-pr-review-publish@main
+        with:
+          github_token: ${{ github.token }}
+          pr_number: ${{ needs.review.outputs.pr || github.event.pull_request.number || github.event.issue.number }}
+          reviewed_sha: ${{ needs.review.outputs.head_sha }}
+          result_file: ${{ runner.temp }}/ai-review-out/result.json
+          body_file: ${{ runner.temp }}/ai-review-out/comment.md
+          reviewer: ${{ inputs.reviewer }}
+
+  gate:
+    name: Review gate
+    needs: [review, publish]
+    # The comment posted with GITHUB_TOKEN triggers no workflow, so the gate is re-evaluated here.
+    if: always() && needs.review.result != 'skipped' && needs.publish.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+      pull-requests: read
+      issues: read
+    # Same group as the gate workflow: evaluations of one PR run one at a time, so an older one never lands last.
+    concurrency:
+      group: review-gate-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Update review gate
+        uses: futuredapp/.github/.github/actions/universal-review-gate@main
+        with:
+          github_token: ${{ github.token }}
+          pr_number: ${{ needs.review.outputs.pr || github.event.pull_request.number || github.event.issue.number }}
+          review_base_branches: ${{ inputs.review_base_branches }}

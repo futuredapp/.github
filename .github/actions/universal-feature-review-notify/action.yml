@@ -1,0 +1,50 @@
+name: Feature review notify
+description: Posts a Slack message listing the PRs in a build that carry the feature label, with their "What to try" section, so the project's reviewer can try them in the app.
+
+inputs:
+  github_token:
+    description: 'Token with read access to pull requests and contents.'
+    required: true
+  from_commit:
+    description: 'First commit of the build range (exclusive), as a SHA.'
+    required: true
+  to_commit:
+    description: 'Last commit of the build range (inclusive), as a SHA.'
+    required: true
+  label:
+    description: 'Label marking PRs that complete a functional whole.'
+    required: false
+    default: 'feature-complete'
+  section_heading:
+    description: 'PR body heading (level 2) whose text is quoted in the message.'
+    required: false
+    default: 'What to try'
+  slack_webhook_url:
+    description: 'Slack incoming webhook URL. Empty prints the message to the log instead.'
+    required: false
+    default: ''
+  reviewer_mention:
+    description: 'Who to mention in the message, e.g. "<@U0123456>". Empty mentions nobody.'
+    required: false
+    default: ''
+  build_name:
+    description: 'Build name shown in the message.'
+    required: false
+    default: 'Nightly build'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Notify about features to review
+      shell: bash
+      run: bash "${{ github.action_path }}/scripts/feature-review-notify.sh"
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        REPOSITORY: ${{ github.repository }}
+        FROM_COMMIT: ${{ inputs.from_commit }}
+        TO_COMMIT: ${{ inputs.to_commit }}
+        LABEL: ${{ inputs.label }}
+        SECTION_HEADING: ${{ inputs.section_heading }}
+        SLACK_WEBHOOK_URL: ${{ inputs.slack_webhook_url }}
+        REVIEWER_MENTION: ${{ inputs.reviewer_mention }}
+        BUILD_NAME: ${{ inputs.build_name }}
