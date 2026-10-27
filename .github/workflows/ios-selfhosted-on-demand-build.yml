@@ -89,7 +89,7 @@ jobs:
       
       - name: Checkout
         if: ${{ inputs.changelog != '' }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           lfs: ${{ inputs.use_git_lfs }}
 
@@ -144,7 +144,7 @@ jobs:
       
       - name: Store latest build commit SHA in cache
         if: success()
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: latest_builded_commit.txt
           key: ${{ steps.detect_changes.outputs.cache_key }}
