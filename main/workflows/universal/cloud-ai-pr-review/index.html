@@ -1258,10 +1258,6 @@
       
         
       
-        
-      
-        
-      
     
     
     
@@ -1501,34 +1497,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../cloud-feature-review-notify/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Feature Review Notify
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../notify-consumer-repos/" class="md-nav__link">
         
   
@@ -1537,34 +1505,6 @@
     
   
     Notify Consumer Repos
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../cloud-review-gate/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Review Gate
   
 
     
@@ -2890,11 +2830,7 @@
 <span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">futuredapp/.github/.github/workflows/universal-cloud-ai-pr-review.yml@main</span>
 <span class="w">    </span><span class="nt">with</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">marketplace_repository</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
-<span class="w">      </span><span class="nt">plugin</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
 <span class="w">      </span><span class="nt">skill</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
-<span class="w">      </span><span class="nt">skill_path</span><span class="p">:</span><span class="w"> </span><span class="s">'...'</span>
-<span class="w">    </span><span class="nt">secrets</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">CLAUDE_CODE_OAUTH_TOKEN</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}</span>
 </code></pre></div>
 <h2 id="inputs">Inputs</h2>
 <table>
@@ -2923,13 +2859,6 @@
 <td>Branch or tag of the marketplace to use. Pin a tag to roll out skill changes deliberately.</td>
 </tr>
 <tr>
-<td><code>plugin</code></td>
-<td><code>string</code></td>
-<td>Yes</td>
-<td>—</td>
-<td>Plugin to install, as plugin-name@marketplace-name.</td>
-</tr>
-<tr>
 <td><code>skill</code></td>
 <td><code>string</code></td>
 <td>Yes</td>
@@ -2937,11 +2866,18 @@
 <td>Skill to run, as plugin-name:skill-name. It receives the PR number.</td>
 </tr>
 <tr>
+<td><code>plugin</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td>—</td>
+<td>Plugin to install, as plugin-name@marketplace-name. Empty takes the skill's plugin from the marketplace manifest.</td>
+</tr>
+<tr>
 <td><code>skill_path</code></td>
 <td><code>string</code></td>
-<td>Yes</td>
+<td>No</td>
 <td>—</td>
-<td>Path of the skill directory inside the marketplace. It must contain references/output-schema.json and scripts/render-comment.py.</td>
+<td>Path of the skill directory inside the marketplace, with references/output-schema.json and scripts/render-comment.py. Empty uses skills/<skill-name> in the plugin's directory.</skill-name></td>
 </tr>
 <tr>
 <td><code>model</code></td>
@@ -2962,7 +2898,7 @@
 <td><code>string</code></td>
 <td>No</td>
 <td>—</td>
-<td>GitHub login to request a review from when the PR is high risk. Empty requests nobody.</td>
+<td>GitHub login to request a review from when the PR is high risk. Empty uses the PROJECT_REVIEWER variable; without it nobody is requested.</td>
 </tr>
 <tr>
 <td><code>timeout_minutes</code></td>
@@ -2992,8 +2928,8 @@
 <tbody>
 <tr>
 <td><code>CLAUDE_CODE_OAUTH_TOKEN</code></td>
-<td>Yes</td>
-<td>OAuth token of the Claude subscription account the reviews run on, created with <code>claude setup-token</code>.</td>
+<td>No</td>
+<td>OAuth token of the Claude subscription account the reviews run on, created with <code>claude setup-token</code>. Required for a review to run.</td>
 </tr>
 <tr>
 <td><code>CLAUDE_MARKETPLACE_SSH_KEY</code></td>
