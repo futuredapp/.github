@@ -41,7 +41,7 @@ jobs:
       - name: Notify feature review
         # A failed Slack message must not turn a successful build red.
         continue-on-error: true
-        uses: futuredapp/.github/.github/actions/universal-feature-review-notify@main
+        uses: futuredapp/.github/.github/actions/universal-feature-review-notify@2.8.0
         with:
           github_token: ${{ github.token }}
           from_commit: ${{ inputs.from_commit }}
