@@ -6,7 +6,7 @@ PRs are matched by their merge commit, so merge commits and squash merges both w
 
 ## Usage
 
-Most projects call the [`universal-cloud-feature-review-notify`](../../workflows/universal-cloud-feature-review-notify.yml) workflow as a second job after the build, with the build workflow's `from_commit` / `to_commit` outputs. As an action:
+The [`ios-selfhosted-nightly-build`](../../workflows/ios-selfhosted-nightly-build.yml) and [`ios-selfhosted-on-demand-build`](../../workflows/ios-selfhosted-on-demand-build.yml) workflows run it after the build when the caller passes `SLACK_WEBHOOK_FEATURE_REVIEW`. As an action:
 
 ```yaml
 - uses: futuredapp/.github/.github/actions/universal-feature-review-notify@main
