@@ -77,6 +77,10 @@
          <lastmod>2026-10-27</lastmod>
     </url>
     <url>
+         <loc>https://futuredapp.github.io/.github/main/actions/universal/ai-pr-review-publish/</loc>
+         <lastmod>2026-10-27</lastmod>
+    </url>
+    <url>
          <loc>https://futuredapp.github.io/.github/main/actions/universal/codecharta-publish/</loc>
          <lastmod>2026-10-27</lastmod>
     </url>
@@ -86,6 +90,14 @@
     </url>
     <url>
          <loc>https://futuredapp.github.io/.github/main/actions/universal/detect-changes-and-generate-changelog/</loc>
+         <lastmod>2026-10-27</lastmod>
+    </url>
+    <url>
+         <loc>https://futuredapp.github.io/.github/main/actions/universal/feature-review-notify/</loc>
+         <lastmod>2026-10-27</lastmod>
+    </url>
+    <url>
+         <loc>https://futuredapp.github.io/.github/main/actions/universal/review-gate/</loc>
          <lastmod>2026-10-27</lastmod>
     </url>
     <url>
@@ -181,7 +193,19 @@
          <lastmod>2026-10-27</lastmod>
     </url>
     <url>
+         <loc>https://futuredapp.github.io/.github/main/workflows/universal/cloud-ai-pr-review/</loc>
+         <lastmod>2026-10-27</lastmod>
+    </url>
+    <url>
          <loc>https://futuredapp.github.io/.github/main/workflows/universal/cloud-backup/</loc>
+         <lastmod>2026-10-27</lastmod>
+    </url>
+    <url>
+         <loc>https://futuredapp.github.io/.github/main/workflows/universal/cloud-feature-review-notify/</loc>
+         <lastmod>2026-10-27</lastmod>
+    </url>
+    <url>
+         <loc>https://futuredapp.github.io/.github/main/workflows/universal/cloud-review-gate/</loc>
          <lastmod>2026-10-27</lastmod>
     </url>
     <url>

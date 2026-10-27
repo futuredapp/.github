@@ -669,6 +669,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Outputs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#internal-actions-used" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1345,6 +1356,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -1411,6 +1428,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../universal/cloud-ai-pr-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI PR Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../universal/cloud-backup/" class="md-nav__link">
         
   
@@ -1467,6 +1512,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../universal/cloud-feature-review-notify/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Review Notify
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../universal/notify-consumer-repos/" class="md-nav__link">
         
   
@@ -1475,6 +1548,34 @@
     
   
     Notify Consumer Repos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../universal/cloud-review-gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review Gate
   
 
     
@@ -2325,6 +2426,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -2452,6 +2559,90 @@
     
   
     Detect Changes &amp; Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../actions/universal/feature-review-notify/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Review Notify
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../actions/universal/ai-pr-review-publish/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publish AI PR Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../actions/universal/review-gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review Gate
   
 
     
@@ -2674,6 +2865,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Outputs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#internal-actions-used" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2829,6 +3031,25 @@
 <td><code>JIRA_CONTEXT</code></td>
 <td>No</td>
 <td>JIRA context for transitioning tickets.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="outputs">Outputs</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>from_commit</code></td>
+<td>First commit of the build range (exclusive), empty when nothing new was built. Feed it to universal-cloud-feature-review-notify.</td>
+</tr>
+<tr>
+<td><code>to_commit</code></td>
+<td>Last commit of the build range, empty when nothing new was built.</td>
 </tr>
 </tbody>
 </table>
