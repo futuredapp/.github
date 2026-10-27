@@ -228,9 +228,16 @@ jobs:
           persist-credentials: false
           path: .ai-review-marketplace
 
+      # Claude Code reads a directory marketplace's plugins from that directory, not from its plugin cache, so the
+      # marketplace goes where the review model may read (Read(~/.claude/plugins/**)) and out of the checkout.
       - name: Move marketplace out of the checkout
+        id: marketplace
         if: steps.ctx.outputs.run == 'true'
-        run: mv .ai-review-marketplace "$RUNNER_TEMP/claude-marketplace"
+        run: |
+          dir="$HOME/.claude/plugins/ai-review-marketplace"
+          mkdir -p "$(dirname "$dir")"
+          mv .ai-review-marketplace "$dir"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
 
       - name: Prepare Claude arguments
         id: args
@@ -240,18 +247,19 @@ jobs:
           SKILL_PATH: ${{ inputs.skill_path }}
           MODEL: ${{ inputs.model }}
           PR_NUMBER: ${{ steps.ctx.outputs.pr }}
+          MARKETPLACE_DIR: ${{ steps.marketplace.outputs.dir }}
         run: |
           # A skill's allowed-tools grant applies to the turn that invokes it, so an unscoped Read, Grep or Glob
           # there would lift the checkout-only reads below. Refuse such a skill instead of running it.
           frontmatter=$(awk 'NR == 1 && /^---$/ { inside = 1; next } inside && /^---$/ { exit } inside' \
-            "$RUNNER_TEMP/claude-marketplace/$SKILL_PATH/SKILL.md")
+            "$MARKETPLACE_DIR/$SKILL_PATH/SKILL.md")
           tools=$(awk '/^allowed-tools:/ { grab = 1; sub(/^allowed-tools:/, ""); print; next }
             grab && /^[[:space:]]+-/ { print; next } { grab = 0 }' <<< "$frontmatter")
           if grep -qE '(^|[[:space:],"'"'"'-])(Read|Grep|Glob)([[:space:],"'"'"']|$)' <<< "$tools"; then
             echo "::error::The review skill pre-approves an unscoped Read, Grep or Glob; scope it, e.g. Read(~/.claude/plugins/**)."
             exit 1
           fi
-          schema=$(jq -c . "$RUNNER_TEMP/claude-marketplace/$SKILL_PATH/references/output-schema.json")
+          schema=$(jq -c . "$MARKETPLACE_DIR/$SKILL_PATH/references/output-schema.json")
           # claude_args is parsed shell-style: a quote or a dollar sign inside the schema would corrupt it.
           if [[ "$schema" == *"'"* || "$schema" == *'$'* ]]; then
             echo "::error::The output schema must not contain single quotes or dollar signs."
@@ -288,7 +296,7 @@ jobs:
           github_token: ${{ github.token }}
           prompt: ${{ steps.args.outputs.prompt }}
           settings: ${{ steps.args.outputs.settings }}
-          plugin_marketplaces: ${{ runner.temp }}/claude-marketplace
+          plugin_marketplaces: ${{ steps.marketplace.outputs.dir }}
           plugins: ${{ inputs.plugin }}
           claude_args: ${{ steps.args.outputs.claude_args }}
 
@@ -298,6 +306,7 @@ jobs:
           RESULT: ${{ steps.claude.outputs.structured_output }}
           SKILL_PATH: ${{ inputs.skill_path }}
           HEAD_SHA: ${{ steps.ctx.outputs.head_sha }}
+          MARKETPLACE_DIR: ${{ steps.marketplace.outputs.dir }}
         run: |
           out="$RUNNER_TEMP/ai-review-out"
           mkdir -p "$out"
@@ -312,7 +321,7 @@ jobs:
                 else . end')
             fi
             printf '%s' "$RESULT" > "$out/result.json"
-            python3 -I "$RUNNER_TEMP/claude-marketplace/$SKILL_PATH/scripts/render-comment.py" "$out/result.json" \
+            python3 -I "$MARKETPLACE_DIR/$SKILL_PATH/scripts/render-comment.py" "$out/result.json" \
               --sha "$HEAD_SHA" > "$out/comment.md" || : > "$out/comment.md"
           fi
           jq -c '{risk: .risk.level, zones: [.risk.zones[]?.zone], findings: (.findings | length), drift: (.drift | length)}' "$out/result.json" 2> /dev/null || echo "no valid result"
