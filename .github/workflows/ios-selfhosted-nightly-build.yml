@@ -227,4 +227,4 @@ jobs:
           to_commit: ${{ needs.build.outputs.to_commit }}
           slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_FEATURE_REVIEW }}
           reviewer_mention: ${{ steps.check.outputs.mention }}
-          build_name: 'Nightly build'
+          build_name: 'iOS nightly build'
