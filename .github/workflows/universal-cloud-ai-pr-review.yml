@@ -1,9 +1,10 @@
 name: Universal Cloud AI PR Review
 
 # The whole code review in one call: the AI review and the required "review-gate" status. Call it from one job on
-# pull_request (opened, synchronize, reopened, ready_for_review, edited), pull_request_target (the same plus labeled,
+# pull_request (opened, synchronize, reopened, ready_for_review), pull_request_target (the same plus edited, labeled,
 # unlabeled), pull_request_review (submitted, dismissed) and issue_comment (created), with secrets: inherit and the
 # caller granting contents: read and pull-requests, issues and statuses: write. Each job picks its own events.
+# Without "edited" on pull_request a description edit adds no run of skipped checks; after a retarget, "/review" runs it.
 # The review runs on pull_request and "/review"; the gate is re-evaluated on pull_request_target and review events,
 # which run from the base branch with a write token, so it also works for bot-authored PRs.
 # Claude runs in "review" on untrusted PR content with a read-only token and no shell; "publish" and the gate
@@ -50,7 +51,7 @@ on:
       protected_paths:
         description: 'Extended regex (case-insensitive) of changed paths that make the PR high risk whatever the model says. Empty turns it off.'
         type: string
-        default: '(^|/)(AGENTS|CLAUDE|CLAUDE\.local)\.md$|(^|/)\.claude/|^\.github/|(^|/)\.gitattributes$|(^|/)\.gitmodules$|(^|/)fastlane/[^/]+$|(^|/)(Gemfile|Podfile|Cartfile)(\.lock|\.resolved)?$|(^|/)Package\.resolved$|\.entitlements$|(^|/)PrivacyInfo\.xcprivacy$|\.xcconfig$'
+        default: '(^|/)\.claude/(settings[^/]*\.json$|hooks/)|^\.github/|(^|/)\.gitattributes$|(^|/)\.gitmodules$|(^|/)fastlane/[^/]+$|(^|/)(Gemfile|Podfile|Cartfile)(\.lock|\.resolved)?$|(^|/)Package\.resolved$|\.entitlements$|(^|/)PrivacyInfo\.xcprivacy$|\.xcconfig$'
 
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
