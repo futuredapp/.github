@@ -9,7 +9,7 @@ set -euo pipefail
 review_meta() {
   jq -r --arg marker "$2" --arg bot "$3" '
     [ .[] | select(.user.login == $bot) | select((.body // "") | startswith($marker)) ]
-    | last | (.body // "") | split("\n")[0] | rtrimstr("\r")
+    | last | (.body // "") | split("\n")[0] // "" | rtrimstr("\r")
     | capture("^<!-- ai-pr-review sha=(?<sha>[0-9a-f]{40}) risk=(?<risk>low|high) -->$")
     | "\(.sha) \(.risk)"' <<< "$1"
 }

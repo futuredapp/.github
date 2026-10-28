@@ -15,6 +15,10 @@ bot_comment() {
   [ "$(review_meta "$comments" "$MARK" "$BOT")" = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb high" ]
 }
 
+@test "review_meta: no comments yet is no review" {
+  [ "$(review_meta '[]' "$MARK" "$BOT")" = "" ]
+}
+
 @test "review_meta: a marker comment from anyone else is ignored" {
   comments="[$(bot_comment mallory '<!-- ai-pr-review sha=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb risk=low -->')]"
   [ "$(review_meta "$comments" "$MARK" "$BOT")" = "" ]
