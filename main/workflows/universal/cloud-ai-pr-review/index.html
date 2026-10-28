@@ -2911,7 +2911,7 @@
 <td><code>protected_paths</code></td>
 <td><code>string</code></td>
 <td>No</td>
-<td><code>(^|/)(AGENTS|CLAUDE|CLAUDE\.local)\.md$|(^|/)\.claude/|^\.github/|(^|/)\.gitattributes$|(^|/)\.gitmodules$|(^|/)fastlane/[^/]+$|(^|/)(Gemfile|Podfile|Cartfile)(\.lock|\.resolved)?$|(^|/)Package\.resolved$|\.entitlements$|(^|/)PrivacyInfo\.xcprivacy$|\.xcconfig$</code></td>
+<td><code>(^|/)\.claude/(settings[^/]*\.json$|hooks/)|^\.github/|(^|/)\.gitattributes$|(^|/)\.gitmodules$|(^|/)fastlane/[^/]+$|(^|/)(Gemfile|Podfile|Cartfile)(\.lock|\.resolved)?$|(^|/)Package\.resolved$|\.entitlements$|(^|/)PrivacyInfo\.xcprivacy$|\.xcconfig$</code></td>
 <td>Extended regex (case-insensitive) of changed paths that make the PR high risk whatever the model says. Empty turns it off.</td>
 </tr>
 </tbody>
