@@ -2,7 +2,8 @@ name: Universal Cloud AI PR Review
 
 # The whole code review in one call: the AI review and the required "review-gate" status. Call it from one job on
 # pull_request (opened, synchronize, reopened, ready_for_review), pull_request_target (the same plus edited, labeled,
-# unlabeled), pull_request_review (submitted, dismissed) and issue_comment (created), with secrets: inherit and the
+# unlabeled), pull_request_review (submitted, dismissed) and issue_comment (created), passing only CLAUDE_CODE_OAUTH_TOKEN
+# and CLAUDE_MARKETPLACE_SSH_KEY (not secrets: inherit, so the review never sees signing or store secrets), with the
 # caller granting contents: read and pull-requests, issues and statuses: write. Each job picks its own events.
 # Without "edited" on pull_request a description edit adds no run of skipped checks; after a retarget, "/review" runs it.
 # The review runs on pull_request and "/review"; the gate is re-evaluated on pull_request_target and review events,
