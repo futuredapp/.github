@@ -95,7 +95,7 @@ jobs:
       - name: Generate changelog if not provided
         if: ${{ inputs.changelog == '' }}
         id: detect_changes
-        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@2.8.0
+        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@2.9.0
         with:
           checkout_depth: ${{ inputs.checkout_depth }}
           fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
@@ -120,14 +120,14 @@ jobs:
 
       - name: Export secrets
         if: ${{ inputs.xcconfig_path != '' }}
-        uses: futuredapp/.github/.github/actions/ios-export-secrets@2.8.0
+        uses: futuredapp/.github/.github/actions/ios-export-secrets@2.9.0
         with:
           XCCONFIG_PATH: ${{ inputs.xcconfig_path }}
           SECRET_PROPERTIES: ${{ secrets.SECRET_PROPERTIES }}
           REQUIRED_KEYS: ${{ inputs.required_keys }}
 
       - name: Fastlane Beta
-        uses: futuredapp/.github/.github/actions/ios-fastlane-beta@2.8.0
+        uses: futuredapp/.github/.github/actions/ios-fastlane-beta@2.9.0
         with:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           testflight_changelog: ${{ steps.set_changelog.outputs.changelog }}
@@ -202,7 +202,7 @@ jobs:
         if: steps.check.outputs.enabled == 'true'
         # A failed Slack message must not turn a successful build red.
         continue-on-error: true
-        uses: futuredapp/.github/.github/actions/universal-feature-review-notify@2.8.0
+        uses: futuredapp/.github/.github/actions/universal-feature-review-notify@2.9.0
         with:
           github_token: ${{ github.token }}
           from_commit: ${{ needs.build.outputs.from_commit }}
