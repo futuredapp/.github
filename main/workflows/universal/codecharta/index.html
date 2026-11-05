@@ -2935,7 +2935,21 @@
 <td><code>string</code></td>
 <td>No</td>
 <td>—</td>
-<td>Comma-separated patterns appended to ccsh <code>-e=</code> and tokei <code>--exclude</code>. Use for repo-specific noise (vendored dirs, generated folders, etc.).</td>
+<td>Comma-separated patterns appended to ccsh <code>-e=</code> and tokei <code>--exclude</code>. Use for repo-specific noise (vendored dirs, generated folders, etc.). A pattern that names an existing directory relative to the repo root is also hidden from DependaCharta, which otherwise analyzes every file in the repo.</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>git_log_since</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td>—</td>
+<td>Optional date for <code>git log --since</code> (e.g. <code>2024-05-01</code>), limiting the history the git metrics (commits, churn, age) are computed from in PR and push snapshots. Set it when the CodeCharta git log parser cannot follow older history, e.g. a commit that replaced the whole tree; the run then fails at the merge step or the map loses its git metrics. Files untouched since that date get no git metrics.</td>
 </tr>
 <tr>
 <td></td>

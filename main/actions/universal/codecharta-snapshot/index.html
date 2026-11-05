@@ -2898,7 +2898,21 @@
 <td><code>string</code></td>
 <td>No</td>
 <td>—</td>
-<td>Comma-separated regex patterns to exclude in addition to the analyzer defaults. Applied to ccsh <code>-e=</code> and tokei <code>--exclude</code> uniformly.</td>
+<td>Comma-separated regex patterns to exclude in addition to the analyzer defaults. Applied to ccsh <code>-e=</code> and tokei <code>--exclude</code> uniformly. A pattern that names an existing directory relative to the repo root (e.g. <code>vendor/engine</code>) is also hidden from DependaCharta.</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>git_log_since</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td>—</td>
+<td>Optional date passed to <code>git log --since</code> (e.g. <code>2024-05-01</code>) for the git history metrics in <code>snapshot</code> mode. Use it when the parser cannot follow older history, e.g. a commit that replaced the whole tree. Files without commits since that date get no git metrics. Unset reads the full history.</td>
 </tr>
 <tr>
 <td></td>
