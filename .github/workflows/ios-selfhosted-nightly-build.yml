@@ -93,7 +93,7 @@ jobs:
     steps:
       - name: Detect changes and generate changelog
         id: detect_changes
-        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@2.9.0
+        uses: futuredapp/.github/.github/actions/universal-detect-changes-and-generate-changelog@2.10.0
         with:
           checkout_depth: ${{ inputs.checkout_depth }}
           fallback_lookback: ${{ inputs.changelog_fallback_lookback }}
@@ -111,7 +111,7 @@ jobs:
 
       - name: Export secrets
         if: ${{ steps.detect_changes.outputs.skip_build == 'false' && inputs.xcconfig_path != '' }}
-        uses: futuredapp/.github/.github/actions/ios-export-secrets@2.9.0
+        uses: futuredapp/.github/.github/actions/ios-export-secrets@2.10.0
         with:
           XCCONFIG_PATH: ${{ inputs.xcconfig_path }}
           SECRET_PROPERTIES: ${{ secrets.SECRET_PROPERTIES }}
@@ -119,7 +119,7 @@ jobs:
 
       - name: Fastlane Beta
         if: ${{ steps.detect_changes.outputs.skip_build == 'false' }}
-        uses: futuredapp/.github/.github/actions/ios-fastlane-beta@2.9.0
+        uses: futuredapp/.github/.github/actions/ios-fastlane-beta@2.10.0
         with:
           match_password: ${{ secrets.MATCH_PASSWORD }}
           testflight_changelog: ${{ steps.set_changelog.outputs.changelog }}
@@ -175,7 +175,7 @@ jobs:
           fi
       - name: Transition JIRA tickets
         if: steps.check.outputs.enabled == 'true'
-        uses: futuredapp/.github/.github/actions/jira-transition-tickets@2.9.0
+        uses: futuredapp/.github/.github/actions/jira-transition-tickets@2.10.0
         with:
           jira_context: ${{ secrets.JIRA_CONTEXT }}
           transition: ${{ inputs.jira_transition }}
@@ -220,7 +220,7 @@ jobs:
         if: steps.check.outputs.enabled == 'true'
         # A failed Slack message must not turn a successful build red.
         continue-on-error: true
-        uses: futuredapp/.github/.github/actions/universal-feature-review-notify@2.9.0
+        uses: futuredapp/.github/.github/actions/universal-feature-review-notify@2.10.0
         with:
           github_token: ${{ github.token }}
           from_commit: ${{ needs.build.outputs.from_commit }}
