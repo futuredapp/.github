@@ -230,12 +230,12 @@ jobs:
 
           # pins <commit> <path>: one "url revision version" line per pin, sorted by url; "-" for a pin without a
           # version. Read from git objects, so neither the working tree nor the PR's attributes change what is parsed.
-          # Whitespace is stripped, so a crafted value cannot split into extra fields or lines.
+          # Whitespace is stripped, so a crafted value cannot split into extra fields or lines, and an empty field is "-".
           pins() {
             git cat-file blob "$1:$2" 2> /dev/null | jq -r '
               (.pins // .object.pins // [])[]
               | [(.location // .repositoryURL | ascii_downcase | sub("\\.git$"; "")), .state.revision, (.state.version // "-")]
-              | map(tostring | gsub("\\s"; "")) | join(" ")' | sort
+              | map(tostring | gsub("\\s"; "") | if . == "" then "-" else . end) | join(" ")' | sort -k1,1
           }
 
           # moved_pins: one "repo old_revision new_revision old_version new_version" line per moved GitHub pin, once
@@ -275,18 +275,20 @@ jobs:
 
           # release_notes <repo> <old_version> <new_version>: the notes of every release after the old version up to
           # the new one, newest first; only the new one's when the old version has no release among the last 30.
-          # Tags may carry a "v" prefix that Package.resolved drops. At most 4,000 characters a release, 10,000 in all.
+          # Tags may carry a "v" prefix that Package.resolved drops. At most 4,000 characters a release, 10,000 in all,
+          # each cut marked, so a missing item is never mistaken for one the notes leave out.
           release_notes() {
             [ "$3" != "-" ] || return 0
             gh api "repos/$1/releases?per_page=30" 2> /dev/null | jq -r --arg old "$2" --arg new "$3" '
               def version: .tag_name | ltrimstr("v");
+              def cap($n): if length > $n then .[:$n] + "\n\n(truncated)" else . end;
               (map(select(version == $new)) | first) as $to
               | (map(select(version == $old)) | first | .published_at) as $from
               | if $to == null then empty else
                   map(select(.published_at <= $to.published_at
                     and (if $from then .published_at > $from else version == $new end)))
-                  | map("### Release notes of \(.tag_name)\n\n\((.body // "")[:4000])")
-                  | "\n" + (join("\n\n")[:10000])
+                  | map("**Release notes of \(.tag_name):**\n\n\(.body // "" | cap(4000))")
+                  | "\n" + (join("\n\n") | cap(10000))
                 end' || true
           }
 
