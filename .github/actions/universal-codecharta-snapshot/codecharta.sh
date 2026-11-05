@@ -67,6 +67,7 @@ esac
 FILE_EXTENSIONS="${CODECHARTA_FILE_EXTENSIONS:-${STACK_FE}}"
 TOKEI_TYPES="${CODECHARTA_TOKEI_TYPES:-${STACK_TOKEI}}"
 EXTRA_EXCLUDES="${CODECHARTA_EXTRA_EXCLUDES:-}"
+GIT_LOG_SINCE="${CODECHARTA_GIT_LOG_SINCE:-}"
 
 # Note: the ccsh `-fe=…` flag, tokei `--type` flag, and exclude lists are
 # re-derived inside the Docker `bash -lc` heredocs below because the host
@@ -124,8 +125,32 @@ run_dependacharta() {
 
     mkdir -p "${absolute_out_dir}"
 
+    # DependaCharta has no exclude option in the pinned image, so an
+    # extra_excludes entry that names an existing directory is hidden from it
+    # by mounting an empty directory over that path. Other entries (regexes,
+    # file patterns) only apply to ccsh and tokei. Without this, a large
+    # vendored tree (an exported game engine, generated sources) is analyzed
+    # file by file and can take longer than the job timeout.
+    local mask_args=() empty_dir pattern
+    if [[ -n "${EXTRA_EXCLUDES}" ]]; then
+        empty_dir="$(mktemp -d)"
+        IFS="," read -ra patterns <<< "${EXTRA_EXCLUDES}"
+        for pattern in "${patterns[@]}"; do
+            pattern="${pattern#/}"
+            pattern="${pattern%/}"
+            if [[ -z "${pattern}" || "${pattern}" == *..* ]]; then
+                continue
+            fi
+            if [[ -d "${REPO_ROOT}/${pattern}" ]]; then
+                mask_args+=(-v "${empty_dir}:/source/${pattern}:ro")
+                echo "DependaCharta: excluding directory ${pattern}"
+            fi
+        done
+    fi
+
     docker run --rm \
         -v "${REPO_ROOT}:/source:ro" \
+        ${mask_args[@]+"${mask_args[@]}"} \
         -v "${absolute_out_dir}:/output" \
         "${DEPENDACHARTA_IMAGE}" \
         -d /source \
@@ -202,6 +227,7 @@ snapshot() {
         -e CC_FILE_EXTENSIONS="${FILE_EXTENSIONS}" \
         -e CC_TOKEI_TYPES="${TOKEI_TYPES}" \
         -e CC_EXTRA_EXCLUDES="${EXTRA_EXCLUDES}" \
+        -e CC_GIT_LOG_SINCE="${GIT_LOG_SINCE}" \
         -v "${REPO_ROOT}:/mnt/src" \
         -w /mnt/src \
         "${ANALYSIS_IMAGE}" \
@@ -265,7 +291,24 @@ snapshot() {
             ccsh tokeiimporter "${tokei_json}" --root-name . -o "${tokei_map}"
 
             base_inputs=("${source_map}.cc.json.gz" "${tokei_map}.cc.json.gz")
-            if ccsh gitlogparser repo-scan --repo-path /mnt/src --silent -o "${git_map}"; then
+            git_log_ok=false
+            if [[ -n "${CC_GIT_LOG_SINCE}" ]]; then
+                # Same log format repo-scan generates, limited to commits since
+                # the given date. Lets a repo skip history the parser cannot
+                # follow, e.g. a commit that replaced the whole tree.
+                git_log="${CC_OUT_DIR}/tmp/${CC_PROJECT_NAME}-git.log"
+                git_files="${CC_OUT_DIR}/tmp/${CC_PROJECT_NAME}-git-files.txt"
+                if git -c core.quotepath=off log --numstat --raw --topo-order --reverse -m \
+                        --since="${CC_GIT_LOG_SINCE}" > "${git_log}" \
+                    && git -c core.quotepath=off ls-files > "${git_files}" \
+                    && ccsh gitlogparser log-scan --git-log "${git_log}" --repo-files "${git_files}" \
+                        --silent -o "${git_map}"; then
+                    git_log_ok=true
+                fi
+            elif ccsh gitlogparser repo-scan --repo-path /mnt/src --silent -o "${git_map}"; then
+                git_log_ok=true
+            fi
+            if [[ "${git_log_ok}" == true ]]; then
                 base_inputs+=("${git_map}.cc.json.gz")
             else
                 echo "CodeCharta git history parser failed; continuing without git metrics."
@@ -280,7 +323,10 @@ snapshot() {
                 echo "DependaCharta graph missing at ${graph}; continuing without dependency metrics."
             fi
 
-            ccsh merge -o="${final_map}" "${base_inputs[@]}"
+            # -f: when the input maps share no top-level folder, ccsh merge
+            # asks for confirmation in a terminal session. CI has no terminal,
+            # so without -f that question crashes the run instead of merging.
+            ccsh merge -f -o="${final_map}" "${base_inputs[@]}"
             ccsh check "${final_map}.cc.json.gz"
             echo "Created ${final_map}.cc.json.gz"
         '

@@ -103,6 +103,19 @@ on:
         description: >
           Comma-separated patterns appended to ccsh `-e=` and tokei `--exclude`.
           Use for repo-specific noise (vendored dirs, generated folders, etc.).
+          A pattern that names an existing directory relative to the repo root
+          is also hidden from DependaCharta, which otherwise analyzes every
+          file in the repo.
+      git_log_since:
+        type: string
+        required: false
+        description: >
+          Optional date for `git log --since` (e.g. `2024-05-01`), limiting the
+          history the git metrics (commits, churn, age) are computed from in
+          PR and push snapshots. Set it when the CodeCharta git log parser
+          cannot follow older history, e.g. a commit that replaced the whole
+          tree; the run then fails at the merge step or the map loses its git
+          metrics. Files untouched since that date get no git metrics.
       backfill:
         type: boolean
         required: false
@@ -237,6 +250,7 @@ jobs:
           file_extensions: ${{ inputs.file_extensions }}
           tokei_types: ${{ inputs.tokei_types }}
           extra_excludes: ${{ inputs.extra_excludes }}
+          git_log_since: ${{ inputs.git_log_since }}
           dependacharta_image: ${{ inputs.dependacharta_image_base }}:${{ inputs.dependacharta_image_tag }}
 
       # ── Step 5: decide whether this is a preview or a history snapshot ────
