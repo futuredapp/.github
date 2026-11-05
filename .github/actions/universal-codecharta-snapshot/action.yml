@@ -42,7 +42,17 @@ inputs:
     required: false
     description: >
       Comma-separated regex patterns to exclude in addition to the analyzer
-      defaults. Applied to ccsh `-e=` and tokei `--exclude` uniformly.
+      defaults. Applied to ccsh `-e=` and tokei `--exclude` uniformly. A
+      pattern that names an existing directory relative to the repo root
+      (e.g. `vendor/engine`) is also hidden from DependaCharta.
+  git_log_since:
+    required: false
+    description: >
+      Optional date passed to `git log --since` (e.g. `2024-05-01`) for the
+      git history metrics in `snapshot` mode. Use it when the parser cannot
+      follow older history, e.g. a commit that replaced the whole tree. Files
+      without commits since that date get no git metrics. Unset reads the
+      full history.
   history_limit:
     required: false
     default: '20'
@@ -102,6 +112,7 @@ runs:
         CODECHARTA_FILE_EXTENSIONS: ${{ inputs.file_extensions }}
         CODECHARTA_TOKEI_TYPES: ${{ inputs.tokei_types }}
         CODECHARTA_EXTRA_EXCLUDES: ${{ inputs.extra_excludes }}
+        CODECHARTA_GIT_LOG_SINCE: ${{ inputs.git_log_since }}
         CODECHARTA_HISTORY_PULL_REQUEST_LIMIT: ${{ inputs.history_limit }}
         CODECHARTA_ANALYSIS_IMAGE: ${{ inputs.analysis_image }}
         DEPENDACHARTA_IMAGE: ${{ inputs.dependacharta_image }}
