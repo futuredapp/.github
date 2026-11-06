@@ -147,6 +147,16 @@ on:
           Swift parser isn't needed and a public registry is preferable —
           e.g. consumer repos outside the futuredapp GHCR access boundary.
           Pair with a matching `dependacharta_image_tag`.
+      analysis_image:
+        type: string
+        required: false
+        default: ghcr.io/futuredapp/codecharta-analysis:swift-7bb3f6dbb6a7d3cb6fb504831a8b3c9cc5e2ce74
+        description: Pinned internal CodeCharta analysis image with experimental Swift dependencies.
+      dependency_engine:
+        type: string
+        required: false
+        default: codecharta
+        description: codecharta for integrated dependencies; dependacharta for the legacy pipeline.
       dependacharta_image_tag:
         type: string
         required: false
@@ -193,6 +203,7 @@ jobs:
     # cleanup job below.
     if: |
       github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && !inputs.backfill) ||
       (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -242,10 +253,12 @@ jobs:
       # These outputs are consumed by the publish steps below.
       - name: Run CodeCharta snapshot
         id: snapshot
-        uses: futuredapp/.github/.github/actions/universal-codecharta-snapshot@2.10.1
+        uses: futuredapp/.github/.github/actions/universal-codecharta-snapshot@ci/codecharta-nm-trial
         with:
           mode: snapshot
           project_name: ${{ steps.project.outputs.name }}
+          analysis_image: ${{ inputs.analysis_image }}
+          dependency_engine: ${{ inputs.dependency_engine }}
           stack: ${{ inputs.stack }}
           file_extensions: ${{ inputs.file_extensions }}
           tokei_types: ${{ inputs.tokei_types }}
@@ -327,7 +340,7 @@ jobs:
       # concurrent writers.
       - name: Publish (preview)
         if: steps.ids.outputs.kind == 'preview'
-        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@2.10.1
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@ci/codecharta-nm-trial
         with:
           mode: preview
           project_name: ${{ steps.project.outputs.name }}
@@ -344,7 +357,7 @@ jobs:
       # so the picker can offer a delta view against current develop.
       - name: Publish (history)
         if: steps.ids.outputs.kind == 'history'
-        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@2.10.1
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@ci/codecharta-nm-trial
         with:
           mode: history
           project_name: ${{ steps.project.outputs.name }}
@@ -388,8 +401,8 @@ jobs:
           latestUrl="/api/map?path=${latestPath}"
 
           ccStudio="${base}/studio/?file=$(jq -rn --arg u "${ccUrl}" '$u | @uri')"
-          cgVis="${base}/dependacharta/?file=$(jq -rn --arg u "${cgUrl}" '$u | @uri')"
-          ccDelta="${base}/studio/?file=$(jq -rn --arg u "${ccUrl}" '$u | @uri')&file=$(jq -rn --arg u "${latestUrl}" '$u | @uri')"
+          cgVis="${base}/dependacharta/?graph=$(jq -rn --arg u "${cgUrl}" '$u | @uri')"
+          ccDelta="${base}/studio/?mode=Delta&file=$(jq -rn --arg u "${latestUrl}" '$u | @uri')&file=$(jq -rn --arg u "${ccUrl}" '$u | @uri')"
 
           {
             echo "ccStudio=${ccStudio}"
@@ -426,7 +439,6 @@ jobs:
             ### Codebase architecture snapshot
 
             - [Open this PR in CodeCharta](${{ steps.links.outputs.ccStudio }})
-            - [Open this PR in DependaCharta](${{ steps.links.outputs.cgVis }})
             - [Compare PR vs latest develop (CodeCharta delta view)](${{ steps.links.outputs.ccDelta }})
 
             Snapshot is regenerated on every push. Picker: ${{ inputs.picker_base_url }}/
@@ -461,7 +473,7 @@ jobs:
       # data repo, rebuilds manifest, commits ("Drop preview for <name> PR
       # #<N>"), pushes. Idempotent — no-op if the preview was never created.
       - name: Delete preview
-        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@2.10.1
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@ci/codecharta-nm-trial
         with:
           mode: delete-preview
           project_name: ${{ steps.project.outputs.name }}
@@ -530,12 +542,14 @@ jobs:
       # deliberate trade-off.
       - name: Generate historical snapshots
         id: history
-        uses: futuredapp/.github/.github/actions/universal-codecharta-snapshot@2.10.1
+        uses: futuredapp/.github/.github/actions/universal-codecharta-snapshot@ci/codecharta-nm-trial
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           mode: history
           project_name: ${{ steps.project.outputs.name }}
+          analysis_image: ${{ inputs.analysis_image }}
+          dependency_engine: ${{ inputs.dependency_engine }}
           stack: ${{ inputs.stack }}
           file_extensions: ${{ inputs.file_extensions }}
           tokei_types: ${{ inputs.tokei_types }}
@@ -556,7 +570,7 @@ jobs:
       #
       # Replaces the previous loop-of-publishes which did N clones / N pushes.
       - name: Publish backfill batch
-        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@2.10.1
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@ci/codecharta-nm-trial
         with:
           mode: bulk-history
           project_name: ${{ steps.project.outputs.name }}
@@ -571,7 +585,7 @@ jobs:
       # commit from bulk-history so the history entries and the pointer
       # refresh are easy to revert independently if something goes wrong.
       - name: Refresh latest pointer
-        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@2.10.1
+        uses: futuredapp/.github/.github/actions/universal-codecharta-publish@ci/codecharta-nm-trial
         with:
           mode: set-latest
           project_name: ${{ steps.project.outputs.name }}

@@ -21,9 +21,14 @@ REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
 PROJECT_NAME="${CODECHARTA_PROJECT_NAME:?CODECHARTA_PROJECT_NAME is required}"
 OUT_DIR="${CODECHARTA_OUT_DIR:-build/codecharta}"
 STACK="${CODECHARTA_STACK:-multi}"
-ANALYSIS_IMAGE="${CODECHARTA_ANALYSIS_IMAGE:-codecharta/codecharta-analysis:1.143.0}"
+ANALYSIS_IMAGE="${CODECHARTA_ANALYSIS_IMAGE:-ghcr.io/futuredapp/codecharta-analysis:swift-7bb3f6dbb6a7d3cb6fb504831a8b3c9cc5e2ce74}"
 DEPENDACHARTA_IMAGE="${DEPENDACHARTA_IMAGE:-ghcr.io/futuredapp/dependacharta-swift:fork-v0.2.1}"
 DEPENDACHARTA_RUNNER="${DEPENDACHARTA_RUNNER:-docker}"
+DEPENDENCY_ENGINE="${CODECHARTA_DEPENDENCY_ENGINE:-codecharta}"
+case "${DEPENDENCY_ENGINE}" in
+    codecharta|dependacharta) ;;
+    *) echo "Unknown dependency engine: ${DEPENDENCY_ENGINE}" >&2; exit 64 ;;
+esac
 PLATFORM="${CODECHARTA_PLATFORM-linux/amd64}"
 HISTORY_LIMIT="${CODECHARTA_HISTORY_PULL_REQUEST_LIMIT:-}"
 
@@ -214,7 +219,12 @@ snapshot() {
 
     mkdir -p "${absolute_out_dir}/tmp"
 
-    run_dependacharta "${absolute_out_dir}"
+    if [[ "${DEPENDENCY_ENGINE}" == "dependacharta" ]]; then
+        run_dependacharta "${absolute_out_dir}"
+    else
+        # A re-run must not publish an old graph beside a new integrated map.
+        rm -f "${graph_path}"
+    fi
 
     # Run ccsh (unifiedparser, gitlogparser, tokei, merge) in a single Docker
     # invocation so intermediate files share an in-container working dir.
@@ -225,6 +235,7 @@ snapshot() {
         -e CC_PROJECT_NAME="${PROJECT_NAME}" \
         -e CC_OUT_DIR="${OUT_DIR}" \
         -e CC_FILE_EXTENSIONS="${FILE_EXTENSIONS}" \
+        -e CC_DEPENDENCY_ENGINE="${DEPENDENCY_ENGINE}" \
         -e CC_TOKEI_TYPES="${TOKEI_TYPES}" \
         -e CC_EXTRA_EXCLUDES="${EXTRA_EXCLUDES}" \
         -e CC_GIT_LOG_SINCE="${GIT_LOG_SINCE}" \
@@ -314,8 +325,15 @@ snapshot() {
                 echo "CodeCharta git history parser failed; continuing without git metrics."
             fi
 
-            # DependaCharta graph → CodeCharta dependency metrics → merged map.
-            if [[ -f "${graph}" ]]; then
+            # The native dependency lens retains file and declaration edges in cc.json 2.0.
+            if [[ "${CC_DEPENDENCY_ENGINE}" == "codecharta" ]]; then
+                ccsh dependencyparser \
+                    "${fe_args[@]}" \
+                    "${exclude_args[@]}" \
+                    -o "${dependency_edges}" \
+                    .
+                base_inputs+=("${dependency_edges}")
+            elif [[ -f "${graph}" ]]; then
                 ccsh dependachartaimport "${graph}" -o "${dependency_edges}"
                 ccsh edgefilter "${dependency_edges}" -o "${dependency_metrics}"
                 base_inputs+=("${dependency_metrics}")
@@ -331,7 +349,7 @@ snapshot() {
             echo "Created ${final_map}.cc.json.gz"
         '
 
-    if [[ -f "${final_map_path}" ]]; then
+    if [[ "${DEPENDENCY_ENGINE}" == "dependacharta" && -f "${final_map_path}" ]]; then
         add_dependency_metric_descriptions "${final_map_path}" || true
     fi
 

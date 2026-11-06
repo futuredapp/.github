@@ -110,6 +110,17 @@ git remote set-url origin "https://x-access-token:${CODEBASE_ARCHITECTURES_TOKEN
 
 PROJECT_DIR="projects/${PROJECT_NAME}"
 
+# An absent graph means this snapshot uses CodeCharta's integrated dependency lens.
+# Remove an old sidecar so it cannot be presented as the new snapshot's graph.
+copy_optional_graph() {
+    local target="$1"
+    if [[ -n "${SOURCE_CG_PATH:-}" ]]; then
+        cp "${SOURCE_CG_PATH}" "${target}"
+    else
+        rm -f "${target}"
+    fi
+}
+
 apply_change() {
     # Re-create the destination directories on every call. Important on the
     # retry path: `git reset --hard origin/<branch>` wipes any local-only
@@ -122,9 +133,8 @@ apply_change() {
     case "${MODE}" in
         preview)
             require_env SOURCE_CC_PATH
-            require_env SOURCE_CG_PATH
             cp "${SOURCE_CC_PATH}" "${PROJECT_DIR}/previews/pr-${PR_NUMBER}.cc.json.gz"
-            cp "${SOURCE_CG_PATH}" "${PROJECT_DIR}/previews/pr-${PR_NUMBER}.cg.json"
+            copy_optional_graph "${PROJECT_DIR}/previews/pr-${PR_NUMBER}.cg.json"
             # Mirror the meta sidecar OR explicitly remove it when source is
             # missing. Without the removal a previous run's stale meta (e.g.
             # an older PR title before a rename) would persist.
@@ -136,10 +146,9 @@ apply_change() {
             ;;
         history)
             require_env SOURCE_CC_PATH
-            require_env SOURCE_CG_PATH
             local basename="${DATE}-${STEM}"
             cp "${SOURCE_CC_PATH}" "${PROJECT_DIR}/history/${basename}.cc.json.gz"
-            cp "${SOURCE_CG_PATH}" "${PROJECT_DIR}/history/${basename}.cg.json"
+            copy_optional_graph "${PROJECT_DIR}/history/${basename}.cg.json"
             # As with preview: mirror or actively remove. A new history entry
             # with no source meta should NOT inherit a stale per-entry meta
             # from a prior write, and the latest.* pointers below must follow.
@@ -149,7 +158,7 @@ apply_change() {
                 rm -f "${PROJECT_DIR}/history/${basename}.meta.json"
             fi
             cp "${PROJECT_DIR}/history/${basename}.cc.json.gz" "${PROJECT_DIR}/history/latest.cc.json.gz"
-            cp "${PROJECT_DIR}/history/${basename}.cg.json"    "${PROJECT_DIR}/history/latest.cg.json"
+            copy_optional_graph "${PROJECT_DIR}/history/latest.cg.json"
             if [[ -f "${PROJECT_DIR}/history/${basename}.meta.json" ]]; then
                 cp "${PROJECT_DIR}/history/${basename}.meta.json" "${PROJECT_DIR}/history/latest.meta.json"
             else
@@ -207,19 +216,16 @@ apply_change() {
             fi
             local base="${newest%.cc.json.gz}"
             cp "${PROJECT_DIR}/history/${newest}" "${PROJECT_DIR}/history/latest.cc.json.gz"
-            # Update the cg/meta sidecars only when the selected newest entry
-            # has them. Otherwise leave the existing latest.* alone — backfill
-            # entries intentionally omit `.cg.json` (DependaCharta isn't run
-            # per historical commit), and we'd rather keep a graph from an
-            # older entry than break the picker's DependaCharta view entirely.
-            # `latest.meta.json` follows the same policy: rebase-merge history
-            # entries have no PR to query, but a prior PR-merge entry's title
-            # is more useful than no title at all.
+            # Keep every latest pointer aligned with the selected snapshot.
             if [[ -f "${PROJECT_DIR}/history/${base}.cg.json" ]]; then
                 cp "${PROJECT_DIR}/history/${base}.cg.json" "${PROJECT_DIR}/history/latest.cg.json"
+            else
+                rm -f "${PROJECT_DIR}/history/latest.cg.json"
             fi
             if [[ -f "${PROJECT_DIR}/history/${base}.meta.json" ]]; then
                 cp "${PROJECT_DIR}/history/${base}.meta.json" "${PROJECT_DIR}/history/latest.meta.json"
+            else
+                rm -f "${PROJECT_DIR}/history/latest.meta.json"
             fi
             ;;
     esac

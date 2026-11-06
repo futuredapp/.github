@@ -66,13 +66,19 @@ inputs:
       Fully-qualified DependaCharta image reference. The Futured fork covers
       all upstream languages plus Swift; pin via this input if you need a
       specific tag.
+  dependency_engine:
+    required: false
+    default: codecharta
+    description: >
+      codecharta uses the integrated dependency parser, including experimental Swift.
+      dependacharta keeps the legacy graph pipeline for rollback.
   analysis_image:
     required: false
-    default: codecharta/codecharta-analysis:1.143.0
+    default: ghcr.io/futuredapp/codecharta-analysis:swift-7bb3f6dbb6a7d3cb6fb504831a8b3c9cc5e2ce74
     description: >
-      Fully-qualified ccsh / tokei analysis image. Pinned to a specific
-      upstream release for reproducibility — bump intentionally when picking
-      up upstream changes. Consumers can override via this input.
+      Fully-qualified ccsh / tokei analysis image. The internal build pins the
+      Swift implementation by source commit. Consumers can override this input
+      to select a later build or roll back with dependency_engine=dependacharta.
 
 outputs:
   cc_path:
@@ -98,7 +104,7 @@ runs:
       # History mode doesn't run DependaCharta (it walks merge commits via
       # ccsh unifiedparser --commit only). Skip the pull to avoid 100+ MB of
       # wasted network traffic on backfill runs.
-      if: inputs.mode == 'snapshot'
+      if: inputs.mode == 'snapshot' && inputs.dependency_engine == 'dependacharta'
       shell: bash
       run: docker pull "${{ inputs.dependacharta_image }}"
 
@@ -114,6 +120,7 @@ runs:
         CODECHARTA_EXTRA_EXCLUDES: ${{ inputs.extra_excludes }}
         CODECHARTA_GIT_LOG_SINCE: ${{ inputs.git_log_since }}
         CODECHARTA_HISTORY_PULL_REQUEST_LIMIT: ${{ inputs.history_limit }}
+        CODECHARTA_DEPENDENCY_ENGINE: ${{ inputs.dependency_engine }}
         CODECHARTA_ANALYSIS_IMAGE: ${{ inputs.analysis_image }}
         DEPENDACHARTA_IMAGE: ${{ inputs.dependacharta_image }}
         DEPENDACHARTA_RUNNER: docker
