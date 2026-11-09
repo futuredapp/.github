@@ -35,3 +35,6 @@ jobs:
       - name: Run tests
         shell: bash
         run: bats -r .
+
+      - name: Test CodeCharta publication with local repositories
+        run: python3 -m unittest discover -s .github/actions/universal-codecharta-publish/test -v
