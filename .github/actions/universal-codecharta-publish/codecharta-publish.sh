@@ -66,8 +66,8 @@ case "${MODE}" in
     history)
         require_env STEM
         require_env DATE
-        if [[ ! "${STEM}" =~ ^(pr-[0-9]+|merge-[0-9a-f]{7,})$ ]]; then
-            echo "${MODE}: STEM must match 'pr-<N>' or 'merge-<sha>' (got '${STEM}')" >&2
+        if [[ ! "${STEM}" =~ ^(pr-[0-9]+|merge-[0-9a-f]{7,}|run-[0-9]+)$ ]]; then
+            echo "${MODE}: STEM must match 'pr-<N>', 'merge-<sha>' or 'run-<id>' (got '${STEM}')" >&2
             exit 64
         fi
         if [[ ! "${DATE}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then

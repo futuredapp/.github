@@ -72,6 +72,17 @@ class PublishTest(unittest.TestCase):
         self.assertIsNone(self.contents("history/2026-11-06-merge-7654321.cg.json"))
         self.assertEqual(self.contents("history/2026-11-05-merge-1234567.cg.json"), b"old")
 
+    def test_manual_runs_of_the_same_source_publish_distinct_entries(self):
+        meta = self.root / "manual.meta.json"
+        meta.write_text('{"trigger":"workflow_dispatch","createdAt":"2026-11-09T08:52:00Z"}')
+        self.publish("history", DATE="2026-11-09", STEM="run-42", SOURCE_META_PATH=str(meta))
+        self.source.write_bytes(b"second-run")
+        self.publish("history", DATE="2026-11-09", STEM="run-43", SOURCE_META_PATH=str(meta))
+        self.assertEqual(self.contents("history/2026-11-09-run-42.cc.json.gz"), b"new-map")
+        self.assertEqual(self.contents("history/2026-11-09-run-43.cc.json.gz"), b"second-run")
+        self.assertEqual(self.contents("history/latest.cc.json.gz"), b"second-run")
+        self.assertEqual(self.contents("history/latest.meta.json"), meta.read_bytes())
+
     def test_legacy_history_still_copies_graph_and_metadata(self):
         graph = self.root / "new.cg.json"
         graph.write_bytes(b"new-graph")

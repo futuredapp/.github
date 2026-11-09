@@ -285,6 +285,14 @@ jobs:
               echo "kind=preview"
               echo "pr=${{ github.event.pull_request.number }}"
             } >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # Each manual run gets its own entry, dated when it ran rather than when the source was committed.
+            {
+              echo "kind=history"
+              echo "stem=run-${GITHUB_RUN_ID}"
+              echo "pr="
+              echo "date=$(date -u +%F)"
+            } >> "$GITHUB_OUTPUT"
           else
             # push to develop/main — parse merge commit subject for the actual
             # GitHub-generated "Merge pull request #NNN from …" format. A
@@ -308,30 +316,32 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
-      # ── Step 6: fetch PR metadata ─────────────────────────────────────────
-      # Writes a sidecar JSON ({title, author, mergedAt, url}) next to the
-      # snapshot whenever we have a PR number — that's every preview (PR
-      # events) and every history entry whose merge commit subject parsed as
-      # "Merge pull request #NNN". The picker UI reads this to display PR
-      # titles alongside snapshots. Rebase-merge history entries (stem
-      # `merge-<sha>`) skip this step because there's no PR to query.
-      - name: Fetch PR metadata sidecar
-        if: steps.ids.outputs.pr != ''
+      # ── Step 6: preserve provenance for PR, push and manual snapshots ─────
+      - name: Write snapshot metadata
         id: meta
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_NAME: ${{ steps.project.outputs.name }}
+          PR_NUMBER: ${{ steps.ids.outputs.pr }}
         shell: bash
         run: |
           set -euo pipefail
-          meta_path="${RUNNER_TEMP}/${{ steps.project.outputs.name }}-pr-${{ steps.ids.outputs.pr }}.meta.json"
-          if gh pr view "${{ steps.ids.outputs.pr }}" \
+          meta_path="${RUNNER_TEMP}/${PROJECT_NAME}-snapshot.meta.json"
+          if [[ -n "${PR_NUMBER}" ]] && gh pr view "${PR_NUMBER}" \
               --json title,author,mergedAt,url > "${meta_path}" 2>/dev/null; then
-            echo "path=${meta_path}" >> "$GITHUB_OUTPUT"
-            echo "Wrote ${meta_path}"
+            echo "Fetched PR metadata."
           else
-            echo "PR metadata fetch failed; continuing without sidecar." >&2
-            rm -f "${meta_path}"
+            printf '{}\n' > "${meta_path}"
           fi
+          jq --arg trigger "${GITHUB_EVENT_NAME}" \
+             --arg createdAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+             --arg sourceRef "${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}" \
+             --arg sourceCommit "$(git rev-parse HEAD)" \
+             --arg runUrl "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+             '. + {trigger: $trigger, createdAt: $createdAt, sourceRef: $sourceRef, sourceCommit: $sourceCommit, runUrl: $runUrl}' \
+             "${meta_path}" > "${meta_path}.tmp"
+          mv "${meta_path}.tmp" "${meta_path}"
+          echo "path=${meta_path}" >> "$GITHUB_OUTPUT"
 
       # ── Step 7a: publish a preview entry (PR runs only) ───────────────────
       # The publish composite clones the data repo, copies the snapshot into
