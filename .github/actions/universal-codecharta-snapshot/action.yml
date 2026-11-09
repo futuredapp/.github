@@ -1,15 +1,15 @@
 name: CodeCharta snapshot
 description: >
-  Runs the CodeCharta + DependaCharta analysis pipeline against the checked-out
-  repository. Produces a `${project_name}.cc.json.gz` map (and `.cg.json` graph
-  in snapshot mode). Supports a single snapshot of HEAD or N historical
-  snapshots over recent merge commits.
+  Runs CodeCharta source, LOC, git and dependency analysis against the checked-out
+  repository. Produces a `${project_name}.cc.json.gz` map with a native dependency
+  lens by default. The optional legacy pipeline also emits `.cg.json`. Supports
+  HEAD snapshots and lightweight snapshots over recent merge commits.
 
 inputs:
   mode:
     required: true
     description: >
-      `snapshot` to analyze HEAD (produces map + graph); `history` to walk N
+      `snapshot` to analyze HEAD (produces a map and optional legacy graph); `history` to walk N
       recent first-parent merges and produce one map per merge into
       `build/codecharta/pull-requests/` (no `.cg.json` per snapshot).
   project_name:
@@ -63,16 +63,22 @@ inputs:
     required: false
     default: ghcr.io/futuredapp/dependacharta-swift:fork-v0.2.1
     description: >
-      Fully-qualified DependaCharta image reference. The Futured fork covers
+      Used only with dependency_engine=dependacharta. Fully-qualified image reference. The Futured fork covers
       all upstream languages plus Swift; pin via this input if you need a
       specific tag.
+  dependency_engine:
+    required: false
+    default: codecharta
+    description: >
+      codecharta uses the integrated dependency parser, including experimental Swift.
+      dependacharta keeps the legacy graph pipeline for rollback.
   analysis_image:
     required: false
-    default: codecharta/codecharta-analysis:1.143.0
+    default: ghcr.io/futuredapp/codecharta-analysis:swift-7bb3f6dbb6a7d3cb6fb504831a8b3c9cc5e2ce74
     description: >
-      Fully-qualified ccsh / tokei analysis image. Pinned to a specific
-      upstream release for reproducibility — bump intentionally when picking
-      up upstream changes. Consumers can override via this input.
+      Fully-qualified ccsh / tokei analysis image. The default fork build pins the
+      Swift implementation by source commit. Consumers can override this input
+      to select a later build or roll back with dependency_engine=dependacharta.
 
 outputs:
   cc_path:
@@ -83,7 +89,7 @@ outputs:
   cg_path:
     description: >
       Path to the `${project_name}.cg.json` DependaCharta graph produced in
-      `snapshot` mode. Empty in `history` mode.
+      legacy `snapshot` mode. Empty for native dependencies and in `history` mode.
     value: ${{ steps.run.outputs.cg_path }}
   snapshots_dir:
     description: >
@@ -98,7 +104,7 @@ runs:
       # History mode doesn't run DependaCharta (it walks merge commits via
       # ccsh unifiedparser --commit only). Skip the pull to avoid 100+ MB of
       # wasted network traffic on backfill runs.
-      if: inputs.mode == 'snapshot'
+      if: inputs.mode == 'snapshot' && inputs.dependency_engine == 'dependacharta'
       shell: bash
       run: docker pull "${{ inputs.dependacharta_image }}"
 
@@ -114,6 +120,7 @@ runs:
         CODECHARTA_EXTRA_EXCLUDES: ${{ inputs.extra_excludes }}
         CODECHARTA_GIT_LOG_SINCE: ${{ inputs.git_log_since }}
         CODECHARTA_HISTORY_PULL_REQUEST_LIMIT: ${{ inputs.history_limit }}
+        CODECHARTA_DEPENDENCY_ENGINE: ${{ inputs.dependency_engine }}
         CODECHARTA_ANALYSIS_IMAGE: ${{ inputs.analysis_image }}
         DEPENDACHARTA_IMAGE: ${{ inputs.dependacharta_image }}
         DEPENDACHARTA_RUNNER: docker

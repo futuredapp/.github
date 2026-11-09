@@ -58,8 +58,8 @@ inputs:
   cg_path:
     required: false
     description: >
-      Absolute path to the local `.cg.json` to publish. Required for `preview`
-      and `history`. Bulk-history snapshots don't include `.cg.json` so this
+      Optional absolute path to the local legacy `.cg.json` to publish. Omit for
+      maps with an integrated dependency lens. Bulk-history snapshots don't include `.cg.json` so this
       isn't applicable there.
   meta_path:
     required: false
