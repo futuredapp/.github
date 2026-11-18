@@ -54,9 +54,10 @@ The action extracts keys matching the pattern `[A-Z]+-[0-9]+` from each branch n
 ## How It Works
 
 1. **Extract JIRA Keys:** Parses branch names to extract ticket keys (e.g., `ABC-123`)
-2. **Get Available Transitions:** For each issue key, fetches available transitions from JIRA API
-3. **Find Target Transition:** Matches the target status name to find the corresponding transition ID
-4. **Perform Transition:** Executes the transition for each issue to move it to the target status
+2. **Skip Finished Issues:** Leaves alone every issue whose status is in the `Done` category (e.g. Done, Cancelled), so a later build that covers the same merge again doesn't reopen accepted work
+3. **Get Available Transitions:** For each remaining issue, fetches available transitions from JIRA API
+4. **Find Target Transition:** Matches the target status name to find the corresponding transition ID
+5. **Perform Transition:** Executes the transition for each issue to move it to the target status
 
 ## Usage Examples
 
