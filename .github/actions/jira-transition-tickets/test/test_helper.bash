@@ -43,7 +43,23 @@ for arg in "$@"; do
 done
 
 # Determine response and status code based on URL and method
-if [[ "$URL" == *"/transitions"* ]] && [[ "$METHOD" == "GET" ]]; then
+if [[ "$URL" == *"?fields=status"* ]] && [[ "$METHOD" == "GET" ]]; then
+  ISSUE_KEY="${URL##*/issue/}"
+  ISSUE_KEY="${ISSUE_KEY%%\?*}"
+  if [[ -f "$CURL_MOCK_RESPONSES_DIR/get_status_status_code.txt" ]]; then
+    STATUS_CODE=$(cat "$CURL_MOCK_RESPONSES_DIR/get_status_status_code.txt")
+  else
+    STATUS_CODE="200"
+  fi
+
+  if [[ -f "$CURL_MOCK_RESPONSES_DIR/get_status_response_${ISSUE_KEY}.json" ]]; then
+    cat "$CURL_MOCK_RESPONSES_DIR/get_status_response_${ISSUE_KEY}.json"
+  elif [[ -f "$CURL_MOCK_RESPONSES_DIR/get_status_response.json" ]]; then
+    cat "$CURL_MOCK_RESPONSES_DIR/get_status_response.json"
+  else
+    echo '{"fields":{"status":{"name":"In Progress","statusCategory":{"key":"indeterminate"}}}}'
+  fi
+elif [[ "$URL" == *"/transitions"* ]] && [[ "$METHOD" == "GET" ]]; then
   # Return transitions list
   if [[ -f "$CURL_MOCK_RESPONSES_DIR/get_transitions_status_code.txt" ]]; then
     STATUS_CODE=$(cat "$CURL_MOCK_RESPONSES_DIR/get_transitions_status_code.txt")
@@ -97,6 +113,19 @@ set_mock_get_transitions_response() {
     echo "$2" > "$CURL_MOCK_RESPONSES_DIR/get_transitions_status_code.txt"
   else
     echo "200" > "$CURL_MOCK_RESPONSES_DIR/get_transitions_status_code.txt"
+  fi
+}
+
+# Set a specific mock response for GET issue status, optionally for one issue key only
+# Usage: set_mock_get_status_response '{"fields":{"status":...}}' [status_code] [issue_key]
+set_mock_get_status_response() {
+  if [[ -n "$3" ]]; then
+    echo "$1" > "$CURL_MOCK_RESPONSES_DIR/get_status_response_$3.json"
+  else
+    echo "$1" > "$CURL_MOCK_RESPONSES_DIR/get_status_response.json"
+  fi
+  if [[ -n "$2" ]]; then
+    echo "$2" > "$CURL_MOCK_RESPONSES_DIR/get_status_status_code.txt"
   fi
 }
 

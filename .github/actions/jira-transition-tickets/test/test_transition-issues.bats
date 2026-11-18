@@ -328,3 +328,53 @@ teardown() {
   [[ "$output" == *"Successfully transitioned issue PROJ-123 to 'DONE'"* ]]
   [[ "$output" == *"Successfully transitioned issue PROJ-456 to 'DONE'"* ]]
 }
+
+@test "transition-issues: skips issue already in a done-category status" {
+  set_mock_get_status_response '{"fields":{"status":{"name":"Done","statusCategory":{"key":"done"}}}}'
+  set_mock_get_transitions_response '{"transitions":[{"id":"41","name":"Testing"}]}'
+  set_mock_post_transition_response ''
+
+  run "$BATS_TEST_DIRNAME/../scripts/transition-issues.sh" "$JIRA_CONTEXT" "Testing" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Issue PROJ-123 is already finished (status 'Done'). Skipping."* ]]
+  [[ "$output" != *"Successfully transitioned"* ]]
+}
+
+@test "transition-issues: skips any done-category status, not only one named Done" {
+  set_mock_get_status_response '{"fields":{"status":{"name":"Cancelled","statusCategory":{"key":"done"}}}}'
+  set_mock_get_transitions_response '{"transitions":[{"id":"41","name":"Testing"}]}'
+
+  run "$BATS_TEST_DIRNAME/../scripts/transition-issues.sh" "$JIRA_CONTEXT" "Testing" "PROJ-123"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"already finished (status 'Cancelled')"* ]]
+  [[ "$output" != *"Successfully transitioned"* ]]
+}
+
+@test "transition-issues: transitions open issues and skips finished ones in the same run" {
+  set_mock_get_status_response '{"fields":{"status":{"name":"Done","statusCategory":{"key":"done"}}}}' "" "PROJ-1"
+  set_mock_get_status_response '{"fields":{"status":{"name":"Development done","statusCategory":{"key":"indeterminate"}}}}' "" "PROJ-2"
+  set_mock_get_transitions_response '{"transitions":[{"id":"41","name":"Testing"}]}'
+  set_mock_post_transition_response ''
+
+  run "$BATS_TEST_DIRNAME/../scripts/transition-issues.sh" "$JIRA_CONTEXT" "Testing" "PROJ-1,PROJ-2"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Issue PROJ-1 is already finished"* ]]
+  [[ "$output" != *"Successfully transitioned issue PROJ-1"* ]]
+  [[ "$output" == *"Successfully transitioned issue PROJ-2 to 'Testing'"* ]]
+}
+
+@test "transition-issues: skips issue when its status cannot be read" {
+  set_mock_get_status_response '{"errorMessages":["Issue does not exist"]}' "404"
+  set_mock_get_transitions_response '{"transitions":[{"id":"41","name":"Testing"}]}'
+  set_mock_post_transition_response ''
+
+  run "$BATS_TEST_DIRNAME/../scripts/transition-issues.sh" "$JIRA_CONTEXT" "Testing" "PROJ-999"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Error getting status for issue PROJ-999"* ]]
+  [[ "$output" == *"HTTP 404"* ]]
+  [[ "$output" != *"Successfully transitioned"* ]]
+}

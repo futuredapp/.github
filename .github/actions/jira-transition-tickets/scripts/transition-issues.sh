@@ -33,6 +33,33 @@ for issue_key in "${KEYS[@]}"; do
 
   echo "Processing issue: $issue_key"
 
+  # A later build whose range covers the merge again (another branch, a rebuild) must not reopen finished work.
+  STATUS_URL="${JIRA_BASE_URL}/rest/api/3/issue/${issue_key}?fields=status"
+
+  STATUS_FULL_RESPONSE=$(curl -s -u "${JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \
+    -X GET -H "Content-Type: application/json" \
+    -w '\n%{http_code}' \
+    "$STATUS_URL")
+
+  STATUS_HTTP_CODE=$(echo "$STATUS_FULL_RESPONSE" | tail -n1)
+  STATUS_RESPONSE=$(echo "$STATUS_FULL_RESPONSE" | sed '$d')
+
+  if [[ ! "$STATUS_HTTP_CODE" =~ ^2[0-9]{2}$ ]]; then
+    echo "Error getting status for issue $issue_key: HTTP $STATUS_HTTP_CODE"
+    if [[ -n "$STATUS_RESPONSE" ]]; then
+      echo "$STATUS_RESPONSE" | jq . 2>/dev/null || echo "$STATUS_RESPONSE"
+    fi
+    continue
+  fi
+
+  STATUS_CATEGORY=$(echo "$STATUS_RESPONSE" | jq -r '.fields.status.statusCategory.key // empty')
+
+  if [[ "$STATUS_CATEGORY" == "done" ]]; then
+    STATUS_NAME=$(echo "$STATUS_RESPONSE" | jq -r '.fields.status.name // "unknown"')
+    echo "Issue $issue_key is already finished (status '$STATUS_NAME'). Skipping."
+    continue
+  fi
+
   # Get available transitions for this issue
   TRANSITIONS_URL="${JIRA_BASE_URL}/rest/api/3/issue/${issue_key}/transitions"
 
