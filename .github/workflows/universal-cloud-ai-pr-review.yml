@@ -37,6 +37,10 @@ on:
         description: 'Claude model alias or ID for the review session.'
         type: string
         default: 'sonnet'
+      review_model:
+        description: 'Model of the review skill''s own reviewer and verifier agents, handed to the skill as --model: opus, sonnet or haiku. Empty hands it nothing and the skill decides (usually the session model). Only for skills that take --model.'
+        type: string
+        default: ''
       review_base_branches:
         description: 'JSON array of base branches whose PRs get the AI review, e.g. ["develop"]. Release PRs into other branches are skipped.'
         type: string
@@ -392,6 +396,7 @@ jobs:
           SKILL: ${{ inputs.skill }}
           SKILL_PATH: ${{ steps.skill.outputs.path }}
           MODEL: ${{ inputs.model }}
+          REVIEW_MODEL: ${{ inputs.review_model }}
           PR_NUMBER: ${{ steps.ctx.outputs.pr }}
           MARKETPLACE_DIR: ${{ steps.marketplace.outputs.dir }}
         run: |
@@ -403,6 +408,10 @@ jobs:
             grab && /^[[:space:]]+-/ { print; next } { grab = 0 }' <<< "$frontmatter")
           if grep -qE '(^|[[:space:],"'"'"'-])(Read|Grep|Glob)([[:space:],"'"'"']|$)' <<< "$tools"; then
             echo "::error::The review skill pre-approves an unscoped Read, Grep or Glob; scope it, e.g. Read(~/.claude/plugins/**)."
+            exit 1
+          fi
+          if [[ -n "$REVIEW_MODEL" && ! "$REVIEW_MODEL" =~ ^(opus|sonnet|haiku)$ ]]; then
+            echo "::error::review_model must be opus, sonnet, haiku or empty, not '$REVIEW_MODEL'."
             exit 1
           fi
           schema=$(jq -c . "$MARKETPLACE_DIR/$SKILL_PATH/references/output-schema.json")
@@ -419,7 +428,7 @@ jobs:
           guard="Review only the files in .ai-review-context and the repository. If you cannot run the review skill or cannot read the PR diff, return risk level high with zone Not reviewed and say why in not_covered."
           {
             echo "claude_args=--model \"$MODEL\" --permission-mode dontAsk --strict-mcp-config --setting-sources user --allowedTools \"$allowed\" --disallowedTools \"$disallowed\" --append-system-prompt \"$guard\" --json-schema '$schema'"
-            echo "prompt=Run /$SKILL $PR_NUMBER on this repository and return its JSON result."
+            echo "prompt=Run /$SKILL $PR_NUMBER${REVIEW_MODEL:+ --model $REVIEW_MODEL} on this repository and return its JSON result."
           } >> "$GITHUB_OUTPUT"
           # Defense in depth on top of the checkout-only reads: never anything holding credentials, such as the token
           # the action writes to .git/config, the process environment, the runner temp dir and credential stores.
