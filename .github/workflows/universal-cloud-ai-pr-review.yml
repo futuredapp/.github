@@ -6,8 +6,10 @@ name: Universal Cloud AI PR Review
 # and CLAUDE_MARKETPLACE_SSH_KEY (not secrets: inherit, so the review never sees signing or store secrets), with the
 # caller granting contents: read and pull-requests, issues and statuses: write. Each job picks its own events.
 # Without "edited" on pull_request a description edit adds no run of skipped checks; after a retarget, "/review" runs it.
-# The review runs on pull_request and "/review"; the gate is re-evaluated on pull_request_target and review events,
-# which run from the base branch with a write token, so it also works for bot-authored PRs.
+# The review runs on pull_request and "/review", and again on a pull_request_target description edit that attaches
+# media when the review of the head commit found the evidence lacking (screenshots can only be uploaded to an open PR).
+# The gate is re-evaluated on pull_request_target and review events, which run from the base branch with a write token,
+# so it also works for bot-authored PRs.
 # Claude runs in "review" on untrusted PR content with a read-only token and no shell; "publish" and the gate
 # jobs hold the write token and never check out PR code.
 on:
@@ -65,39 +67,72 @@ on:
 jobs:
   trigger:
     name: Check trigger
-    # Ready, human-authored PRs on open, on every push and when retargeted; "/review" on an open PR re-runs it.
-    # Kept outside the concurrency group, so a comment that does not qualify never cancels a running review.
+    # Ready, human-authored PRs on open, on every push and when retargeted; "/review" on an open PR re-runs it, and so
+    # does a description edit that attaches media (checked below). A description edit runs here on pull_request_target,
+    # like "/review" on issue_comment: from the base branch, for a branch of this repository only, never a fork.
+    # Kept outside the concurrency group, so an event that does not qualify never cancels a running review.
     if: >-
       (github.event_name == 'pull_request' && !github.event.pull_request.draft &&
        github.event.pull_request.user.type != 'Bot' &&
        (github.event.action != 'edited' || github.event.changes.base)) ||
+      (github.event_name == 'pull_request_target' && github.event.action == 'edited' && github.event.changes.body &&
+       !github.event.pull_request.draft && github.event.pull_request.user.type != 'Bot' &&
+       github.event.pull_request.head.repo.full_name == github.repository) ||
       (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request &&
        github.event.issue.state == 'open' && github.event.comment.body == '/review')
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions:
       contents: read
+      issues: read
+      pull-requests: read
     outputs:
       ok: ${{ steps.check.outputs.ok }}
 
     steps:
-      - name: Check commenter permission
+      - name: Check trigger
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
           EVENT_NAME: ${{ github.event_name }}
           COMMENTER: ${{ github.event.comment.user.login }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          OLD_BODY: ${{ github.event.changes.body.from }}
+          NEW_BODY: ${{ github.event.pull_request.body }}
         run: |
-          if [ "$EVENT_NAME" != "issue_comment" ]; then
-            echo "ok=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          # author_association does not imply write access; the collaborator permission does.
-          permission=$(gh api "repos/$REPOSITORY/collaborators/$COMMENTER/permission" --jq '.permission' 2> /dev/null || echo none)
-          case "$permission" in
-            admin|maintain|write) echo "ok=true" >> "$GITHUB_OUTPUT" ;;
-            *) echo "$COMMENTER has $permission access; /review needs write access."; echo "ok=false" >> "$GITHUB_OUTPUT" ;;
+          case "$EVENT_NAME" in
+            pull_request)
+              echo "ok=true" >> "$GITHUB_OUTPUT"
+              ;;
+            issue_comment)
+              # author_association does not imply write access; the collaborator permission does.
+              permission=$(gh api "repos/$REPOSITORY/collaborators/$COMMENTER/permission" --jq '.permission' 2> /dev/null || echo none)
+              case "$permission" in
+                admin|maintain|write) echo "ok=true" >> "$GITHUB_OUTPUT" ;;
+                *) echo "$COMMENTER has $permission access; /review needs write access."; echo "ok=false" >> "$GITHUB_OUTPUT" ;;
+              esac
+              ;;
+            pull_request_target)
+              # Only an edit that uploads media (GitHub serves every attachment from user-attachments), and only when
+              # the review of this commit found the evidence lacking: a typo fix or a reviewed commit costs no run.
+              media() { grep -o 'github\.com/user-attachments/' | wc -l; }
+              if [ "$(printf '%s' "$NEW_BODY" | media)" -le "$(printf '%s' "$OLD_BODY" | media)" ]; then
+                echo "The edit attaches no media."
+                echo "ok=false" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              review=$(gh api --paginate --slurp "repos/$REPOSITORY/issues/$PR_NUMBER/comments" | jq -r --arg head "$HEAD_SHA" '
+                [ add // [] | .[] | select(.user.login == "github-actions[bot]") | .body // ""
+                  | select(startswith("<!-- ai-pr-review sha=\($head) ")) ] | last // ""')
+              if grep -qE '^\*\*Evidence (missing|partial):\*\*' <<< "$review"; then
+                echo "ok=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "The review of ${HEAD_SHA:0:7} found the evidence complete, or has not run yet."
+                echo "ok=false" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
           esac
 
   review:
@@ -134,6 +169,12 @@ jobs:
           if [ -z "$head_sha" ] || [ -z "$base_ref" ]; then
             echo "::error::Could not resolve PR #$PR_NUMBER."
             exit 1
+          fi
+          # A run that starts as the PR merges would diff a base branch that already holds it, so review nothing.
+          if [ "$(jq -r '.state' <<< "$pr_json")" != "open" ]; then
+            echo "PR #$PR_NUMBER is no longer open."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           if ! jq -e --arg base "$base_ref" 'index($base) != null' <<< "$REVIEW_BASE_BRANCHES" > /dev/null; then
             echo "PRs into $base_ref are not reviewed."
@@ -213,6 +254,35 @@ jobs:
             fi
           } > "$RUNNER_TEMP/forced-high.txt"
           wc -l "$CONTEXT_DIR/diff.patch" "$RUNNER_TEMP/forced-high.txt"
+
+      # The bump PR a release opens in every caller changes only futuredapp/.github refs, which reach code reviewed
+      # and released here: low risk without the model, though .github/ is a protected path.
+      - name: Recognise a shared workflow bump
+        id: bump
+        if: steps.ctx.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_REF: ${{ steps.ctx.outputs.base_ref }}
+        run: |
+          base=$(git merge-base "origin/$BASE_REF" HEAD)
+          ref='futuredapp/\.github/[^@[:space:]]+@[^[:space:]]+'
+          files=$(git diff --name-only "$base" HEAD)
+          [ -n "$files" ] || exit 0
+          # Only modified workflow files: an added, deleted, renamed or binary file is never a bump.
+          git diff --name-status --no-renames "$base" HEAD \
+            | awk -F'\t' '$1 != "M" || $2 !~ /^\.github\/workflows\/[^\/]+\.ya?ml$/ { exit 1 }' || exit 0
+          # Each file must read the same before and after once its refs are masked: nothing else changes or moves.
+          mask() { sed -E 's#(futuredapp/\.github/[^@[:space:]]+)@[^[:space:]]+#\1@REF#g'; }
+          while IFS= read -r file; do
+            [ "$(git show "$base:$file" | mask)" = "$(git show "HEAD:$file" | mask)" ] || exit 0
+          done <<< "$files"
+          # The refs the PR writes; a custom indicator keeps them apart from the +++ file headers.
+          tags=$(git diff -U0 --no-color --output-indicator-new='>' "$base" HEAD | sed -n 's/^>//p' \
+            | { grep -oE "$ref" || true; } | sed 's/.*@//' | sort -u)
+          [[ $tags =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 0 # a single release tag, never a branch or a SHA
+          gh api "repos/futuredapp/.github/releases/tags/$tags" > /dev/null 2>&1 || exit 0
+          echo "Shared workflow bump to $tags."
+          echo "tag=$tags" >> "$GITHUB_OUTPUT"
 
       # The model has no network, so what a moved Swift package pin brings is fetched here: the commits between the
       # two revisions and the release notes in between. Best effort: on a failure the file is missing and the
@@ -433,7 +503,7 @@ jobs:
 
       - name: Run review
         id: claude
-        if: steps.ctx.outputs.run == 'true'
+        if: steps.ctx.outputs.run == 'true' && steps.bump.outputs.tag == ''
         continue-on-error: true
         timeout-minutes: ${{ inputs.timeout_minutes }}
         uses: anthropics/claude-code-action@925afb53776cf1a2b738c6bdbed37b4d4000ef13 # v1.0.262
@@ -453,12 +523,24 @@ jobs:
           SKILL_PATH: ${{ steps.skill.outputs.path }}
           HEAD_SHA: ${{ steps.ctx.outputs.head_sha }}
           MARKETPLACE_DIR: ${{ steps.marketplace.outputs.dir }}
+          BUMP_TAG: ${{ steps.bump.outputs.tag }}
         run: |
           out="$RUNNER_TEMP/ai-review-out"
           mkdir -p "$out"
           : > "$out/result.json"
           : > "$out/comment.md"
-          if printf '%s' "$RESULT" | jq -e '(.risk.level == "low" or .risk.level == "high") and (.findings | type == "array") and (.summary | type == "string")' > /dev/null 2>&1; then
+          if [ -n "$BUMP_TAG" ]; then
+            jq -n --arg tag "$BUMP_TAG" '{
+              summary: "Moves the shared workflows to \($tag).", risk: {level: "low", zones: [], look_at: []},
+              intent: {matches: true, unrelated_changes: []}, evidence: {pr_type: "config", status: "not_needed", note: ""},
+              findings: [], drift: [], not_covered: []}' > "$out/result.json"
+            {
+              echo "<!-- ai-pr-review sha=$HEAD_SHA risk=low -->"
+              echo "### AI review · \`${HEAD_SHA:0:7}\` · ✅ low risk, no findings"
+              echo
+              echo "Shared workflow bump: only \`futuredapp/.github\` refs move, to the release \`$BUMP_TAG\`, so the model did not run."
+            } > "$out/comment.md"
+          elif printf '%s' "$RESULT" | jq -e '(.risk.level == "low" or .risk.level == "high") and (.findings | type == "array") and (.summary | type == "string")' > /dev/null 2>&1; then
             # Changes to CI, rules, dependencies, signing and build scripts always get a human.
             if [ -s "$RUNNER_TEMP/forced-high.txt" ]; then
               RESULT=$(printf '%s' "$RESULT" | jq -c --rawfile reasons "$RUNNER_TEMP/forced-high.txt" '
