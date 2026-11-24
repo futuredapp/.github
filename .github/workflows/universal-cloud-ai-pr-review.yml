@@ -267,7 +267,8 @@ jobs:
           base=$(git merge-base "origin/$BASE_REF" HEAD)
           # A ref as the release automation writes it (notify-consumer-repos.sh): main or a version, nothing after it.
           ref='(futuredapp/\.github/[^@[:space:]]+)@(main|[0-9]+\.[0-9]+\.[0-9]+)'
-          latest=$(gh api repos/futuredapp/.github/releases/latest --jq '.tag_name' 2> /dev/null) || exit 0
+          shared_repo='futuredapp/.github' # without a trailing slash, so validate-action-refs.sh does not read it as a ref
+          latest=$(gh api "repos/$shared_repo/releases/latest" --jq '.tag_name' 2> /dev/null) || exit 0
           files=$(git diff --name-only "$base" HEAD)
           [ -n "$files" ] || exit 0
           # Only modified text workflow files: an added, deleted, renamed or binary file is never a bump.
