@@ -52,7 +52,7 @@ on:
         type: number
         default: 15
       protected_paths:
-        description: 'Extended regex (case-insensitive) of changed paths that make the PR high risk whatever the model says. Empty turns it off.'
+        description: 'Extended regex (case-insensitive) of changed paths that make the PR high risk whatever the model says. Empty turns it off. A PR that only moves futuredapp/.github refs to the latest release is low risk regardless.'
         type: string
         default: '(^|/)\.claude/(settings[^/]*\.json$|hooks/)|^\.github/|(^|/)\.gitattributes$|(^|/)\.gitmodules$|(^|/)fastlane/[^/]+$|(^|/)(Gemfile|Podfile|Cartfile)(\.lock|\.resolved)?$|(^|/)Package\.resolved$|\.entitlements$|(^|/)PrivacyInfo\.xcprivacy$|\.xcconfig$'
 
@@ -256,7 +256,7 @@ jobs:
           wc -l "$CONTEXT_DIR/diff.patch" "$RUNNER_TEMP/forced-high.txt"
 
       # The bump PR a release opens in every caller changes only futuredapp/.github refs, which reach code reviewed
-      # and released here: low risk without the model, though .github/ is a protected path.
+      # and released here: low risk without the model, though .github/ is a protected path (whatever protected_paths says).
       - name: Recognise a shared workflow bump
         id: bump
         if: steps.ctx.outputs.run == 'true'
@@ -265,24 +265,28 @@ jobs:
           BASE_REF: ${{ steps.ctx.outputs.base_ref }}
         run: |
           base=$(git merge-base "origin/$BASE_REF" HEAD)
-          ref='futuredapp/\.github/[^@[:space:]]+@[^[:space:]]+'
+          # A ref as the release automation writes it (notify-consumer-repos.sh): main or a version, nothing after it.
+          ref='(futuredapp/\.github/[^@[:space:]]+)@(main|[0-9]+\.[0-9]+\.[0-9]+)'
+          latest=$(gh api repos/futuredapp/.github/releases/latest --jq '.tag_name' 2> /dev/null) || exit 0
           files=$(git diff --name-only "$base" HEAD)
           [ -n "$files" ] || exit 0
-          # Only modified workflow files: an added, deleted, renamed or binary file is never a bump.
+          # Only modified text workflow files: an added, deleted, renamed or binary file is never a bump.
           git diff --name-status --no-renames "$base" HEAD \
             | awk -F'\t' '$1 != "M" || $2 !~ /^\.github\/workflows\/[^\/]+\.ya?ml$/ { exit 1 }' || exit 0
+          git diff --numstat --no-renames "$base" HEAD | awk '$1 == "-" { exit 1 }' || exit 0
           # Each file must read the same before and after once its refs are masked: nothing else changes or moves.
-          mask() { sed -E 's#(futuredapp/\.github/[^@[:space:]]+)@[^[:space:]]+#\1@REF#g'; }
+          # cmp compares bytes, which a command substitution would not (it drops NULs and trailing newlines).
+          masked() { git show "$1" | sed -E "s#$ref#\1@REF#g"; }
           while IFS= read -r file; do
-            [ "$(git show "$base:$file" | mask)" = "$(git show "HEAD:$file" | mask)" ] || exit 0
+            cmp -s <(masked "$base:$file") <(masked "HEAD:$file") || exit 0
           done <<< "$files"
-          # The refs the PR writes; a custom indicator keeps them apart from the +++ file headers.
-          tags=$(git diff -U0 --no-color --output-indicator-new='>' "$base" HEAD | sed -n 's/^>//p' \
+          # Every ref the PR writes is the latest release: never a branch, an older release or a SHA.
+          # A custom indicator keeps the written lines apart from the +++ file headers.
+          written=$(git diff -U0 --no-color --output-indicator-new='>' "$base" HEAD | sed -n 's/^>//p' \
             | { grep -oE "$ref" || true; } | sed 's/.*@//' | sort -u)
-          [[ $tags =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 0 # a single release tag, never a branch or a SHA
-          gh api "repos/futuredapp/.github/releases/tags/$tags" > /dev/null 2>&1 || exit 0
-          echo "Shared workflow bump to $tags."
-          echo "tag=$tags" >> "$GITHUB_OUTPUT"
+          [ "$written" = "$latest" ] || exit 0
+          echo "Shared workflow bump to $latest."
+          echo "tag=$latest" >> "$GITHUB_OUTPUT"
 
       # The model has no network, so what a moved Swift package pin brings is fetched here: the commits between the
       # two revisions and the release notes in between. Best effort: on a failure the file is missing and the
@@ -529,17 +533,19 @@ jobs:
           mkdir -p "$out"
           : > "$out/result.json"
           : > "$out/comment.md"
+          render() {
+            python3 -I "$MARKETPLACE_DIR/$SKILL_PATH/scripts/render-comment.py" "$out/result.json" --sha "$HEAD_SHA"
+          }
           if [ -n "$BUMP_TAG" ]; then
             jq -n --arg tag "$BUMP_TAG" '{
               summary: "Moves the shared workflows to \($tag).", risk: {level: "low", zones: [], look_at: []},
               intent: {matches: true, unrelated_changes: []}, evidence: {pr_type: "config", status: "not_needed", note: ""},
               findings: [], drift: [], not_covered: []}' > "$out/result.json"
             {
-              echo "<!-- ai-pr-review sha=$HEAD_SHA risk=low -->"
-              echo "### AI review · \`${HEAD_SHA:0:7}\` · ✅ low risk, no findings"
+              render
               echo
-              echo "Shared workflow bump: only \`futuredapp/.github\` refs move, to the release \`$BUMP_TAG\`, so the model did not run."
-            } > "$out/comment.md"
+              echo "Shared workflow bump: only \`futuredapp/.github\` refs move, to the latest release \`$BUMP_TAG\`, so the model did not run."
+            } > "$out/comment.md" || : > "$out/comment.md"
           elif printf '%s' "$RESULT" | jq -e '(.risk.level == "low" or .risk.level == "high") and (.findings | type == "array") and (.summary | type == "string")' > /dev/null 2>&1; then
             # Changes to CI, rules, dependencies, signing and build scripts always get a human.
             if [ -s "$RUNNER_TEMP/forced-high.txt" ]; then
@@ -549,8 +555,7 @@ jobs:
                 else . end')
             fi
             printf '%s' "$RESULT" > "$out/result.json"
-            python3 -I "$MARKETPLACE_DIR/$SKILL_PATH/scripts/render-comment.py" "$out/result.json" \
-              --sha "$HEAD_SHA" > "$out/comment.md" || : > "$out/comment.md"
+            render > "$out/comment.md" || : > "$out/comment.md"
           fi
           jq -c '{risk: .risk.level, zones: [.risk.zones[]?.zone], findings: (.findings | length), drift: (.drift | length)}' "$out/result.json" 2> /dev/null || echo "no valid result"
 
