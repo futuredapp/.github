@@ -6,10 +6,8 @@ name: Universal Cloud AI PR Review
 # and CLAUDE_MARKETPLACE_SSH_KEY (not secrets: inherit, so the review never sees signing or store secrets), with the
 # caller granting contents: read and pull-requests, issues and statuses: write. Each job picks its own events.
 # Without "edited" on pull_request a description edit adds no run of skipped checks; after a retarget, "/review" runs it.
-# The review runs on pull_request and "/review", and again on a pull_request_target description edit that attaches
-# media when the review of the head commit found the evidence lacking (screenshots can only be uploaded to an open PR).
-# The gate is re-evaluated on pull_request_target and review events, which run from the base branch with a write token,
-# so it also works for bot-authored PRs.
+# The review runs on pull_request and "/review"; the gate is re-evaluated on pull_request_target and review events,
+# which run from the base branch with a write token, so it also works for bot-authored PRs.
 # Claude runs in "review" on untrusted PR content with a read-only token and no shell; "publish" and the gate
 # jobs hold the write token and never check out PR code.
 on:
@@ -67,72 +65,39 @@ on:
 jobs:
   trigger:
     name: Check trigger
-    # Ready, human-authored PRs on open, on every push and when retargeted; "/review" on an open PR re-runs it, and so
-    # does a description edit that attaches media (checked below). A description edit runs here on pull_request_target,
-    # like "/review" on issue_comment: from the base branch, for a branch of this repository only, never a fork.
-    # Kept outside the concurrency group, so an event that does not qualify never cancels a running review.
+    # Ready, human-authored PRs on open, on every push and when retargeted; "/review" on an open PR re-runs it.
+    # Kept outside the concurrency group, so a comment that does not qualify never cancels a running review.
     if: >-
       (github.event_name == 'pull_request' && !github.event.pull_request.draft &&
        github.event.pull_request.user.type != 'Bot' &&
        (github.event.action != 'edited' || github.event.changes.base)) ||
-      (github.event_name == 'pull_request_target' && github.event.action == 'edited' && github.event.changes.body &&
-       !github.event.pull_request.draft && github.event.pull_request.user.type != 'Bot' &&
-       github.event.pull_request.head.repo.full_name == github.repository) ||
       (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request &&
        github.event.issue.state == 'open' && github.event.comment.body == '/review')
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions:
       contents: read
-      issues: read
-      pull-requests: read
     outputs:
       ok: ${{ steps.check.outputs.ok }}
 
     steps:
-      - name: Check trigger
+      - name: Check commenter permission
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
           EVENT_NAME: ${{ github.event_name }}
           COMMENTER: ${{ github.event.comment.user.login }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          OLD_BODY: ${{ github.event.changes.body.from }}
-          NEW_BODY: ${{ github.event.pull_request.body }}
         run: |
-          case "$EVENT_NAME" in
-            pull_request)
-              echo "ok=true" >> "$GITHUB_OUTPUT"
-              ;;
-            issue_comment)
-              # author_association does not imply write access; the collaborator permission does.
-              permission=$(gh api "repos/$REPOSITORY/collaborators/$COMMENTER/permission" --jq '.permission' 2> /dev/null || echo none)
-              case "$permission" in
-                admin|maintain|write) echo "ok=true" >> "$GITHUB_OUTPUT" ;;
-                *) echo "$COMMENTER has $permission access; /review needs write access."; echo "ok=false" >> "$GITHUB_OUTPUT" ;;
-              esac
-              ;;
-            pull_request_target)
-              # Only an edit that uploads media (GitHub serves every attachment from user-attachments), and only when
-              # the review of this commit found the evidence lacking: a typo fix or a reviewed commit costs no run.
-              media() { grep -o 'github\.com/user-attachments/' | wc -l; }
-              if [ "$(printf '%s' "$NEW_BODY" | media)" -le "$(printf '%s' "$OLD_BODY" | media)" ]; then
-                echo "The edit attaches no media."
-                echo "ok=false" >> "$GITHUB_OUTPUT"
-                exit 0
-              fi
-              review=$(gh api --paginate --slurp "repos/$REPOSITORY/issues/$PR_NUMBER/comments" | jq -r --arg head "$HEAD_SHA" '
-                [ add // [] | .[] | select(.user.login == "github-actions[bot]") | .body // ""
-                  | select(startswith("<!-- ai-pr-review sha=\($head) ")) ] | last // ""')
-              if grep -qE '^\*\*Evidence (missing|partial):\*\*' <<< "$review"; then
-                echo "ok=true" >> "$GITHUB_OUTPUT"
-              else
-                echo "The review of ${HEAD_SHA:0:7} found the evidence complete, or has not run yet."
-                echo "ok=false" >> "$GITHUB_OUTPUT"
-              fi
-              ;;
+          if [ "$EVENT_NAME" != "issue_comment" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # author_association does not imply write access; the collaborator permission does.
+          permission=$(gh api "repos/$REPOSITORY/collaborators/$COMMENTER/permission" --jq '.permission' 2> /dev/null || echo none)
+          case "$permission" in
+            admin|maintain|write) echo "ok=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "$COMMENTER has $permission access; /review needs write access."; echo "ok=false" >> "$GITHUB_OUTPUT" ;;
           esac
 
   review:
