@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -2912,7 +2912,7 @@
 <td><code>string</code></td>
 <td>No</td>
 <td><code>(^|/)\.claude/(settings[^/]*\.json$|hooks/)|^\.github/|(^|/)\.gitattributes$|(^|/)\.gitmodules$|(^|/)fastlane/[^/]+$|(^|/)(Gemfile|Podfile|Cartfile)(\.lock|\.resolved)?$|(^|/)Package\.resolved$|\.entitlements$|(^|/)PrivacyInfo\.xcprivacy$|\.xcconfig$</code></td>
-<td>Extended regex (case-insensitive) of changed paths that make the PR high risk whatever the model says. Empty turns it off.</td>
+<td>Extended regex (case-insensitive) of changed paths that make the PR high risk whatever the model says. Empty turns it off. A PR that only moves futuredapp/.github refs to the latest release is low risk regardless.</td>
 </tr>
 </tbody>
 </table>
