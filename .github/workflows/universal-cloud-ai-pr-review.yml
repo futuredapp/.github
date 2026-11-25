@@ -50,7 +50,7 @@ on:
         type: number
         default: 15
       protected_paths:
-        description: 'Extended regex (case-insensitive) of changed paths that make the PR high risk whatever the model says. Empty turns it off.'
+        description: 'Extended regex (case-insensitive) of changed paths that make the PR high risk whatever the model says. Empty turns it off. A PR that only moves futuredapp/.github refs to the latest release is low risk regardless.'
         type: string
         default: '(^|/)\.claude/(settings[^/]*\.json$|hooks/)|^\.github/|(^|/)\.gitattributes$|(^|/)\.gitmodules$|(^|/)fastlane/[^/]+$|(^|/)(Gemfile|Podfile|Cartfile)(\.lock|\.resolved)?$|(^|/)Package\.resolved$|\.entitlements$|(^|/)PrivacyInfo\.xcprivacy$|\.xcconfig$'
 
@@ -135,6 +135,12 @@ jobs:
             echo "::error::Could not resolve PR #$PR_NUMBER."
             exit 1
           fi
+          # A run that starts as the PR merges would diff a base branch that already holds it, so review nothing.
+          if [ "$(jq -r '.state' <<< "$pr_json")" != "open" ]; then
+            echo "PR #$PR_NUMBER is no longer open."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if ! jq -e --arg base "$base_ref" 'index($base) != null' <<< "$REVIEW_BASE_BRANCHES" > /dev/null; then
             echo "PRs into $base_ref are not reviewed."
             echo "run=false" >> "$GITHUB_OUTPUT"
@@ -213,6 +219,40 @@ jobs:
             fi
           } > "$RUNNER_TEMP/forced-high.txt"
           wc -l "$CONTEXT_DIR/diff.patch" "$RUNNER_TEMP/forced-high.txt"
+
+      # The bump PR a release opens in every caller changes only futuredapp/.github refs, which reach code reviewed
+      # and released here: low risk without the model, though .github/ is a protected path (whatever protected_paths says).
+      - name: Recognise a shared workflow bump
+        id: bump
+        if: steps.ctx.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_REF: ${{ steps.ctx.outputs.base_ref }}
+        run: |
+          base=$(git merge-base "origin/$BASE_REF" HEAD)
+          # A ref as the release automation writes it (notify-consumer-repos.sh): main or a version, nothing after it.
+          ref='(futuredapp/\.github/[^@[:space:]]+)@(main|[0-9]+\.[0-9]+\.[0-9]+)'
+          shared_repo='futuredapp/.github' # without a trailing slash, so validate-action-refs.sh does not read it as a ref
+          latest=$(gh api "repos/$shared_repo/releases/latest" --jq '.tag_name' 2> /dev/null) || exit 0
+          files=$(git diff --name-only "$base" HEAD)
+          [ -n "$files" ] || exit 0
+          # Only modified text workflow files: an added, deleted, renamed or binary file is never a bump.
+          git diff --name-status --no-renames "$base" HEAD \
+            | awk -F'\t' '$1 != "M" || $2 !~ /^\.github\/workflows\/[^\/]+\.ya?ml$/ { exit 1 }' || exit 0
+          git diff --numstat --no-renames "$base" HEAD | awk '$1 == "-" { exit 1 }' || exit 0
+          # Each file must read the same before and after once its refs are masked: nothing else changes or moves.
+          # cmp compares bytes, which a command substitution would not (it drops NULs and trailing newlines).
+          masked() { git show "$1" | sed -E "s#$ref#\1@REF#g"; }
+          while IFS= read -r file; do
+            cmp -s <(masked "$base:$file") <(masked "HEAD:$file") || exit 0
+          done <<< "$files"
+          # Every ref the PR writes is the latest release: never a branch, an older release or a SHA.
+          # A custom indicator keeps the written lines apart from the +++ file headers.
+          written=$(git diff -U0 --no-color --output-indicator-new='>' "$base" HEAD | sed -n 's/^>//p' \
+            | { grep -oE "$ref" || true; } | sed 's/.*@//' | sort -u)
+          [ "$written" = "$latest" ] || exit 0
+          echo "Shared workflow bump to $latest."
+          echo "tag=$latest" >> "$GITHUB_OUTPUT"
 
       # The model has no network, so what a moved Swift package pin brings is fetched here: the commits between the
       # two revisions and the release notes in between. Best effort: on a failure the file is missing and the
@@ -433,7 +473,7 @@ jobs:
 
       - name: Run review
         id: claude
-        if: steps.ctx.outputs.run == 'true'
+        if: steps.ctx.outputs.run == 'true' && steps.bump.outputs.tag == ''
         continue-on-error: true
         timeout-minutes: ${{ inputs.timeout_minutes }}
         uses: anthropics/claude-code-action@925afb53776cf1a2b738c6bdbed37b4d4000ef13 # v1.0.262
@@ -453,12 +493,26 @@ jobs:
           SKILL_PATH: ${{ steps.skill.outputs.path }}
           HEAD_SHA: ${{ steps.ctx.outputs.head_sha }}
           MARKETPLACE_DIR: ${{ steps.marketplace.outputs.dir }}
+          BUMP_TAG: ${{ steps.bump.outputs.tag }}
         run: |
           out="$RUNNER_TEMP/ai-review-out"
           mkdir -p "$out"
           : > "$out/result.json"
           : > "$out/comment.md"
-          if printf '%s' "$RESULT" | jq -e '(.risk.level == "low" or .risk.level == "high") and (.findings | type == "array") and (.summary | type == "string")' > /dev/null 2>&1; then
+          render() {
+            python3 -I "$MARKETPLACE_DIR/$SKILL_PATH/scripts/render-comment.py" "$out/result.json" --sha "$HEAD_SHA"
+          }
+          if [ -n "$BUMP_TAG" ]; then
+            jq -n --arg tag "$BUMP_TAG" '{
+              summary: "Moves the shared workflows to \($tag).", risk: {level: "low", zones: [], look_at: []},
+              intent: {matches: true, unrelated_changes: []}, evidence: {pr_type: "config", status: "not_needed", note: ""},
+              findings: [], drift: [], not_covered: []}' > "$out/result.json"
+            {
+              render
+              echo
+              echo "Shared workflow bump: only \`futuredapp/.github\` refs move, to the latest release \`$BUMP_TAG\`, so the model did not run."
+            } > "$out/comment.md" || : > "$out/comment.md"
+          elif printf '%s' "$RESULT" | jq -e '(.risk.level == "low" or .risk.level == "high") and (.findings | type == "array") and (.summary | type == "string")' > /dev/null 2>&1; then
             # Changes to CI, rules, dependencies, signing and build scripts always get a human.
             if [ -s "$RUNNER_TEMP/forced-high.txt" ]; then
               RESULT=$(printf '%s' "$RESULT" | jq -c --rawfile reasons "$RUNNER_TEMP/forced-high.txt" '
@@ -467,8 +521,7 @@ jobs:
                 else . end')
             fi
             printf '%s' "$RESULT" > "$out/result.json"
-            python3 -I "$MARKETPLACE_DIR/$SKILL_PATH/scripts/render-comment.py" "$out/result.json" \
-              --sha "$HEAD_SHA" > "$out/comment.md" || : > "$out/comment.md"
+            render > "$out/comment.md" || : > "$out/comment.md"
           fi
           jq -c '{risk: .risk.level, zones: [.risk.zones[]?.zone], findings: (.findings | length), drift: (.drift | length)}' "$out/result.json" 2> /dev/null || echo "no valid result"
 
